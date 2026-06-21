@@ -1,0 +1,97 @@
+{
+  "theme": "light",
+  "archetype": "1 (Organic & Earthy)",
+  "brand": {
+    "name": "Cape Ember Coffee Co.",
+    "tagline": "Experience South Africa in Every Cup",
+    "tone": "Premium, organic, earthy, tactile"
+  },
+  "colors": {
+    "background": "#FAFAF7",
+    "surface": "#F2EEE8",
+    "border": "#E5DCD0",
+    "text_primary": "#2D2622",
+    "text_secondary": "#5C534C",
+    "primary": "#A94826",
+    "primary_hover": "#8C3C20",
+    "secondary": "#4A5D4E",
+    "error": "#D32F2F",
+    "success": "#388E3C"
+  },
+  "typography": {
+    "heading_font": "Cormorant Garamond",
+    "body_font": "Manrope",
+    "rules": [
+      "Headings must use tracking-tight.",
+      "Overlines/labels must be Uppercase + Wide Spacing (tracking-[0.2em]).",
+      "Do not use generic sans for headings.",
+      "Max hero heading size is text-6xl."
+    ]
+  },
+  "layout": {
+    "spacing": "Generous spacing. Use p-12, p-16, p-24 for sections. Components with borders need p-6.",
+    "grid_strategy": "Tetris grid for marketing sections. Bento-style layouts for product highlights. Avoid perfectly symmetrical basic grids. Use col-span-full for featured items.",
+    "border_radius": "rounded-none or rounded-sm. Keep it sharp and premium.",
+    "shadows": "Minimal. Use 1px borders instead of heavy shadows. On hover, use shadow-md or shadow-lg with a warm tint."
+  },
+  "components": {
+    "buttons": "Flat solid background, sharp edges (rounded-none), tracking-wide. Never rely on default Vercel-look. Primary buttons in Terracotta (#A94826).",
+    "cards": "Cardless or flat surface (#F2EEE8) with 1px subtle border (#E5DCD0). No massive shadows.",
+    "inputs": "Flat, bottom border only (border-b-2) or subtle full border. Solid background #FAFAF7. Focus ring in Terracotta.",
+    "navigation": "Solid background (#FAFAF7) or Crystal Glass (backdrop-blur-xl bg-[#FAFAF7]/80). Must have visible navigation links.",
+    "data_test_attributes": "MUST include data-testid attribute on all interactive elements (buttons, links, form inputs)."
+  },
+  "media": {
+    "hero_image": "https://images.pexels.com/photos/33702492/pexels-photo-33702492.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "story_image": "https://images.pexels.com/photos/5306368/pexels-photo-5306368.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "products": [
+      {
+        "id": "fynbos_roast",
+        "name": "Fynbos Roast",
+        "price": "R149",
+        "image_url": "https://images.pexels.com/photos/15093129/pexels-photo-15093129.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      },
+      {
+        "id": "garden_route",
+        "name": "Garden Route Blend",
+        "price": "R149",
+        "image_url": "https://images.pexels.com/photos/17303602/pexels-photo-17303602.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      },
+      {
+        "id": "ember_reserve",
+        "name": "Ember Reserve",
+        "price": "R159",
+        "image_url": "https://images.pexels.com/photos/14498531/pexels-photo-14498531.jpeg"
+      },
+      {
+        "id": "karoo_horizon",
+        "name": "Karoo Horizon",
+        "price": "R169",
+        "image_url": "https://images.pexels.com/photos/12039675/pexels-photo-12039675.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      },
+      {
+        "id": "landscape_bundle",
+        "name": "Landscape Bundle",
+        "price": "R599",
+        "image_url": "https://images.pexels.com/photos/13121702/pexels-photo-13121702.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      }
+    ],
+    "packaging_mockup": "https://images.pexels.com/photos/29795384/pexels-photo-29795384.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+  },
+  "animations": {
+    "hover": "Slight lift (-translate-y-1), subtle warm shadow. Images scale up slightly inside overflow-hidden containers.",
+    "page_transitions": "Smooth fade in, stagger entrance for product grids."
+  },
+  "accessibility": {
+    "contrast": "Ensure text meets 4.5:1 ratio over backgrounds. Use text shadow over images.",
+    "focus": "Focus states must have high contrast outline."
+  },
+  "instructions_to_main_agent": [
+    "Do not use generic Shadcn styling. Override all colors and border radii to match the Organic & Earthy theme.",
+    "All text over hero images must be clearly readable. Use gradient overlays (e.g. from-black/70 to-transparent) if needed.",
+    "Implement a bento grid or asymmetrical layout for marketing sections.",
+    "Always use the provided image URLs. NEVER use placeholders.",
+    "Ensure the shopping cart, checkout (PayFast), and user dashboards look seamless and use the same flat, sharp design language.",
+    "All interactive elements must include a data-testid attribute in kebab-case."
+  ]
+}
