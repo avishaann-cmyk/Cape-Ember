@@ -10,7 +10,7 @@ const AboutPage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
-            backgroundImage: `url('https://images.pexels.com/photos/5306368/pexels-photo-5306368.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940')`
+            backgroundImage: `url('https://customer-assets.emergentagent.com/job_axis-creator/artifacts/2yv1tstu_0028652C-25DC-4D60-B03B-3259460E5E93.jpeg')`
           }}
         />
         <div className="absolute inset-0 hero-overlay" />
@@ -52,8 +52,8 @@ const AboutPage = () => {
             </div>
             <div className="aspect-square overflow-hidden">
               <img
-                src="https://images.pexels.com/photos/29795384/pexels-photo-29795384.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
-                alt="Cape Ember Coffee packaging"
+                src="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg"
+                alt="Cape Ember Coffee Fynbos Roast"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -122,26 +122,26 @@ const AboutPage = () => {
               {
                 name: 'Fynbos Roast',
                 region: 'Cape Peninsula',
-                desc: 'Like the unique fynbos biome, this blend is smooth, balanced, and distinctly South African. Nutty undertones with a clean finish.',
-                image: 'https://images.pexels.com/photos/15093129/pexels-photo-15093129.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940'
+                desc: 'Inspired by the wild fynbos of the Cape, this coffee offers a grounded, comforting cup with natural sweetness. Smooth, nutty, and perfectly balanced.',
+                image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
               },
               {
                 name: 'Garden Route Blend',
                 region: 'Garden Route',
-                desc: 'Journey through lush forests and coastal cliffs with this smooth blend featuring cocoa richness and gentle citrus notes.',
-                image: 'https://images.pexels.com/photos/17303602/pexels-photo-17303602.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940'
+                desc: 'A tribute to South Africa\'s iconic coast. This balanced house blend offers a smooth cup with hints of cocoa and gentle citrus notes.',
+                image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg'
               },
               {
                 name: 'Ember Reserve',
                 region: 'Drakensberg',
-                desc: 'Bold as the mountain peaks, this dark roast is rich, intense, and deeply satisfying. For those who like their coffee strong.',
-                image: 'https://images.pexels.com/photos/14498531/pexels-photo-14498531.jpeg'
+                desc: 'Crafted for depth and intensity. This premium dark roast from Colombia delivers a bold, lingering finish with rich dark chocolate notes.',
+                image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg'
               },
               {
                 name: 'Karoo Horizon',
                 region: 'Great Karoo',
-                desc: 'Bright and expansive like the Karoo sky at dawn. Blueberry notes dance with floral undertones in this limited edition blend.',
-                image: 'https://images.pexels.com/photos/12039675/pexels-photo-12039675.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940'
+                desc: 'From the vast, open plains of the Karoo, this limited release Ethiopian offers delicate blueberry, wildflower notes, and a relaxed honey finish.',
+                image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/7rra3n1s_38C77683-E4ED-4917-95F8-08997E2C06FE.jpeg'
               },
             ].map((blend, idx) => (
               <div 

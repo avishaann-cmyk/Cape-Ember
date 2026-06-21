@@ -52,6 +52,16 @@ Build a premium Cape Ember Coffee e-commerce website inspired by capeembercoffee
 
 ## What's Been Implemented (Jan 2026)
 
+### Product Images Updated (Jan 2026)
+- Integrated real Cape Ember product photography:
+  - Fynbos Roast - Medium Roast from Brazil
+  - Garden Route Blend - House Blend
+  - Ember Reserve - Premium Dark Roast from Colombia
+  - Karoo Horizon - Limited Release Light Roast from Ethiopia
+  - Landscape Bundle - All 4 blends with mountain backdrop
+- Hero section features the full product lineup
+- All pages use consistent brand imagery
+
 ### Backend API Endpoints
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
@@ -98,10 +108,10 @@ Build a premium Cape Ember Coffee e-commerce website inspired by capeembercoffee
 - [x] Complete e-commerce flow
 - [x] Payment integration
 - [x] User authentication
+- [x] Real product images integrated
 
 ### P1 (Important)
 - [ ] Order confirmation emails (SendGrid/Resend)
-- [ ] Real product images from client
 - [ ] PayFast live credentials setup
 - [ ] Admin dashboard for order management
 
@@ -121,6 +131,5 @@ Build a premium Cape Ember Coffee e-commerce website inspired by capeembercoffee
 ## Next Tasks
 1. Obtain PayFast live merchant credentials from client
 2. Add order confirmation email notifications
-3. Upload real product photography
-4. Set up admin panel for order management
-5. Configure production deployment
+3. Set up admin panel for order management
+4. Configure production deployment

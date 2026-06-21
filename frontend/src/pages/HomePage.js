@@ -36,7 +36,7 @@ const HomePage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
-            backgroundImage: `url('https://images.pexels.com/photos/33702492/pexels-photo-33702492.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940')`
+            backgroundImage: `url('https://customer-assets.emergentagent.com/job_axis-creator/artifacts/2yv1tstu_0028652C-25DC-4D60-B03B-3259460E5E93.jpeg')`
           }}
         />
         <div className="absolute inset-0 hero-overlay" />
@@ -208,15 +208,15 @@ const HomePage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="aspect-[3/4] overflow-hidden">
                 <img
-                  src="https://images.pexels.com/photos/5306368/pexels-photo-5306368.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
-                  alt="Coffee preparation"
+                  src="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg"
+                  alt="Ember Reserve Coffee"
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />
               </div>
               <div className="aspect-[3/4] overflow-hidden mt-8">
                 <img
-                  src="https://images.pexels.com/photos/29795384/pexels-photo-29795384.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
-                  alt="Coffee packaging"
+                  src="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/7rra3n1s_38C77683-E4ED-4917-95F8-08997E2C06FE.jpeg"
+                  alt="Karoo Horizon Coffee"
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />
               </div>
