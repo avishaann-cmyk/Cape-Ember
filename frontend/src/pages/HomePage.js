@@ -1,16 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Truck, Leaf, MapPin, Coffee } from 'lucide-react';
+import { ArrowRight, Truck, Leaf, MapPin, Coffee, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Hero carousel images - lifestyle shots
+const HERO_IMAGES = [
+  {
+    url: `${process.env.REACT_APP_BACKEND_URL}/api/images/products/ember-reserve`,
+    title: "Bold & Intense",
+    subtitle: "Dark roast perfection"
+  },
+  {
+    url: `${process.env.REACT_APP_BACKEND_URL}/api/images/products/garden-route`,
+    title: "Smooth & Balanced",
+    subtitle: "Journey through the Garden Route"
+  },
+  {
+    url: `${process.env.REACT_APP_BACKEND_URL}/api/images/products/fynbos-roast`,
+    title: "Naturally Sweet",
+    subtitle: "Inspired by Cape fynbos"
+  },
+  {
+    url: `${process.env.REACT_APP_BACKEND_URL}/api/images/products/karoo-horizon`,
+    title: "Bright & Floral",
+    subtitle: "Limited release light roast"
+  }
+];
+
 const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Auto-advance carousel
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length);
+    }, 5000); // Change every 5 seconds
+    return () => clearInterval(timer);
+  }, []);
+
+  const nextSlide = useCallback(() => {
+    setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length);
+  }, []);
+
+  const prevSlide = useCallback(() => {
+    setCurrentSlide((prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length);
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -31,14 +72,18 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative h-screen flex items-center">
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ 
-            backgroundImage: `url('${process.env.REACT_APP_BACKEND_URL}/api/images/products/ember-reserve')`
-          }}
-        />
+      {/* Hero Section with Carousel */}
+      <section className="relative h-screen flex items-center overflow-hidden">
+        {/* Carousel Images */}
+        {HERO_IMAGES.map((image, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
+              index === currentSlide ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{ backgroundImage: `url('${image.url}')` }}
+          />
+        ))}
         <div className="absolute inset-0 hero-overlay" />
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
@@ -72,6 +117,41 @@ const HomePage = () => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Carousel Controls */}
+        <button
+          onClick={prevSlide}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/20 hover:bg-black/40 text-white rounded-full transition-all backdrop-blur-sm"
+          aria-label="Previous slide"
+          data-testid="carousel-prev"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <button
+          onClick={nextSlide}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/20 hover:bg-black/40 text-white rounded-full transition-all backdrop-blur-sm"
+          aria-label="Next slide"
+          data-testid="carousel-next"
+        >
+          <ChevronRight size={24} />
+        </button>
+
+        {/* Carousel Indicators */}
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+          {HERO_IMAGES.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={`w-3 h-3 rounded-full transition-all ${
+                index === currentSlide 
+                  ? 'bg-[#A94826] w-8' 
+                  : 'bg-white/50 hover:bg-white/70'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+              data-testid={`carousel-dot-${index}`}
+            />
+          ))}
         </div>
 
         {/* Scroll indicator */}
