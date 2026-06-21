@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -17,6 +17,7 @@ import jwt
 import bcrypt
 
 ROOT_DIR = Path(__file__).parent
+APP_DIR = ROOT_DIR.parent
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
@@ -752,6 +753,23 @@ async def root():
 @api_router.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+# ============ PRODUCT IMAGES ============
+
+@api_router.get("/images/products/{product_id}")
+async def get_product_image(product_id: str):
+    """Serve generated lifestyle product background images"""
+    backgrounds_dir = APP_DIR / "generated_backgrounds"
+    image_path = backgrounds_dir / f"{product_id}_background.png"
+    
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    return FileResponse(
+        path=str(image_path),
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=31536000"}
+    )
 
 # Include the router
 app.include_router(api_router)

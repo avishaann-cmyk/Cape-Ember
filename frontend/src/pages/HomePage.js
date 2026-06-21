@@ -36,7 +36,7 @@ const HomePage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
-            backgroundImage: `url('https://customer-assets.emergentagent.com/job_axis-creator/artifacts/2yv1tstu_0028652C-25DC-4D60-B03B-3259460E5E93.jpeg')`
+            backgroundImage: `url('${process.env.REACT_APP_BACKEND_URL}/api/images/products/ember-reserve')`
           }}
         />
         <div className="absolute inset-0 hero-overlay" />

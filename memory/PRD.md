@@ -59,8 +59,11 @@ Build a premium Cape Ember Coffee e-commerce website inspired by capeembercoffee
   - Ember Reserve - Premium Dark Roast from Colombia
   - Karoo Horizon - Limited Release Light Roast from Ethiopia
   - Landscape Bundle - All 4 blends with mountain backdrop
-- Hero section features the full product lineup
-- All pages use consistent brand imagery
+- AI-generated lifestyle backgrounds for hero sections:
+  - Homepage: Dramatic Drakensberg mountain scene (Ember Reserve style)
+  - About Page: Karoo desert sunrise landscape
+  - Generated backgrounds served from /api/images/products/{product_id}
+- Product cards use actual branded packaging photos
 
 ### Backend API Endpoints
 - `POST /api/auth/register` - User registration
