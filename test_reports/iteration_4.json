@@ -1,0 +1,42 @@
+{
+  "summary": "Frontend-only Phase 1 premium homepage test. 19/20 assertions PASS. Header, flame logo + 'Cape Ember COFFEE CO.' text, sticky-shrink-on-scroll, 4 product cards with prices/roast tags, testimonials w/ 15 stars, newsletter form, trust badges, footer (logo + WhatsApp + 18 links), mobile menu, and nav routes (/shop /about /subscriptions /brew-guide) all work. Add-to-Cart correctly opens AuthModal for unauthenticated users. ONE CRITICAL UI BUG: the Hero 'OUR STORY' button (btn-secondary) renders with dark-brown text on the dark hero photograph making it nearly invisible — Tailwind text-white is overridden by the global .btn-secondary{color:var(--text-primary)} rule in index.css.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "HomePage hero secondary CTA",
+        "issue": "Hero 'OUR STORY' button is unreadable. Inline classes are 'btn-secondary border-white/50 text-white ...' but computed color resolves to rgb(44,26,18) (dark brown) instead of white. Root cause: .btn-secondary in /app/frontend/src/index.css line 200 sets color:var(--text-primary) with the same specificity as Tailwind utilities — and since the global stylesheet is processed after Tailwind in the cascade for these particular utilities here, text-white loses. On the dark hero image the text is invisible (only the bordered rectangle is visible). Fix options: (a) override inline with arbitrary !important — className=\"btn-secondary border-white/50 !text-white hover:bg-white hover:!text-[#2C1A12]\"; or (b) add a new variant class like .btn-secondary-light in index.css with color:#fff; or (c) replace btn-secondary with btn-primary-outline on the hero. Same risk applies anywhere btn-secondary is paired with text-white over a dark background.",
+        "selector": "[data-testid='hero-story-btn']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Homepage hero",
+        "issues": ["Secondary 'Our Story' button has insufficient contrast against dark hero image (dark text on dark photo) — see ui_bug above. From the design-system point of view, btn-secondary's default dark text only works on the light cream background; a hero/dark-bg variant is needed."]
+      }
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_4.json"],
+  "action_items": [
+    "[HIGH] Fix hero 'Our Story' button text colour (see ui_bug). Use !text-white or create btn-secondary-light variant. Apply same fix anywhere btn-secondary appears on a dark background.",
+    "[LOW] Newsletter form has no submit handler wired to a backend endpoint — clicking Subscribe currently submits the form via the browser default and reloads the page. If a real subscribe API exists, wire it up; otherwise prevent default + show a toast.",
+    "[LOW] Hero scroll indicator 'SCROLL' is purely decorative; consider making it a button/anchor that smooth-scrolls to the products section for accessibility."
+  ],
+  "critical_code_review_comments": [
+    "/app/frontend/src/index.css .btn-secondary color uses var(--text-primary) without a light variant; this is the source of the hero CTA contrast bug.",
+    "HomePage.js newsletter <form> has no onSubmit handler — the form will reload the page if submitted; either wire it to /api/newsletter or add e.preventDefault().",
+    "HomePage.js uses two AuthModal instances (one in Navbar, one inline) — duplicate state could be unified, but functionally correct.",
+    "HomePage.js line 12-14: hero/roasting/karoo Unsplash URLs are hard-coded; move to a constants file or CMS so non-devs can change them.",
+    "Footer 'whatsapp' button text check passed via testid; cosmetic — there is no visible text label next to the WA icon in the floating CTA which may hurt accessibility (aria-label is present though)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "95% (19/20 assertions pass; 1 high-severity contrast bug)"},
+  "test_credentials": "testuser2@capeember.co.za / Test1234! (not used — add-to-cart correctly triggers auth modal so login flow was not required for Phase 1 homepage testing)",
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Phase 1 premium homepage is essentially complete. ONLY blocker is the hero 'Our Story' button colour. After fix, re-verify with: page.evaluate(\"window.getComputedStyle(document.querySelector('[data-testid=hero-story-btn]')).color\") — must return rgb(255,255,255) before hover. Everything else (logo flame asset, header shrink on scroll, 4 product cards, testimonials, newsletter form presence, trust badges, footer, mobile menu, nav links to /shop /about /subscriptions /brew-guide) is confirmed working at 1920x1080 and 390x844.",
+  "rca of the issue": "Hero secondary CTA: index.css line 194-209 defines .btn-secondary with color:var(--text-primary). When HomePage.js applies className='btn-secondary ... text-white', both rules have selector specificity (0,1,0). CSS resolves the conflict by source order — and because Tailwind's PostCSS pipeline places the global index.css custom component layer AFTER the utilities layer in the final stylesheet, .btn-secondary wins. Result: text colour remains var(--text-primary)=#2C1A12 (dark brown) overlaid on a dark hero photo, rendering the label invisible. Reproduction: open /, observe two CTAs under 'Roasted with Passion'. Right CTA shows only an outlined rectangle. Mitigation: use Tailwind's important prefix `!text-white` (compiled to color:#fff !important) on the className, OR add a `.btn-secondary-on-dark` class in index.css with `color:#fff`, OR move the color declaration in btn-secondary into a higher-specificity selector and let utilities override."
+}

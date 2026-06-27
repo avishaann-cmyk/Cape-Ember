@@ -1,20 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, ShoppingBag, User, LogOut } from 'lucide-react';
+import { MagnifyingGlass, User, Heart, ShoppingBag, List, X } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import AuthModal from './AuthModal';
 
-const LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/se338umo_Cape%20Ember%20Coffee%20Co%20Logo.jpeg";
+const FLAME_LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/58knaa6d_Flame.jpeg";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login');
+  const [scrolled, setScrolled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const { user, isAuthenticated, logout } = useAuth();
   const { cartCount } = useCart();
   const navigate = useNavigate();
+
+  // Handle scroll effect for header shrinking
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const openAuthModal = (mode) => {
     setAuthMode(mode);
@@ -28,186 +40,228 @@ const Navbar = () => {
     setMobileMenuOpen(false);
   };
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchOpen(false);
+      setSearchQuery('');
+    }
+  };
+
+  const navLinks = [
+    { to: '/shop', label: 'Shop' },
+    { to: '/about', label: 'Our Story' },
+    { to: '/subscriptions', label: 'Subscribe' },
+    { to: '/brew-guide', label: 'Brew Guide' },
+  ];
+
   return (
     <>
-      <nav className="nav-glass fixed top-0 left-0 right-0 z-40 border-b border-[#E5DCD0]">
+      <nav 
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          scrolled 
+            ? 'glass-header py-2' 
+            : 'bg-[#FDFBF7]/95 backdrop-blur-sm py-4'
+        }`}
+        data-testid="main-navbar"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-3" data-testid="nav-logo">
-              <img 
-                src={LOGO_URL} 
-                alt="Cape Ember Coffee Co." 
-                className="h-10 md:h-12 w-auto"
-              />
+          <div className="flex items-center justify-between">
+            {/* Logo - Flame + Text */}
+            <Link 
+              to="/" 
+              className="flex items-center gap-3 group" 
+              data-testid="nav-logo"
+            >
+              <div className={`relative transition-all duration-500 ${scrolled ? 'w-8 h-8' : 'w-10 h-10'}`}>
+                <img 
+                  src={FLAME_LOGO_URL} 
+                  alt="Cape Ember" 
+                  className="w-full h-full object-contain"
+                  style={{ 
+                    filter: 'drop-shadow(0 2px 4px rgba(200, 99, 51, 0.3))',
+                    mixBlendMode: 'multiply'
+                  }}
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className={`font-heading font-medium text-[#2C1A12] tracking-wide transition-all duration-500 ${
+                  scrolled ? 'text-lg' : 'text-xl'
+                }`}>
+                  Cape Ember
+                </span>
+                <span className={`font-body text-[#6B5048] tracking-[0.15em] uppercase transition-all duration-500 ${
+                  scrolled ? 'text-[8px]' : 'text-[10px]'
+                }`}>
+                  Coffee Co.
+                </span>
+              </div>
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Link 
-                to="/shop" 
-                className="text-[#5C534C] hover:text-[#A94826] font-medium transition-colors"
-                data-testid="nav-shop"
-              >
-                Shop
-              </Link>
-              <Link 
-                to="/about" 
-                className="text-[#5C534C] hover:text-[#A94826] font-medium transition-colors"
-                data-testid="nav-about"
-              >
-                Our Story
-              </Link>
-              <Link 
-                to="/subscriptions" 
-                className="text-[#5C534C] hover:text-[#A94826] font-medium transition-colors"
-                data-testid="nav-subscriptions"
-              >
-                Subscribe
-              </Link>
-              <Link 
-                to="/brew-guide" 
-                className="text-[#5C534C] hover:text-[#A94826] font-medium transition-colors"
-                data-testid="nav-brew-guide"
-              >
-                Brew Guide
-              </Link>
+            <div className="hidden lg:flex items-center space-x-10">
+              {navLinks.map((link) => (
+                <Link 
+                  key={link.to}
+                  to={link.to} 
+                  className="relative text-[#6B5048] hover:text-[#2C1A12] font-body font-medium text-sm tracking-wide transition-colors link-underline"
+                  data-testid={`nav-${link.label.toLowerCase().replace(' ', '-')}`}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
 
             {/* Right side actions */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              {/* Search */}
+              <button
+                onClick={() => setSearchOpen(!searchOpen)}
+                className="p-2 text-[#6B5048] hover:text-[#D05C23] transition-colors"
+                data-testid="nav-search"
+                aria-label="Search"
+              >
+                <MagnifyingGlass size={22} weight="light" />
+              </button>
+
+              {/* Wishlist */}
+              <Link 
+                to="/account?tab=wishlist" 
+                className="hidden sm:block p-2 text-[#6B5048] hover:text-[#D05C23] transition-colors"
+                data-testid="nav-wishlist"
+                aria-label="Wishlist"
+              >
+                <Heart size={22} weight="light" />
+              </Link>
+
+              {/* Account */}
+              {isAuthenticated ? (
+                <Link 
+                  to="/account" 
+                  className="hidden sm:block p-2 text-[#6B5048] hover:text-[#D05C23] transition-colors"
+                  data-testid="nav-account"
+                  aria-label="Account"
+                >
+                  <User size={22} weight="light" />
+                </Link>
+              ) : (
+                <button
+                  onClick={() => openAuthModal('login')}
+                  className="hidden sm:block p-2 text-[#6B5048] hover:text-[#D05C23] transition-colors"
+                  data-testid="nav-signin"
+                  aria-label="Sign In"
+                >
+                  <User size={22} weight="light" />
+                </button>
+              )}
+
               {/* Cart */}
               <Link 
                 to="/cart" 
-                className="relative text-[#5C534C] hover:text-[#A94826] transition-colors"
+                className="relative p-2 text-[#6B5048] hover:text-[#D05C23] transition-colors"
                 data-testid="nav-cart"
+                aria-label="Cart"
               >
-                <ShoppingBag size={24} />
+                <ShoppingBag size={22} weight="light" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-[#A94826] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-semibold">
-                    {cartCount}
+                  <span className="absolute top-0 right-0 bg-[#D05C23] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-medium">
+                    {cartCount > 9 ? '9+' : cartCount}
                   </span>
                 )}
               </Link>
 
-              {/* User menu */}
-              {isAuthenticated ? (
-                <div className="hidden md:flex items-center space-x-4">
-                  <Link 
-                    to="/account" 
-                    className="text-[#5C534C] hover:text-[#A94826] transition-colors"
-                    data-testid="nav-account"
-                  >
-                    <User size={24} />
-                  </Link>
-                  <button 
-                    onClick={handleLogout}
-                    className="text-[#5C534C] hover:text-[#A94826] transition-colors"
-                    data-testid="nav-logout"
-                  >
-                    <LogOut size={24} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => openAuthModal('login')}
-                  className="hidden md:block btn-primary text-sm py-2 px-4"
-                  data-testid="nav-signin"
-                >
-                  Sign In
-                </button>
-              )}
-
               {/* Mobile menu button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden text-[#5C534C]"
+                className="lg:hidden p-2 text-[#6B5048] hover:text-[#D05C23] transition-colors"
                 data-testid="nav-mobile-toggle"
+                aria-label="Menu"
               >
-                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                {mobileMenuOpen ? <X size={24} weight="light" /> : <List size={24} weight="light" />}
               </button>
             </div>
+          </div>
+
+          {/* Search Bar - Expandable */}
+          <div className={`overflow-hidden transition-all duration-300 ${searchOpen ? 'max-h-20 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+            <form onSubmit={handleSearch} className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search our coffees..."
+                className="w-full py-3 px-4 pr-12 bg-white border border-[#E6DCD1] focus:border-[#D05C23] focus:outline-none text-[#2C1A12] placeholder-[#6B5048]/60 font-body"
+                data-testid="search-input"
+              />
+              <button 
+                type="submit"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B5048] hover:text-[#D05C23] transition-colors"
+              >
+                <MagnifyingGlass size={20} weight="light" />
+              </button>
+            </form>
           </div>
         </div>
 
         {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#FAFAF7] border-t border-[#E5DCD0] animate-slide-in">
-            <div className="px-4 py-6 space-y-4">
+        <div className={`lg:hidden overflow-hidden transition-all duration-500 ${
+          mobileMenuOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+        }`}>
+          <div className="bg-[#FDFBF7] border-t border-[#E6DCD1] px-4 py-6 space-y-1">
+            {navLinks.map((link, index) => (
               <Link 
-                to="/shop" 
-                className="block text-[#2D2622] font-medium py-2"
+                key={link.to}
+                to={link.to} 
+                className="block py-3 text-[#2C1A12] font-body font-medium text-lg border-b border-[#E6DCD1]/50"
                 onClick={() => setMobileMenuOpen(false)}
-                data-testid="mobile-nav-shop"
+                data-testid={`mobile-nav-${link.label.toLowerCase().replace(' ', '-')}`}
+                style={{ animationDelay: `${index * 0.05}s` }}
               >
-                Shop
+                {link.label}
               </Link>
-              <Link 
-                to="/about" 
-                className="block text-[#2D2622] font-medium py-2"
-                onClick={() => setMobileMenuOpen(false)}
-                data-testid="mobile-nav-about"
-              >
-                Our Story
-              </Link>
-              <Link 
-                to="/subscriptions" 
-                className="block text-[#2D2622] font-medium py-2"
-                onClick={() => setMobileMenuOpen(false)}
-                data-testid="mobile-nav-subscriptions"
-              >
-                Subscribe
-              </Link>
-              <Link 
-                to="/brew-guide" 
-                className="block text-[#2D2622] font-medium py-2"
-                onClick={() => setMobileMenuOpen(false)}
-                data-testid="mobile-nav-brew-guide"
-              >
-                Brew Guide
-              </Link>
-              
-              <div className="border-t border-[#E5DCD0] pt-4 mt-4">
-                {isAuthenticated ? (
-                  <>
-                    <Link 
-                      to="/account" 
-                      className="block text-[#2D2622] font-medium py-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                      data-testid="mobile-nav-account"
-                    >
-                      My Account
-                    </Link>
-                    <button 
-                      onClick={handleLogout}
-                      className="block w-full text-left text-[#A94826] font-medium py-2"
-                      data-testid="mobile-nav-logout"
-                    >
-                      Sign Out
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => openAuthModal('login')}
-                      className="block w-full text-[#2D2622] font-medium py-2"
-                      data-testid="mobile-nav-signin"
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      onClick={() => openAuthModal('register')}
-                      className="block w-full text-[#A94826] font-medium py-2"
-                      data-testid="mobile-nav-register"
-                    >
-                      Create Account
-                    </button>
-                  </>
-                )}
-              </div>
+            ))}
+            
+            <div className="pt-4 mt-4">
+              {isAuthenticated ? (
+                <>
+                  <Link 
+                    to="/account" 
+                    className="block py-3 text-[#2C1A12] font-body font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-testid="mobile-nav-account"
+                  >
+                    My Account
+                  </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="block w-full text-left py-3 text-[#D05C23] font-body font-medium"
+                    data-testid="mobile-nav-logout"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => openAuthModal('login')}
+                    className="flex-1 btn-secondary py-3"
+                    data-testid="mobile-nav-signin"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => openAuthModal('register')}
+                    className="flex-1 btn-primary py-3"
+                    data-testid="mobile-nav-register"
+                  >
+                    Register
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
       </nav>
 
       <AuthModal 

@@ -1,63 +1,38 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Truck, Leaf, MapPin, Coffee, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, Coffee, Truck, Star, Leaf, Fire, Package } from '@phosphor-icons/react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Hero carousel images - lifestyle & landscape shots
-const HERO_IMAGES = [
-  {
-    url: "https://images.pexels.com/photos/33641653/pexels-photo-33641653.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    title: "The Garden Route",
-    subtitle: "South Africa's iconic coastline"
-  },
-  {
-    url: "https://images.pexels.com/photos/4927237/pexels-photo-4927237.jpeg",
-    title: "Crafted with Care",
-    subtitle: "Artisan coffee creation"
-  },
-  {
-    url: "https://images.pexels.com/photos/6248548/pexels-photo-6248548.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    title: "Moments of Joy",
-    subtitle: "Coffee brings people together"
-  },
-  {
-    url: "https://images.pexels.com/photos/31890552/pexels-photo-31890552.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    title: "Freshly Roasted",
-    subtitle: "Small-batch perfection"
-  }
-];
+// Premium hero images
+const HERO_IMAGE = "https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?auto=format&fit=crop&w=2000&q=80";
+const ROASTING_IMAGE = "https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=1200&q=80";
+const KAROO_IMAGE = "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=1200&q=80";
+
+// Animation variants
+const fadeInUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.4, 0, 0.2, 1] } }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
+};
 
 const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  // Auto-advance carousel
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length);
-    }, 5000); // Change every 5 seconds
-    return () => clearInterval(timer);
-  }, []);
-
-  const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length);
-  }, []);
-
-  const prevSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length);
-  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get(`${API}/products`);
-        // API returns {products: [...]} structure
         const productsData = response.data.products || response.data;
         setProducts(Array.isArray(productsData) ? productsData : []);
       } catch (error) {
@@ -73,7 +48,6 @@ const HomePage = () => {
   const individualProducts = products.filter(p => !p.is_bundle);
   const bundle = products.find(p => p.is_bundle);
 
-  // Helper to get image URL from product (supports both old and new format)
   const getImageUrl = (product) => {
     if (!product) return '/placeholder-coffee.jpg';
     if (product.image_url) return product.image_url;
@@ -84,237 +58,389 @@ const HomePage = () => {
     return '/placeholder-coffee.jpg';
   };
 
+  const features = [
+    { icon: Fire, title: 'Freshly Roasted', desc: 'Roasted within 48 hours of your order' },
+    { icon: Truck, title: 'Free Delivery', desc: 'On orders over R399' },
+    { icon: Leaf, title: 'Ethically Sourced', desc: 'Direct trade relationships' },
+    { icon: Package, title: 'Subscribe & Save', desc: '15% off recurring orders' },
+  ];
+
+  const testimonials = [
+    { name: 'Sarah M.', location: 'Cape Town', text: 'The Fynbos Roast has completely changed my morning routine. Best coffee I\'ve ever had at home.', rating: 5 },
+    { name: 'David K.', location: 'Johannesburg', text: 'Incredible quality and the subscription service is so convenient. Highly recommend!', rating: 5 },
+    { name: 'Lisa P.', location: 'Durban', text: 'The Ember Reserve is pure luxury. Worth every cent for special occasions.', rating: 5 },
+  ];
+
   return (
-    <div className="min-h-screen">
-      {/* Hero Section with Carousel */}
-      <section className="relative h-screen flex items-center overflow-hidden">
-        {/* Carousel Images */}
-        {HERO_IMAGES.map((image, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
-              index === currentSlide ? 'opacity-100' : 'opacity-0'
-            }`}
-            style={{ backgroundImage: `url('${image.url}')` }}
-          />
-        ))}
-        <div className="absolute inset-0 hero-overlay" />
-        
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
-          <div className="max-w-2xl animate-fade-in">
-            <span className="overline text-[#A94826] mb-4 block">
-              Premium Small-Batch Coffee · South Africa
-            </span>
-            <h1 className="font-heading text-5xl md:text-6xl lg:text-7xl text-white leading-tight mb-6">
-              Experience South Africa in Every Cup
-            </h1>
-            <p className="text-white/80 text-lg md:text-xl mb-8 max-w-xl">
-              From the wild fynbos coast to the vast Karoo plains — Cape Ember Coffee Co. brings together coffee, landscape, and ritual in one refined collection.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+    <div className="min-h-screen bg-[#FDFBF7]">
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center" data-testid="hero-section">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url('${HERO_IMAGE}')` }}
+        >
+          <div className="absolute inset-0 hero-overlay" />
+        </div>
+
+        {/* Hero Content */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
+          <motion.div 
+            className="max-w-2xl"
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+          >
+            <motion.span 
+              className="inline-block text-white/80 text-sm tracking-[0.3em] uppercase mb-6"
+              variants={fadeInUp}
+            >
+              Artisan Coffee from South Africa
+            </motion.span>
+            
+            <motion.h1 
+              className="font-heading text-5xl sm:text-6xl lg:text-7xl text-white leading-none mb-8"
+              variants={fadeInUp}
+            >
+              Roasted with
+              <br />
+              <span className="text-gradient bg-gradient-to-r from-[#D05C23] to-[#C86333] bg-clip-text text-transparent">
+                Passion
+              </span>
+            </motion.h1>
+            
+            <motion.p 
+              className="text-white/90 text-lg sm:text-xl max-w-lg mb-10 leading-relaxed font-light"
+              variants={fadeInUp}
+            >
+              Discover small-batch, ethically sourced coffee beans roasted to perfection 
+              in the heart of South Africa's Western Cape.
+            </motion.p>
+            
+            <motion.div 
+              className="flex flex-col sm:flex-row gap-4"
+              variants={fadeInUp}
+            >
               <Link 
                 to="/shop" 
-                className="btn-primary inline-flex items-center justify-center gap-2"
+                className="btn-primary inline-flex items-center gap-3 group"
                 data-testid="hero-shop-btn"
               >
-                Explore Collection
-                <ArrowRight size={18} />
+                Explore Our Coffees
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
-              {bundle && (
-                <Link 
-                  to={`/product/${bundle.id}`}
-                  className="btn-secondary bg-white/10 border-white/30 text-white hover:bg-white/20 inline-flex items-center justify-center"
-                  data-testid="hero-bundle-btn"
-                >
-                  Discover the Bundle
-                </Link>
-              )}
-            </div>
-          </div>
+              <Link 
+                to="/about" 
+                className="btn-secondary border-white/50 text-white hover:bg-white hover:text-[#2C1A12]"
+                data-testid="hero-story-btn"
+              >
+                Our Story
+              </Link>
+            </motion.div>
+          </motion.div>
         </div>
 
-        {/* Carousel Controls */}
-        <button
-          onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/20 hover:bg-black/40 text-white rounded-full transition-all backdrop-blur-sm"
-          aria-label="Previous slide"
-          data-testid="carousel-prev"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <button
-          onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/20 hover:bg-black/40 text-white rounded-full transition-all backdrop-blur-sm"
-          aria-label="Next slide"
-          data-testid="carousel-next"
-        >
-          <ChevronRight size={24} />
-        </button>
-
-        {/* Carousel Indicators */}
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 flex gap-3">
-          {HERO_IMAGES.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all ${
-                index === currentSlide 
-                  ? 'bg-[#A94826] w-8' 
-                  : 'bg-white/50 hover:bg-white/70'
-              }`}
-              aria-label={`Go to slide ${index + 1}`}
-              data-testid={`carousel-dot-${index}`}
-            />
-          ))}
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white/50 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center pt-2">
-            <div className="w-1 h-2 bg-white/50 rounded-full" />
-          </div>
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/60">
+          <span className="text-xs tracking-[0.2em] uppercase">Scroll</span>
+          <div className="w-[1px] h-12 bg-gradient-to-b from-white/60 to-transparent" />
         </div>
       </section>
 
-      {/* Featured Bundle */}
-      {bundle && (
-        <section className="section-padding bg-[#F2EEE8]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div className="product-image-container aspect-square">
-                <img
-                  src={getImageUrl(bundle)}
-                  alt={bundle.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="animate-slide-in">
-                <span className="overline text-[#A94826] mb-4 block">Curated Selection</span>
-                <h2 className="font-heading text-4xl md:text-5xl text-[#2D2622] mb-4">
-                  The Landscape Range Bundle
-                </h2>
-                <p className="text-[#5C534C] text-lg mb-6">
-                  A considered introduction to the Cape Ember range — four signature coffees, each inspired by a distinct South African landscape.
-                </p>
-                <p className="font-heading text-3xl text-[#A94826] mb-6">
-                  R {bundle.price.toFixed(2)} <span className="text-base text-[#5C534C] font-body">· 4 x 250g</span>
-                </p>
-                <ul className="space-y-3 mb-8">
-                  {individualProducts.map(p => (
-                    <li key={p.id} className="flex items-center gap-2 text-[#5C534C]">
-                      <Coffee size={16} className="text-[#A94826]" />
-                      <strong>{p.name}</strong> — {p.flavor_notes}
-                    </li>
-                  ))}
-                </ul>
-                <Link 
-                  to={`/product/${bundle.id}`}
-                  className="btn-primary inline-flex items-center gap-2"
-                  data-testid="bundle-cta"
-                >
-                  Begin with the Full Range
-                  <ArrowRight size={18} />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Products Grid */}
-      <section className="section-padding">
+      {/* Features Strip */}
+      <section className="bg-[#2C1A12] py-6" data-testid="features-strip">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <span className="overline text-[#A94826] mb-2 block">The Collection</span>
-            <h2 className="font-heading text-4xl md:text-5xl text-[#2D2622] mb-4">
-              Explore the Signature Blends
-            </h2>
-            <p className="text-[#5C534C] max-w-2xl mx-auto">
-              Each blend carries its own character — from smooth and balanced to bold, expressive, and deeply comforting.
-            </p>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="spinner w-8 h-8" />
-            </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {individualProducts.map((product, idx) => (
-                <div key={product.id} className={`animate-fade-in stagger-${idx + 1}`}>
-                  <ProductCard 
-                    product={product} 
-                    onAuthRequired={() => setAuthModalOpen(true)}
-                  />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            {features.map((feature, index) => (
+              <div 
+                key={index}
+                className="flex items-center gap-3 text-white/90"
+              >
+                <feature.icon size={24} weight="light" className="text-[#C86333] flex-shrink-0" />
+                <div>
+                  <span className="block text-sm font-medium">{feature.title}</span>
+                  <span className="block text-xs text-white/60">{feature.desc}</span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="section-padding bg-[#2D2622]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { icon: Coffee, title: 'Small-Batch Freshness', desc: 'Roasted in small batches to preserve flavour, aroma and character.' },
-              { icon: Leaf, title: 'Landscape Inspired', desc: 'Every blend reflects a unique South African landscape.' },
-              { icon: MapPin, title: 'Proudly South African', desc: 'Inspired by the beauty and spirit of South Africa.' },
-              { icon: Truck, title: 'Nationwide Delivery', desc: 'Fresh coffee delivered throughout South Africa. Free over R399.' },
-            ].map((feature, idx) => (
-              <div key={idx} className="text-center animate-fade-in" style={{ animationDelay: `${idx * 0.1}s` }}>
-                <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-[#A94826]/20 text-[#A94826]">
-                  <feature.icon size={28} />
-                </div>
-                <h3 className="font-heading text-xl text-white mb-2">{feature.title}</h3>
-                <p className="text-white/60 text-sm">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Story Teaser */}
-      <section className="section-padding">
+      {/* Our Coffees Section */}
+      <section className="section-padding-lg" data-testid="products-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <span className="overline text-[#A94826] mb-4 block">The Cape Ember Experience</span>
-              <h2 className="font-heading text-4xl md:text-5xl text-[#2D2622] mb-6">
-                From Landscape to Cup
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="overline block mb-4">Our Collection</span>
+            <h2 className="font-heading text-4xl sm:text-5xl text-[#2C1A12] mb-6">
+              Exceptional Coffees
+            </h2>
+            <div className="divider mx-auto" />
+          </motion.div>
+
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="spinner border-[#D05C23] border-t-transparent" />
+            </div>
+          ) : (
+            <motion.div 
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={staggerContainer}
+            >
+              {individualProducts.map((product, index) => (
+                <motion.div key={product.id} variants={fadeInUp}>
+                  <ProductCard product={product} onAuthRequired={() => setAuthModalOpen(true)} />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+
+          <motion.div 
+            className="text-center mt-12"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+          >
+            <Link 
+              to="/shop" 
+              className="inline-flex items-center gap-2 text-[#D05C23] font-medium hover:gap-4 transition-all link-underline"
+              data-testid="view-all-products"
+            >
+              View All Products
+              <ArrowRight size={18} />
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Featured Bundle - Asymmetric Layout */}
+      {bundle && (
+        <section className="section-padding bg-[#F4EFE6]" data-testid="bundle-section">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+              <motion.div 
+                className="order-2 lg:order-1"
+                initial={{ opacity: 0, x: -40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
+              >
+                <span className="overline block mb-4">Best Value</span>
+                <h2 className="font-heading text-4xl sm:text-5xl text-[#2C1A12] mb-6">
+                  {bundle.name}
+                </h2>
+                <p className="text-[#6B5048] text-lg leading-relaxed mb-8">
+                  {bundle.description || 'Experience all four of our signature roasts in one beautifully curated collection. Perfect for discovering your new favourite or as a gift for the coffee lover in your life.'}
+                </p>
+                <div className="flex items-baseline gap-4 mb-8">
+                  <span className="text-4xl font-heading text-[#2C1A12]">
+                    R {bundle.price?.toFixed(2)}
+                  </span>
+                  <span className="text-[#6B5048] line-through">
+                    R {(bundle.price * 1.2)?.toFixed(2)}
+                  </span>
+                  <span className="luxury-badge">Save 20%</span>
+                </div>
+                <Link 
+                  to={`/product/${bundle.slug || bundle.id}`}
+                  className="btn-primary inline-flex items-center gap-3"
+                  data-testid="bundle-cta"
+                >
+                  View Bundle
+                  <ArrowRight size={18} />
+                </Link>
+              </motion.div>
+              
+              <motion.div 
+                className="order-1 lg:order-2"
+                initial={{ opacity: 0, x: 40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
+              >
+                <div className="aspect-square bg-[#FDFBF7] overflow-hidden">
+                  <img
+                    src={getImageUrl(bundle)}
+                    alt={bundle.name}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                  />
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Our Story Section */}
+      <section className="section-padding-lg" data-testid="story-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <div className="relative">
+                <div className="aspect-[4/5] overflow-hidden">
+                  <img
+                    src={ROASTING_IMAGE}
+                    alt="Coffee roasting process"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-[#D05C23] flex items-center justify-center text-white p-6">
+                  <div className="text-center">
+                    <span className="block text-4xl font-heading">10+</span>
+                    <span className="text-sm tracking-wide">Years of<br/>Excellence</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <span className="overline block mb-4">Our Story</span>
+              <h2 className="font-heading text-4xl sm:text-5xl text-[#2C1A12] mb-6">
+                From the Heart of<br/>South Africa
               </h2>
-              <p className="text-[#5C534C] text-lg mb-4">
-                A visual journey through the places, rituals and moments that inspire every Cape Ember blend.
-              </p>
-              <p className="text-[#5C534C] mb-8">
-                We source premium beans and roast them with care, honoring the diverse terrains of our beautiful country. Each cup tells a story of mountains, coastlines, and everything in between.
-              </p>
+              <div className="space-y-4 text-[#6B5048] leading-relaxed mb-8">
+                <p>
+                  Cape Ember Coffee Co. was born from a passion for exceptional coffee and 
+                  a deep love for the South African landscape. What started as a small 
+                  roastery in the Western Cape has grown into something we're incredibly proud of.
+                </p>
+                <p>
+                  Every batch we roast tells a story—of the farmers who nurture the beans, 
+                  the land that shapes their character, and the craft that brings out their 
+                  finest qualities. We source directly from sustainable farms across Africa 
+                  and South America.
+                </p>
+              </div>
               <Link 
-                to="/about" 
-                className="btn-secondary inline-flex items-center gap-2"
+                to="/about"
+                className="btn-secondary inline-flex items-center gap-3"
                 data-testid="story-cta"
               >
-                Read Our Story
+                Read Our Full Story
                 <ArrowRight size={18} />
               </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="aspect-[3/4] overflow-hidden">
-                <img
-                  src="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg"
-                  alt="Ember Reserve Coffee"
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                />
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="section-padding bg-[#2C1A12]" data-testid="testimonials-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <span className="text-[#C86333] text-sm tracking-[0.3em] uppercase block mb-4">
+              Customer Love
+            </span>
+            <h2 className="font-heading text-4xl sm:text-5xl text-white">
+              What Our Customers Say
+            </h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <motion.div 
+                key={index}
+                className="bg-white/5 backdrop-blur-sm border border-white/10 p-8"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.15 }}
+              >
+                <div className="flex gap-1 mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} size={18} weight="fill" className="text-[#C86333]" />
+                  ))}
+                </div>
+                <p className="text-white/90 italic mb-6 leading-relaxed">
+                  "{testimonial.text}"
+                </p>
+                <div>
+                  <span className="block text-white font-medium">{testimonial.name}</span>
+                  <span className="text-white/60 text-sm">{testimonial.location}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="section-padding bg-[#F4EFE6]" data-testid="newsletter-section">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <span className="overline block mb-4">Join the Circle</span>
+            <h2 className="font-heading text-4xl sm:text-5xl text-[#2C1A12] mb-6">
+              Stay Close to New Roasts
+            </h2>
+            <p className="text-[#6B5048] mb-8">
+              Be the first to hear about new blends, limited releases, and exclusive offers.
+            </p>
+            <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="input-field flex-1"
+                data-testid="newsletter-email"
+              />
+              <button 
+                type="submit" 
+                className="btn-primary whitespace-nowrap"
+                data-testid="newsletter-submit"
+              >
+                Subscribe
+              </button>
+            </form>
+            <p className="text-[#6B5048]/60 text-sm mt-4">
+              No spam, ever. Unsubscribe anytime.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Trust Badges */}
+      <section className="py-12 border-t border-[#E6DCD1]" data-testid="trust-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {[
+              { label: 'Secure Checkout', icon: '🔒' },
+              { label: 'Freshly Roasted', icon: '☕' },
+              { label: 'SA Owned', icon: '🇿🇦' },
+              { label: 'Free Returns', icon: '↩️' },
+            ].map((badge, index) => (
+              <div key={index} className="flex flex-col items-center gap-2">
+                <span className="text-2xl">{badge.icon}</span>
+                <span className="text-[#6B5048] text-sm font-medium">{badge.label}</span>
               </div>
-              <div className="aspect-[3/4] overflow-hidden mt-8">
-                <img
-                  src="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/7rra3n1s_38C77683-E4ED-4917-95F8-08997E2C06FE.jpeg"
-                  alt="Karoo Horizon Coffee"
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -322,7 +448,7 @@ const HomePage = () => {
       <AuthModal 
         isOpen={authModalOpen} 
         onClose={() => setAuthModalOpen(false)} 
-        initialMode="register"
+        initialMode="login"
       />
     </div>
   );

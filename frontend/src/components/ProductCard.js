@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Heart } from '@phosphor-icons/react';
 
 const ProductCard = ({ product, onAuthRequired }) => {
   const { addToCart } = useCart();
@@ -21,6 +21,9 @@ const ProductCard = ({ product, onAuthRequired }) => {
     (product.variants && product.variants.length > 0 
       ? product.variants[0]?.weight 
       : '250g');
+
+  // Get roast level for display
+  const roastLevel = product.roast_level || product.roast || 'Medium';
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -45,62 +48,91 @@ const ProductCard = ({ product, onAuthRequired }) => {
 
   return (
     <Link 
-      to={`/product/${product.id}`} 
+      to={`/product/${product.slug || product.id}`} 
       className="group block"
       data-testid={`product-card-${product.id}`}
     >
-      <div className="card overflow-hidden">
-        {/* Image */}
-        <div className="product-image-container aspect-square bg-[#F2EEE8]">
+      <div className="premium-card overflow-hidden bg-white">
+        {/* Image Container */}
+        <div className="product-image-container aspect-[4/5] bg-[#F4EFE6] relative">
           <img
             src={imageUrl}
             alt={product.name}
             className="w-full h-full object-cover"
             loading="lazy"
           />
+          
+          {/* Overlay Actions */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+          
+          {/* Wishlist Button */}
+          <button 
+            className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // TODO: Add to wishlist
+            }}
+            aria-label="Add to wishlist"
+          >
+            <Heart size={20} weight="light" className="text-[#2C1A12]" />
+          </button>
+
+          {/* Badges */}
+          <div className="absolute top-4 left-4 flex flex-col gap-2">
+            {product.is_bundle && (
+              <span className="luxury-badge bg-[#2C1A12] text-white border-0">
+                Bundle
+              </span>
+            )}
+            {product.id === 'karoo-horizon' && (
+              <span className="luxury-badge">
+                Limited
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-6">
-          {/* Badges */}
-          {product.is_bundle && (
-            <span className="badge badge-secondary mb-3">Bundle</span>
-          )}
-          {product.id === 'karoo-horizon' && (
-            <span className="badge badge-primary mb-3">Limited Edition</span>
-          )}
+        <div className="p-5">
+          {/* Roast Level Tag */}
+          <span className="text-[10px] text-[#C86333] tracking-[0.2em] uppercase mb-2 block">
+            {roastLevel} Roast
+          </span>
 
-          <h3 className="font-heading text-xl text-[#2D2622] mb-1 group-hover:text-[#A94826] transition-colors">
+          <h3 className="font-heading text-xl text-[#2C1A12] mb-1 group-hover:text-[#D05C23] transition-colors">
             {product.name}
           </h3>
           
-          <p className="text-[#5C534C] text-sm mb-3">{product.flavor_notes}</p>
+          <p className="text-[#6B5048] text-sm mb-4 line-clamp-1">
+            {product.flavor_notes || product.short_description || 'Rich, aromatic coffee'}
+          </p>
           
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-[#2D2622]">
-              R {product.price.toFixed(2)}
+          <div className="flex items-center justify-between mb-4">
+            <span className="font-heading text-xl text-[#2C1A12]">
+              R {product.price?.toFixed(2)}
             </span>
-            <span className="text-sm text-[#5C534C]">{productWeight}</span>
+            <span className="text-xs text-[#6B5048] tracking-wide">{productWeight}</span>
           </div>
 
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
             disabled={adding}
-            className={`w-full mt-4 py-3 flex items-center justify-center gap-2 font-medium tracking-wide text-sm transition-all ${
+            className={`w-full py-3 flex items-center justify-center gap-2 font-medium tracking-wide text-xs uppercase transition-all duration-300 ${
               added 
-                ? 'bg-[#388E3C] text-white' 
-                : 'bg-[#2D2622] text-white hover:bg-[#A94826]'
+                ? 'bg-[#2F855A] text-white' 
+                : 'bg-[#2C1A12] text-white hover:bg-[#D05C23]'
             }`}
             data-testid={`add-to-cart-${product.id}`}
           >
             {adding ? (
-              <span className="spinner border-white border-t-transparent" />
+              <span className="spinner border-white border-t-transparent w-4 h-4" />
             ) : added ? (
-              'Added!'
+              'Added to Cart'
             ) : (
               <>
-                <ShoppingBag size={18} />
+                <ShoppingBag size={16} weight="light" />
                 Add to Cart
               </>
             )}

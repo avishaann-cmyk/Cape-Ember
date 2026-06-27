@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageCircle, Mail, MapPin, Phone } from 'lucide-react';
+import { WhatsappLogo, Envelope, MapPin, Phone, InstagramLogo, FacebookLogo } from '@phosphor-icons/react';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/se338umo_Cape%20Ember%20Coffee%20Co%20Logo.jpeg";
+const FLAME_LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/58knaa6d_Flame.jpeg";
 
 const Footer = () => {
   const [email, setEmail] = useState('');
@@ -28,135 +28,167 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-[#2D2622] text-white">
-      {/* Newsletter Section */}
-      <div className="border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="max-w-xl mx-auto text-center">
-            <span className="overline text-[#A94826]">Join the Ember Circle</span>
-            <h3 className="font-heading text-3xl mt-2 mb-4">Stay Close to New Roasts</h3>
-            <p className="text-white/70 mb-8">
-              Be the first to hear about new blends, limited releases and refined coffee updates.
-            </p>
-            
-            {subscribed ? (
-              <p className="text-[#A94826] font-medium">Thank you for subscribing!</p>
-            ) : (
-              <form onSubmit={handleSubscribe} className="flex gap-4">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="flex-1 bg-white/10 border border-white/20 px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#A94826]"
-                  required
-                  data-testid="newsletter-email"
-                />
-                <button 
-                  type="submit" 
-                  disabled={loading}
-                  className="btn-primary"
-                  data-testid="newsletter-submit"
-                >
-                  {loading ? <span className="spinner border-white border-t-transparent" /> : 'Subscribe'}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-
+    <footer className="bg-[#2C1A12] text-white" data-testid="main-footer">
       {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-          {/* Brand */}
-          <div className="md:col-span-2">
-            <img 
-              src={LOGO_URL} 
-              alt="Cape Ember Coffee Co." 
-              className="h-16 w-auto mb-4"
-            />
-            <p className="text-white/70 mb-6 max-w-md">
-              Premium small-batch coffee inspired by the beautiful landscapes of South Africa. 
-              Experience the Cape in every cup.
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
+          {/* Brand Column */}
+          <div className="lg:col-span-1">
+            <Link to="/" className="flex items-center gap-3 mb-6">
+              <img 
+                src={FLAME_LOGO_URL} 
+                alt="Cape Ember" 
+                className="h-10 w-10 object-contain"
+                style={{ filter: 'brightness(1.2)' }}
+              />
+              <div className="flex flex-col">
+                <span className="font-heading text-xl text-white">Cape Ember</span>
+                <span className="text-[10px] text-white/60 tracking-[0.15em] uppercase">Coffee Co.</span>
+              </div>
+            </Link>
+            <p className="text-white/60 text-sm leading-relaxed mb-6">
+              Premium small-batch coffee roasted in the heart of South Africa. 
+              Experience the warmth of the Cape in every cup.
             </p>
-            <a 
-              href="https://wa.me/27810261618"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 whatsapp-btn px-4 py-2 font-medium transition-colors"
-              data-testid="footer-whatsapp"
-            >
-              <MessageCircle size={20} />
-              Chat with us
-            </a>
+            <div className="flex gap-4">
+              <a 
+                href="https://instagram.com/capeembercoffee"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-[#C86333] transition-colors"
+                aria-label="Instagram"
+              >
+                <InstagramLogo size={22} weight="light" />
+              </a>
+              <a 
+                href="https://facebook.com/capeembercoffee"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-[#C86333] transition-colors"
+                aria-label="Facebook"
+              >
+                <FacebookLogo size={22} weight="light" />
+              </a>
+              <a 
+                href="https://wa.me/27810261618"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-[#25D366] transition-colors"
+                aria-label="WhatsApp"
+                data-testid="footer-whatsapp"
+              >
+                <WhatsappLogo size={22} weight="light" />
+              </a>
+            </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Shop Links */}
           <div>
-            <h5 className="overline text-white mb-4">Quick Links</h5>
+            <h5 className="text-white font-medium text-sm tracking-wide uppercase mb-6">Shop</h5>
             <ul className="space-y-3">
-              <li>
-                <Link to="/shop" className="text-white/70 hover:text-[#A94826] transition-colors">
-                  Shop All
-                </Link>
-              </li>
-              <li>
-                <Link to="/subscriptions" className="text-white/70 hover:text-[#A94826] transition-colors">
-                  Subscriptions
-                </Link>
-              </li>
-              <li>
-                <Link to="/brew-guide" className="text-white/70 hover:text-[#A94826] transition-colors">
-                  Brew Guide
-                </Link>
-              </li>
-              <li>
-                <Link to="/about" className="text-white/70 hover:text-[#A94826] transition-colors">
-                  Our Story
-                </Link>
-              </li>
-              <li>
-                <Link to="/account" className="text-white/70 hover:text-[#A94826] transition-colors">
-                  My Account
-                </Link>
-              </li>
+              {[
+                { to: '/shop', label: 'All Coffees' },
+                { to: '/shop?category=single-origin', label: 'Single Origin' },
+                { to: '/shop?category=blends', label: 'Blends' },
+                { to: '/subscriptions', label: 'Subscriptions' },
+                { to: '/shop?tag=bundle', label: 'Gift Sets' },
+              ].map((link) => (
+                <li key={link.to}>
+                  <Link 
+                    to={link.to} 
+                    className="text-white/60 hover:text-[#C86333] transition-colors text-sm"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Help Links */}
+          <div>
+            <h5 className="text-white font-medium text-sm tracking-wide uppercase mb-6">Help</h5>
+            <ul className="space-y-3">
+              {[
+                { to: '/brew-guide', label: 'Brew Guide' },
+                { to: '/about', label: 'Our Story' },
+                { to: '/account', label: 'My Account' },
+                { to: '/returns', label: 'Shipping & Returns' },
+                { to: '/privacy', label: 'Privacy Policy' },
+                { to: '/terms', label: 'Terms & Conditions' },
+              ].map((link) => (
+                <li key={link.to}>
+                  <Link 
+                    to={link.to} 
+                    className="text-white/60 hover:text-[#C86333] transition-colors text-sm"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h5 className="overline text-white mb-4">Contact</h5>
-            <ul className="space-y-3">
-              <li className="flex items-center gap-2 text-white/70">
-                <Mail size={16} />
-                <a href="mailto:hello@capeembercoffee.co.za" className="hover:text-[#A94826] transition-colors">
+            <h5 className="text-white font-medium text-sm tracking-wide uppercase mb-6">Contact</h5>
+            <ul className="space-y-4">
+              <li>
+                <a 
+                  href="mailto:hello@capeembercoffee.co.za" 
+                  className="flex items-center gap-3 text-white/60 hover:text-[#C86333] transition-colors text-sm group"
+                >
+                  <Envelope size={18} weight="light" className="group-hover:text-[#C86333]" />
                   hello@capeembercoffee.co.za
                 </a>
               </li>
-              <li className="flex items-center gap-2 text-white/70">
-                <Phone size={16} />
-                <a href="tel:+27810261618" className="hover:text-[#A94826] transition-colors">
+              <li>
+                <a 
+                  href="tel:+27810261618" 
+                  className="flex items-center gap-3 text-white/60 hover:text-[#C86333] transition-colors text-sm group"
+                >
+                  <Phone size={18} weight="light" className="group-hover:text-[#C86333]" />
                   +27 81 026 1618
                 </a>
               </li>
-              <li className="flex items-start gap-2 text-white/70">
-                <MapPin size={16} className="mt-1" />
-                <span>Cape Town, South Africa</span>
+              <li className="flex items-start gap-3 text-white/60 text-sm">
+                <MapPin size={18} weight="light" className="mt-0.5 flex-shrink-0" />
+                <span>Cape Town<br/>Western Cape, South Africa</span>
               </li>
             </ul>
+
+            {/* WhatsApp CTA */}
+            <a 
+              href="https://wa.me/27810261618"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-6 px-4 py-2 bg-[#25D366] hover:bg-[#20BD5A] text-white text-sm font-medium transition-colors"
+              data-testid="footer-whatsapp-cta"
+            >
+              <WhatsappLogo size={18} weight="fill" />
+              Chat with us
+            </a>
           </div>
         </div>
+      </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-white/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-white/50 text-sm">
-            © {new Date().getFullYear()} Cape Ember Coffee Co. All rights reserved.
-          </p>
-          <div className="flex gap-6 text-sm text-white/50">
-            <Link to="/terms" className="hover:text-[#A94826] transition-colors">Terms</Link>
-            <Link to="/privacy" className="hover:text-[#A94826] transition-colors">Privacy</Link>
-            <Link to="/returns" className="hover:text-[#A94826] transition-colors">Returns</Link>
+      {/* Bottom Bar */}
+      <div className="border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-white/40 text-sm">
+              © {new Date().getFullYear()} Cape Ember Coffee Co. All rights reserved.
+            </p>
+            <div className="flex items-center gap-6">
+              <img 
+                src="https://www.payfast.co.za/assets/images/logos/PayFast_logo_colour.svg" 
+                alt="PayFast" 
+                className="h-6 opacity-60 hover:opacity-100 transition-opacity"
+              />
+              <div className="flex gap-2">
+                <span className="text-white/40 text-xs">Secure Payments</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
