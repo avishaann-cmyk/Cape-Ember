@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Coffee, Truck, Star, Leaf, Fire, Package } from '@phosphor-icons/react';
-import { motion } from 'framer-motion';
+import { ArrowRight, Coffee, Truck, Star, Leaf, Fire, Package, CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
@@ -10,8 +10,35 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Premium hero images
 const HERO_IMAGE = "https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?auto=format&fit=crop&w=2000&q=80";
-const ROASTING_IMAGE = "https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=1200&q=80";
-const KAROO_IMAGE = "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=1200&q=80";
+
+// South African Landscape Images for Story Carousel
+const LANDSCAPE_IMAGES = [
+  {
+    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/vkx5y4m0_IMG_6527.jpeg",
+    alt: "Karoo sunset with campfire - South African landscape",
+    caption: "The Karoo"
+  },
+  {
+    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/ho8c9nic_IMG_6530.jpeg",
+    alt: "Karoo windmill landscape - South African plains",
+    caption: "Karoo Horizon"
+  },
+  {
+    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/uyhgy2rt_IMG_6529.jpeg",
+    alt: "Golden sunset beach - South African coastline",
+    caption: "The Wild Coast"
+  },
+  {
+    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/mrw0wk8a_IMG_6536.jpeg",
+    alt: "Rocky coastline with surfers - Garden Route",
+    caption: "Garden Route"
+  },
+  {
+    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/ny52w6fh_IMG_6535.jpeg",
+    alt: "Kaaimans River Bridge - Wilderness",
+    caption: "Wilderness"
+  }
+];
 
 // Animation variants
 const fadeInUp = {
@@ -28,6 +55,23 @@ const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Auto-rotate carousel every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % LANDSCAPE_IMAGES.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % LANDSCAPE_IMAGES.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + LANDSCAPE_IMAGES.length) % LANDSCAPE_IMAGES.length);
+  };
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -292,14 +336,61 @@ const HomePage = () => {
               transition={{ duration: 0.8 }}
             >
               <div className="relative">
-                <div className="aspect-[4/5] overflow-hidden">
-                  <img
-                    src={ROASTING_IMAGE}
-                    alt="Premium coffee preparation"
-                    className="w-full h-full object-cover"
-                  />
+                {/* Image Carousel */}
+                <div className="aspect-[4/5] overflow-hidden relative group">
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={currentImageIndex}
+                      src={LANDSCAPE_IMAGES[currentImageIndex].url}
+                      alt={LANDSCAPE_IMAGES[currentImageIndex].alt}
+                      className="w-full h-full object-cover"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </AnimatePresence>
+                  
+                  {/* Navigation Arrows */}
+                  <button 
+                    onClick={prevImage}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Previous image"
+                  >
+                    <CaretLeft size={20} className="text-[#2C1A12]" />
+                  </button>
+                  <button 
+                    onClick={nextImage}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Next image"
+                  >
+                    <CaretRight size={20} className="text-[#2C1A12]" />
+                  </button>
+                  
+                  {/* Dots Indicator */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {LANDSCAPE_IMAGES.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentImageIndex(idx)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          idx === currentImageIndex ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/80'
+                        }`}
+                        aria-label={`Go to image ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Caption */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-12">
+                    <span className="text-white text-sm tracking-wide uppercase">
+                      {LANDSCAPE_IMAGES[currentImageIndex].caption}
+                    </span>
+                  </div>
                 </div>
-                <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-[#D05C23] flex items-center justify-center text-white p-6">
+                
+                {/* Floating Badge */}
+                <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-[#D05C23] flex items-center justify-center text-white p-6 z-10">
                   <div className="text-center">
                     <span className="block text-3xl font-heading">From</span>
                     <span className="text-sm tracking-wide">Landscape<br/>to Cup</span>
