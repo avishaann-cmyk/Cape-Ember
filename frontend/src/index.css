@@ -214,6 +214,30 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--text-primary);
 }
 
+/* Light variant for dark backgrounds */
+.btn-secondary-light {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 2.5rem;
+  background-color: transparent;
+  color: white;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary-light:hover {
+  background-color: white;
+  color: var(--text-primary);
+  border-color: white;
+}
+
 /* Premium Input Styles */
 .input-field {
   width: 100%;

@@ -131,7 +131,7 @@ const HomePage = () => {
               </Link>
               <Link 
                 to="/about" 
-                className="btn-secondary border-white/50 text-white hover:bg-white hover:text-[#2C1A12]"
+                className="btn-secondary-light"
                 data-testid="hero-story-btn"
               >
                 Our Story
