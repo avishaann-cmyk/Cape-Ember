@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CreditCard, MessageCircle, Building2, Wallet } from 'lucide-react';
+import { ArrowLeft, CreditCard, MessageCircle } from 'lucide-react';
 import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,7 +16,6 @@ const CheckoutPage = () => {
   const [error, setError] = useState('');
   const [isSubscription, setIsSubscription] = useState(false);
   const [subscriptionFrequency, setSubscriptionFrequency] = useState('monthly');
-  const [paymentMethod, setPaymentMethod] = useState('payfast'); // 'payfast' or 'stitch'
   
   const [address, setAddress] = useState({
     street: '',
@@ -55,7 +54,7 @@ const CheckoutPage = () => {
         shipping_address: address,
         is_subscription: isSubscription,
         subscription_frequency: isSubscription ? subscriptionFrequency : null,
-        payment_method: paymentMethod
+        payment_method: 'payfast'
       });
 
       const { order_id, whatsapp_link } = orderRes.data;
@@ -64,49 +63,28 @@ const CheckoutPage = () => {
       localStorage.setItem('whatsapp_link', whatsapp_link);
       localStorage.setItem('order_id', order_id);
 
-      if (paymentMethod === 'stitch') {
-        // Create Stitch payment
-        try {
-          const paymentRes = await axios.post(`${API}/stitch/create-payment`, {
-            order_id
-          });
+      // Create PayFast payment
+      const paymentRes = await axios.post(`${API}/payfast/create-payment`, {
+        order_id
+      });
 
-          const { redirect_url } = paymentRes.data;
-          
-          // Redirect to Stitch payment page
-          window.location.href = redirect_url;
-        } catch (stitchErr) {
-          // If Stitch fails, offer to fallback to PayFast
-          const stitchError = stitchErr.response?.data?.detail || 'Stitch payment unavailable';
-          setError(`${stitchError} Would you like to try PayFast instead?`);
-          setPaymentMethod('payfast');
-          setLoading(false);
-          return;
-        }
-      } else {
-        // Create PayFast payment
-        const paymentRes = await axios.post(`${API}/payfast/create-payment`, {
-          order_id
-        });
+      const { payfast_host, fields } = paymentRes.data;
 
-        const { payfast_host, fields } = paymentRes.data;
+      // Create and submit PayFast form
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `https://${payfast_host}/eng/process`;
 
-        // Create and submit PayFast form
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `https://${payfast_host}/eng/process`;
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      });
 
-        Object.entries(fields).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value;
-          form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-        form.submit();
-      }
+      document.body.appendChild(form);
+      form.submit();
 
     } catch (err) {
       console.error('Checkout error:', err);
@@ -279,55 +257,17 @@ const CheckoutPage = () => {
                 </div>
               </div>
 
-              {/* Payment Method Selection */}
+              {/* Payment Method - PayFast Only (Stitch coming soon) */}
               <div className="mb-6">
                 <h3 className="font-heading text-lg text-[#2D2622] mb-4">Payment Method</h3>
-                <div className="space-y-3">
-                  <label 
-                    className={`flex items-center gap-3 p-4 border cursor-pointer transition-all ${
-                      paymentMethod === 'payfast' 
-                        ? 'border-[#A94826] bg-[#A94826]/5' 
-                        : 'border-[#E5DCD0] hover:border-[#A94826]/50'
-                    }`}
-                    data-testid="payment-payfast"
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="payfast"
-                      checked={paymentMethod === 'payfast'}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-4 h-4 accent-[#A94826]"
-                    />
+                <div className="p-4 border border-[#A94826] bg-[#A94826]/5">
+                  <div className="flex items-center gap-3">
                     <CreditCard size={20} className="text-[#2D2622]" />
                     <div className="flex-1">
                       <span className="font-medium text-[#2D2622]">PayFast</span>
                       <p className="text-xs text-[#5C534C]">Credit/Debit Card, EFT, Instant EFT</p>
                     </div>
-                  </label>
-                  
-                  <label 
-                    className={`flex items-center gap-3 p-4 border cursor-pointer transition-all ${
-                      paymentMethod === 'stitch' 
-                        ? 'border-[#A94826] bg-[#A94826]/5' 
-                        : 'border-[#E5DCD0] hover:border-[#A94826]/50'
-                    }`}
-                    data-testid="payment-stitch"
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="stitch"
-                      checked={paymentMethod === 'stitch'}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-4 h-4 accent-[#A94826]"
-                    />
-                    <Wallet size={20} className="text-[#2D2622]" />
-                    <div className="flex-1">
-                      <span className="font-medium text-[#2D2622]">Stitch Pay</span>
-                      <p className="text-xs text-[#5C534C]">Instant EFT, Apple Pay, Google Pay</p>
-                    </div>
-                  </label>
+                  </div>
                 </div>
               </div>
 
@@ -341,17 +281,14 @@ const CheckoutPage = () => {
                   <span className="spinner border-white border-t-transparent" />
                 ) : (
                   <>
-                    {paymentMethod === 'stitch' ? <Wallet size={20} /> : <CreditCard size={20} />}
-                    Pay with {paymentMethod === 'stitch' ? 'Stitch' : 'PayFast'}
+                    <CreditCard size={20} />
+                    Pay with PayFast
                   </>
                 )}
               </button>
 
               <p className="text-center text-xs text-[#5C534C] mt-4">
-                {paymentMethod === 'stitch' 
-                  ? 'Secure instant bank payment via Stitch. Supports Apple Pay & Google Pay.'
-                  : 'Secure payment via PayFast. We accept credit cards, debit cards, and EFT.'
-                }
+                Secure payment via PayFast. We accept credit cards, debit cards, and EFT.
               </p>
 
               <div className="mt-6 pt-6 border-t border-[#E5DCD0]">

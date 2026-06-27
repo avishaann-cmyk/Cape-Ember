@@ -115,7 +115,7 @@ Build a premium Cape Ember Coffee e-commerce website inspired by capeembercoffee
 - [x] Frontend-Backend API compatibility (fixed June 2026)
 
 ### P1 (Important)
-- [ ] Stitch Payments integration (second payment gateway)
+- [ ] Stitch Payments integration (backend ready, awaiting valid credentials)
 - [ ] Enhanced Product Catalog (categories, filters, sorting, search)
 - [ ] Advanced Checkout Flow (guest checkout, shipping details, coupons, VAT)
 - [ ] Admin Dashboard (sales analytics, order management, inventory, user roles)
@@ -144,9 +144,13 @@ Build a premium Cape Ember Coffee e-commerce website inspired by capeembercoffee
   - Updated ProductCard component to use `images` array instead of `image_url`
   - Added `getImageUrl` helper functions to extract primary image from images array
   - Added `productWeight` helper to get weight from variants array
+- **Stitch Payments**: Backend integration prepared (awaiting valid API credentials)
+  - Backend endpoints ready: `/api/stitch/create-payment`, webhook handler
+  - Frontend removed Stitch option temporarily (PayFast only for now)
+  - Stitch can be enabled later when credentials are sorted with Stitch support
 
 ## Next Tasks
-1. Implement Stitch Payments as second payment gateway (playbook available)
-2. Build Admin Dashboard for order management
-3. Add product categories and filtering
-4. Enhanced checkout with VAT calculation
+1. Build Admin Dashboard for order management
+2. Add product categories and filtering
+3. Enhanced checkout with VAT calculation
+4. Enable Stitch Payments when credentials are ready
