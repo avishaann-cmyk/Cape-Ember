@@ -1542,7 +1542,23 @@ async def apply_coupon(
         raise HTTPException(status_code=404, detail="Invalid coupon code")
     
     now = datetime.now(timezone.utc)
-    if coupon["valid_from"] > now or coupon["valid_until"] < now:
+    
+    # Normalize timezone-naive datetimes from MongoDB to UTC
+    valid_from = coupon["valid_from"]
+    valid_until = coupon["valid_until"]
+    
+    # Handle both datetime objects and ISO strings
+    if isinstance(valid_from, str):
+        valid_from = datetime.fromisoformat(valid_from.replace('Z', '+00:00'))
+    elif valid_from.tzinfo is None:
+        valid_from = valid_from.replace(tzinfo=timezone.utc)
+    
+    if isinstance(valid_until, str):
+        valid_until = datetime.fromisoformat(valid_until.replace('Z', '+00:00'))
+    elif valid_until.tzinfo is None:
+        valid_until = valid_until.replace(tzinfo=timezone.utc)
+    
+    if valid_from > now or valid_until < now:
         raise HTTPException(status_code=400, detail="Coupon has expired")
     
     user_id = user["_id"] if user else None
@@ -2442,11 +2458,20 @@ async def startup_event():
             "discount_value": 10,
             "minimum_order": 100,
             "is_active": True,
-            "valid_from": datetime(2024, 1, 1, tzinfo=timezone.utc),
-            "valid_until": datetime(2027, 12, 31, tzinfo=timezone.utc),
+            "valid_from": "2024-01-01T00:00:00+00:00",
+            "valid_until": "2027-12-31T23:59:59+00:00",
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         logger.info("Created test coupon: WELCOME10")
+    else:
+        # Update existing coupon to use ISO strings if needed
+        await db.coupons.update_one(
+            {"code": "WELCOME10"},
+            {"$set": {
+                "valid_from": "2024-01-01T00:00:00+00:00",
+                "valid_until": "2027-12-31T23:59:59+00:00"
+            }}
+        )
 
 
 @app.on_event("shutdown")

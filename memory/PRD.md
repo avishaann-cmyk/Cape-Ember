@@ -54,16 +54,23 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 - [x] Active filter tags with clear option
 - [x] Mobile filters drawer
 
-### 🔲 Phase 3: Checkout & Payments
-- [ ] Persistent cart with coupon support
-- [ ] Shipping estimator and upsells
-- [ ] Guest checkout option
-- [ ] Saved addresses for returning customers
-- [ ] VAT calculations
-- [ ] Stitch Payments integration (awaiting valid credentials)
-- [ ] Order confirmation emails
+### ✅ Phase 3: Checkout & Payments (COMPLETE - June 27, 2026)
+- [x] Persistent cart with items, quantities, and totals
+- [x] Coupon code input with Apply/Remove functionality
+- [x] Free shipping progress bar (threshold R399)
+- [x] "You've unlocked free shipping!" success message
+- [x] VAT display (15% inclusive, South African model)
+- [x] Upsell products section ("You Might Also Like")
+- [x] Order summary sidebar with all totals
+- [x] Guest checkout option with email input
+- [x] Multi-step checkout (Information → Shipping → Payment)
+- [x] Shipping address form with SA province dropdown
+- [x] Order notes textarea
+- [x] Subscribe & Save 15% option with frequency selector
+- [x] PayFast payment integration (LIVE)
+- [x] Test coupon: WELCOME10 (10% off, min R100)
 
-### 🔲 Phase 4: Customer & Admin
+### 🔲 Phase 4: Customer & Admin (Next)
 - [ ] Customer accounts (wishlist, order history, saved addresses)
 - [ ] Admin dashboard (orders, inventory, analytics)
 - [ ] Coupon management
@@ -107,7 +114,7 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 ---
 
 ## Next Tasks
-1. **Phase 3**: Cart improvements (persistent cart, coupons, shipping estimator)
-2. **Phase 3**: Checkout enhancements (guest checkout, VAT calculations)
-3. **Phase 4**: Admin Dashboard (orders, inventory, analytics)
-4. **Phase 4**: Customer accounts (wishlist, order history, saved addresses)
+1. **Phase 4**: Admin Dashboard (orders, inventory, analytics, coupons)
+2. **Phase 4**: Customer accounts (wishlist, order history, saved addresses)
+3. **Phase 5**: SEO & Performance (schema markup, sitemaps, Core Web Vitals)
+4. **Phase 5**: Marketing integrations (GA4, Meta Pixel, newsletter)
