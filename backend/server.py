@@ -1,52 +1,163 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query
-from fastapi.responses import StreamingResponse, FileResponse
+"""
+Cape Ember Coffee Co. - Production E-commerce Backend
+Enterprise-grade e-commerce platform with PayFast & Stitch Payments
+"""
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, BackgroundTasks, Header
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import secrets
+import hmac
+import hashlib
+import base64
+import re
 from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field, EmailStr, validator
+from typing import List, Optional, Dict, Any, Union
 import uuid
 from datetime import datetime, timezone, timedelta
-import hashlib
 import urllib.parse
 import httpx
 import jwt
 import bcrypt
+from enum import Enum
+from decimal import Decimal
 
 ROOT_DIR = Path(__file__).parent
 APP_DIR = ROOT_DIR.parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# ============ CONFIGURATION ============
 
-# JWT Config
-JWT_SECRET = os.environ.get('JWT_SECRET', 'cape-ember-secret-key-2024')
+# MongoDB
+MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+DB_NAME = os.environ.get('DB_NAME', 'cape_ember_coffee')
+
+# JWT
+JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_hex(32))
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
+REFRESH_TOKEN_DAYS = 30
 
-# PayFast Config
+# PayFast
 PAYFAST_MERCHANT_ID = os.environ.get('PAYFAST_MERCHANT_ID', '10000100')
 PAYFAST_MERCHANT_KEY = os.environ.get('PAYFAST_MERCHANT_KEY', '46f0cd694581a')
 PAYFAST_PASSPHRASE = os.environ.get('PAYFAST_PASSPHRASE', '')
-PAYFAST_SANDBOX = os.environ.get('PAYFAST_SANDBOX', 'true').lower() == 'true'
+PAYFAST_SANDBOX = os.environ.get('PAYFAST_SANDBOX', 'false').lower() == 'true'
 
-# Create the main app
-app = FastAPI(title="Cape Ember Coffee API")
+# Stitch Payments
+STITCH_CLIENT_ID = os.environ.get('STITCH_CLIENT_ID', '')
+STITCH_CLIENT_SECRET = os.environ.get('STITCH_CLIENT_SECRET', '')
+STITCH_WEBHOOK_SECRET = os.environ.get('STITCH_WEBHOOK_SECRET', '')
+STITCH_SANDBOX = os.environ.get('STITCH_SANDBOX', 'true').lower() == 'true'
 
-# Create a router with the /api prefix
+# Email (placeholder for SendGrid/Resend)
+EMAIL_API_KEY = os.environ.get('EMAIL_API_KEY', '')
+EMAIL_FROM = os.environ.get('EMAIL_FROM', 'orders@capeembercoffee.co.za')
+
+# URLs
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://axis-creator.preview.emergentagent.com')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://axis-creator.preview.emergentagent.com')
+
+# VAT Rate (South Africa)
+VAT_RATE = 0.15
+
+# MongoDB Connection
+client = AsyncIOMotorClient(MONGO_URL)
+db = client[DB_NAME]
+
+# App Setup
+app = FastAPI(
+    title="Cape Ember Coffee API",
+    description="Production E-commerce API",
+    version="2.0.0"
+)
+
 api_router = APIRouter(prefix="/api")
+admin_router = APIRouter(prefix="/api/admin")
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-# ============ MODELS ============
+
+# ============ ENUMS ============
+
+class OrderStatus(str, Enum):
+    PENDING = "pending"
+    PENDING_PAYMENT = "pending_payment"
+    PAID = "paid"
+    PROCESSING = "processing"
+    SHIPPED = "shipped"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
+    REFUNDED = "refunded"
+
+class PaymentStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETE = "complete"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    REFUNDED = "refunded"
+
+class PaymentMethod(str, Enum):
+    PAYFAST = "payfast"
+    STITCH_CARD = "stitch_card"
+    STITCH_EFT = "stitch_eft"
+    STITCH_APPLE_PAY = "stitch_apple_pay"
+    STITCH_GOOGLE_PAY = "stitch_google_pay"
+
+class ProductCategory(str, Enum):
+    COFFEE_BEANS = "coffee_beans"
+    GROUND_COFFEE = "ground_coffee"
+    GIFT_BOXES = "gift_boxes"
+    ACCESSORIES = "accessories"
+
+class RoastLevel(str, Enum):
+    LIGHT = "light"
+    MEDIUM_LIGHT = "medium_light"
+    MEDIUM = "medium"
+    MEDIUM_DARK = "medium_dark"
+    DARK = "dark"
+
+class GrindType(str, Enum):
+    WHOLE_BEAN = "whole_bean"
+    COARSE = "coarse"
+    MEDIUM = "medium"
+    FINE = "fine"
+    EXTRA_FINE = "extra_fine"
+
+class ShippingMethod(str, Enum):
+    STANDARD = "standard"
+    EXPRESS = "express"
+    COLLECTION = "collection"
+    LOCAL_DELIVERY = "local_delivery"
+
+
+# ============ PYDANTIC MODELS ============
+
+# User Models
+class AddressModel(BaseModel):
+    id: Optional[str] = None
+    label: Optional[str] = "Home"
+    first_name: str
+    last_name: str
+    street: str
+    apartment: Optional[str] = None
+    city: str
+    province: str
+    postal_code: str
+    country: str = "South Africa"
+    phone: Optional[str] = None
+    is_default: bool = False
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -54,10 +165,24 @@ class UserCreate(BaseModel):
     first_name: str
     last_name: str
     phone: Optional[str] = None
+    accepts_marketing: bool = False
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    accepts_marketing: Optional[bool] = None
+
+class PasswordReset(BaseModel):
+    email: EmailStr
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
 
 class UserResponse(BaseModel):
     id: str
@@ -65,131 +190,240 @@ class UserResponse(BaseModel):
     first_name: str
     last_name: str
     phone: Optional[str] = None
+    addresses: List[AddressModel] = []
+    accepts_marketing: bool = False
+    created_at: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
     user: UserResponse
 
-class Product(BaseModel):
+
+# Product Models
+class ProductImage(BaseModel):
+    url: str
+    alt: str
+    is_primary: bool = False
+    sort_order: int = 0
+
+class ProductVariant(BaseModel):
+    id: str
+    name: str
+    sku: str
+    price: float
+    compare_at_price: Optional[float] = None
+    grind: Optional[GrindType] = None
+    weight: str
+    stock_quantity: int = 0
+    barcode: Optional[str] = None
+
+class TastingNote(BaseModel):
+    note: str
+    intensity: int  # 1-5
+
+class BrewingMethod(BaseModel):
+    method: str
+    description: str
+    ratio: str
+    time: str
+    temperature: str
+
+class ProductCreate(BaseModel):
+    name: str
+    slug: str
+    description: str
+    short_description: Optional[str] = None
+    category: ProductCategory
+    roast_level: Optional[RoastLevel] = None
+    origin: Optional[str] = None
+    strength: Optional[int] = None  # 1-5
+    flavor_notes: str
+    tasting_notes: List[TastingNote] = []
+    brewing_methods: List[BrewingMethod] = []
+    images: List[ProductImage] = []
+    variants: List[ProductVariant] = []
+    tags: List[str] = []
+    is_active: bool = True
+    is_featured: bool = False
+    is_bundle: bool = False
+    bundle_items: List[str] = []
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+
+class ProductResponse(BaseModel):
     id: str
     name: str
     slug: str
     description: str
+    short_description: Optional[str] = None
+    category: str
+    roast_level: Optional[str] = None
+    origin: Optional[str] = None
+    strength: Optional[int] = None
     flavor_notes: str
+    tasting_notes: List[TastingNote] = []
+    brewing_methods: List[BrewingMethod] = []
+    images: List[ProductImage] = []
+    variants: List[ProductVariant] = []
     price: float
-    image_url: str
-    roast_level: str
-    weight: str
+    compare_at_price: Optional[float] = None
+    tags: List[str] = []
+    is_active: bool = True
+    is_featured: bool = False
     is_bundle: bool = False
-    bundle_items: Optional[List[str]] = None
+    bundle_items: List[str] = []
+    stock_status: str = "in_stock"
+    total_stock: int = 0
+    average_rating: float = 0.0
+    review_count: int = 0
+    created_at: Optional[str] = None
 
-class CartItem(BaseModel):
+
+# Cart Models
+class CartItemAdd(BaseModel):
     product_id: str
+    variant_id: Optional[str] = None
+    quantity: int = 1
+
+class CartItemUpdate(BaseModel):
     quantity: int
 
 class CartItemResponse(BaseModel):
+    id: str
     product_id: str
+    variant_id: Optional[str] = None
     product_name: str
+    variant_name: Optional[str] = None
     price: float
     quantity: int
     image_url: str
+    stock_available: int
 
 class CartResponse(BaseModel):
     items: List[CartItemResponse]
     subtotal: float
-    shipping: float
-    total: float
+    discount: float = 0.0
+    shipping: float = 0.0
+    vat: float = 0.0
+    total: float = 0.0
+    coupon_code: Optional[str] = None
+    item_count: int = 0
 
-class AddressModel(BaseModel):
-    street: str
-    city: str
-    province: str
-    postal_code: str
-    country: str = "South Africa"
 
-class OrderCreate(BaseModel):
-    shipping_address: AddressModel
-    is_subscription: bool = False
-    subscription_frequency: Optional[str] = None  # weekly, biweekly, monthly
+# Coupon Models
+class CouponCreate(BaseModel):
+    code: str
+    description: Optional[str] = None
+    discount_type: str  # percentage, fixed_amount, free_shipping
+    discount_value: float
+    minimum_order: float = 0.0
+    maximum_uses: Optional[int] = None
+    uses_per_customer: int = 1
+    valid_from: datetime
+    valid_until: datetime
+    applies_to_products: List[str] = []
+    applies_to_categories: List[str] = []
+    is_active: bool = True
 
-class SubscriptionCreate(BaseModel):
+
+# Order Models
+class OrderItemCreate(BaseModel):
     product_id: str
+    variant_id: Optional[str] = None
     quantity: int
-    frequency: str  # weekly, biweekly, monthly
-    shipping_address: AddressModel
+    price: float
 
-class PaymentCreate(BaseModel):
-    order_id: str
+class ShippingInfo(BaseModel):
+    method: ShippingMethod
+    address: AddressModel
+    notes: Optional[str] = None
 
-class RecommendationRequest(BaseModel):
-    preferences: Optional[str] = None
+class BillingInfo(BaseModel):
+    same_as_shipping: bool = True
+    address: Optional[AddressModel] = None
 
-# ============ PRODUCT DATA ============
+class CheckoutCreate(BaseModel):
+    shipping: ShippingInfo
+    billing: BillingInfo
+    payment_method: PaymentMethod
+    coupon_code: Optional[str] = None
+    is_guest: bool = False
+    guest_email: Optional[EmailStr] = None
 
-PRODUCTS = [
-    Product(
-        id="fynbos-roast",
-        name="Fynbos Roast",
-        slug="fynbos-roast",
-        description="Inspired by the wild fynbos of the Cape, this coffee offers a grounded, comforting cup with natural sweetness. A smooth, nutty, and balanced medium roast perfect for everyday enjoyment.",
-        flavor_notes="Smooth · Nutty · Balanced",
-        price=149.00,
-        image_url="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg",
-        roast_level="Medium",
-        weight="250g"
-    ),
-    Product(
-        id="garden-route",
-        name="Garden Route Blend",
-        slug="garden-route-blend",
-        description="A tribute to South Africa's iconic coast. This balanced house blend offers a smooth cup with hints of cocoa and gentle citrus, crafted for everyday enjoyment.",
-        flavor_notes="Smooth · Cocoa · Gentle Citrus",
-        price=149.00,
-        image_url="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg",
-        roast_level="Medium",
-        weight="250g"
-    ),
-    Product(
-        id="ember-reserve",
-        name="Ember Reserve",
-        slug="ember-reserve",
-        description="Crafted for depth and intensity. Ember Reserve delivers a bold, lingering finish with rich dark chocolate notes. A premium dark roast from Colombia for those who appreciate depth.",
-        flavor_notes="Rich · Dark Chocolate · Intense",
-        price=159.00,
-        image_url="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg",
-        roast_level="Dark",
-        weight="250g"
-    ),
-    Product(
-        id="karoo-horizon",
-        name="Karoo Horizon",
-        slug="karoo-horizon",
-        description="From the vast, open plains of the Karoo, this expressive Ethiopian offers delicate blueberry, wildflower notes, and a relaxed honey finish. A limited release light roast.",
-        flavor_notes="Floral · Blueberry · Bright",
-        price=169.00,
-        image_url="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/7rra3n1s_38C77683-E4ED-4917-95F8-08997E2C06FE.jpeg",
-        roast_level="Light",
-        weight="250g"
-    ),
-    Product(
-        id="landscape-bundle",
-        name="Landscape Range Bundle",
-        slug="landscape-bundle",
-        description="South African landscapes in every cup. Experience the complete Cape Ember journey with all four signature blends - from the wild fynbos coast to the vast Karoo plains.",
-        flavor_notes="Complete Collection · 4 x 250g",
-        price=599.00,
-        image_url="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/2yv1tstu_0028652C-25DC-4D60-B03B-3259460E5E93.jpeg",
-        roast_level="Variety",
-        weight="4 x 250g",
-        is_bundle=True,
-        bundle_items=["fynbos-roast", "garden-route", "ember-reserve", "karoo-horizon"]
-    )
-]
+class OrderResponse(BaseModel):
+    id: str
+    order_number: str
+    user_id: Optional[str] = None
+    guest_email: Optional[str] = None
+    items: List[dict]
+    subtotal: float
+    discount: float
+    shipping_cost: float
+    vat: float
+    total: float
+    status: str
+    payment_status: str
+    payment_method: str
+    shipping: dict
+    billing: dict
+    coupon_code: Optional[str] = None
+    tracking_number: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: str
+    updated_at: str
 
-PRODUCTS_MAP = {p.id: p for p in PRODUCTS}
 
-# ============ HELPERS ============
+# Review Models
+class ReviewCreate(BaseModel):
+    product_id: str
+    rating: int  # 1-5
+    title: str
+    content: str
+
+class ReviewResponse(BaseModel):
+    id: str
+    product_id: str
+    user_id: str
+    user_name: str
+    rating: int
+    title: str
+    content: str
+    is_verified_purchase: bool
+    helpful_votes: int = 0
+    created_at: str
+
+
+# Wishlist Models
+class WishlistItemAdd(BaseModel):
+    product_id: str
+
+
+# Search & Filter Models
+class ProductFilter(BaseModel):
+    category: Optional[str] = None
+    roast_level: Optional[str] = None
+    grind: Optional[str] = None
+    min_price: Optional[float] = None
+    max_price: Optional[float] = None
+    in_stock: Optional[bool] = None
+    tags: List[str] = []
+
+
+# Admin Models
+class AdminDashboardStats(BaseModel):
+    total_orders: int
+    total_revenue: float
+    orders_today: int
+    revenue_today: float
+    pending_orders: int
+    low_stock_products: int
+    new_customers: int
+    conversion_rate: float
+
+
+# ============ UTILITY FUNCTIONS ============
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -197,13 +431,70 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-def create_token(user_id: str, email: str) -> str:
+def create_access_token(user_id: str, email: str, is_admin: bool = False) -> str:
     payload = {
         "sub": user_id,
         "email": email,
+        "is_admin": is_admin,
+        "type": "access",
         "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def create_refresh_token(user_id: str) -> str:
+    payload = {
+        "sub": user_id,
+        "type": "refresh",
+        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_DAYS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def generate_order_number() -> str:
+    """Generate unique order number: CE-YYYYMMDD-XXXX"""
+    date_part = datetime.now(timezone.utc).strftime("%Y%m%d")
+    random_part = secrets.token_hex(2).upper()
+    return f"CE-{date_part}-{random_part}"
+
+def generate_sku(category: str, name: str) -> str:
+    """Generate SKU from category and name"""
+    cat_code = category[:2].upper()
+    name_code = ''.join(c for c in name if c.isalnum())[:4].upper()
+    random_part = secrets.token_hex(2).upper()
+    return f"{cat_code}-{name_code}-{random_part}"
+
+def calculate_shipping(subtotal: float, method: ShippingMethod, province: str) -> float:
+    """Calculate shipping cost based on method and location"""
+    if method == ShippingMethod.COLLECTION:
+        return 0.0
+    if subtotal >= 399:  # Free shipping threshold
+        return 0.0
+    
+    rates = {
+        ShippingMethod.STANDARD: {
+            "Western Cape": 50.0,
+            "Gauteng": 65.0,
+            "default": 75.0
+        },
+        ShippingMethod.EXPRESS: {
+            "Western Cape": 95.0,
+            "Gauteng": 120.0,
+            "default": 150.0
+        },
+        ShippingMethod.LOCAL_DELIVERY: {
+            "Western Cape": 35.0,
+            "default": 0.0  # Not available outside WC
+        }
+    }
+    
+    method_rates = rates.get(method, rates[ShippingMethod.STANDARD])
+    return method_rates.get(province, method_rates.get("default", 75.0))
+
+def calculate_vat(amount: float) -> float:
+    """Calculate VAT (included in price for SA)"""
+    return round(amount * VAT_RATE / (1 + VAT_RATE), 2)
+
+
+# ============ AUTH DEPENDENCIES ============
 
 async def get_current_user(request: Request) -> dict:
     auth_header = request.headers.get("Authorization")
@@ -213,7 +504,13 @@ async def get_current_user(request: Request) -> dict:
     token = auth_header.split(" ")[1]
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        user = await db.users.find_one({"_id": payload["sub"]}, {"_id": 1, "email": 1, "first_name": 1, "last_name": 1, "phone": 1})
+        if payload.get("type") != "access":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        
+        user = await db.users.find_one(
+            {"_id": payload["sub"]},
+            {"password_hash": 0}
+        )
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         return user
@@ -222,39 +519,377 @@ async def get_current_user(request: Request) -> dict:
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+async def get_current_user_optional(request: Request) -> Optional[dict]:
+    """Get current user if authenticated, else return None"""
+    try:
+        return await get_current_user(request)
+    except HTTPException:
+        return None
+
+async def get_admin_user(request: Request) -> dict:
+    user = await get_current_user(request)
+    if not user.get("is_admin", False):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
+# ============ PAYFAST FUNCTIONS ============
+
 def get_payfast_host() -> str:
     return "sandbox.payfast.co.za" if PAYFAST_SANDBOX else "www.payfast.co.za"
 
 def generate_payfast_signature(data: Dict[str, str]) -> str:
     filtered = {k: v for k, v in data.items() if k != "signature" and v is not None and v != ""}
-    sorted_items = sorted(filtered.items(), key=lambda kv: kv[0])
-    parts = []
-    for key, value in sorted_items:
-        encoded_value = urllib.parse.quote(str(value).strip(), safe='')
-        parts.append(f"{key}={encoded_value}")
-    param_string = "&".join(parts)
+    sorted_items = sorted(filtered.items())
+    param_string = "&".join([f"{k}={urllib.parse.quote_plus(str(v))}" for k, v in sorted_items])
     
     if PAYFAST_PASSPHRASE:
-        passphrase_encoded = urllib.parse.quote(PAYFAST_PASSPHRASE.strip(), safe='')
-        param_string = f"{param_string}&passphrase={passphrase_encoded}"
+        param_string += f"&passphrase={urllib.parse.quote_plus(PAYFAST_PASSPHRASE)}"
     
-    return hashlib.md5(param_string.encode("utf-8")).hexdigest()
+    return hashlib.md5(param_string.encode()).hexdigest()
 
-def generate_whatsapp_link(order_id: str, total: float) -> str:
-    phone = "27810261618"
-    message = f"Hi Cape Ember! I just placed order #{order_id[:8]} for R{total:.2f}. Looking forward to my coffee!"
-    encoded_message = urllib.parse.quote(message)
-    return f"https://wa.me/{phone}?text={encoded_message}"
+async def verify_payfast_itn(request: Request) -> bool:
+    """Verify PayFast ITN request"""
+    form_data = await request.form()
+    data = dict(form_data)
+    
+    # Verify signature
+    received_sig = data.pop("signature", "")
+    expected_sig = generate_payfast_signature(data)
+    
+    if received_sig != expected_sig:
+        logger.warning("PayFast ITN: Invalid signature")
+        return False
+    
+    # Verify source IP (PayFast IPs)
+    payfast_ips = [
+        "197.97.145.144", "197.97.145.145", "197.97.145.146", "197.97.145.147",
+        "41.74.179.194", "41.74.179.195", "41.74.179.196", "41.74.179.197"
+    ]
+    
+    client_ip = request.client.host
+    forwarded_for = request.headers.get("X-Forwarded-For", "")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0].strip()
+    
+    # In sandbox mode, skip IP check
+    if not PAYFAST_SANDBOX and client_ip not in payfast_ips:
+        logger.warning(f"PayFast ITN: Invalid source IP {client_ip}")
+        return False
+    
+    return True
+
+
+# ============ STITCH PAYMENT FUNCTIONS ============
+
+async def get_stitch_access_token() -> str:
+    """Get Stitch API access token"""
+    if not STITCH_CLIENT_ID or not STITCH_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Stitch not configured")
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://secure.stitch.money/connect/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": STITCH_CLIENT_ID,
+                "client_secret": STITCH_CLIENT_SECRET,
+                "scope": "client_paymentrequest"
+            }
+        )
+        if response.status_code != 200:
+            logger.error(f"Stitch token error: {response.text}")
+            raise HTTPException(status_code=500, detail="Payment service unavailable")
+        
+        return response.json()["access_token"]
+
+async def create_stitch_payment(
+    amount: float,
+    reference: str,
+    method: str,
+    redirect_url: str
+) -> dict:
+    """Create Stitch payment request"""
+    token = await get_stitch_access_token()
+    
+    mutation = """
+    mutation CreatePaymentRequest($input: PaymentInitiationRequestInput!) {
+        clientPaymentInitiationRequestCreate(input: $input) {
+            paymentInitiationRequest {
+                id
+                url
+            }
+        }
+    }
+    """
+    
+    variables = {
+        "input": {
+            "amount": {
+                "quantity": int(amount * 100),  # Amount in cents
+                "currency": "ZAR"
+            },
+            "payerReference": reference,
+            "beneficiaryReference": f"Cape Ember {reference}",
+            "externalReference": reference
+        }
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://api.stitch.money/graphql",
+            json={"query": mutation, "variables": variables},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+        )
+        
+        data = response.json()
+        if "errors" in data:
+            logger.error(f"Stitch error: {data['errors']}")
+            raise HTTPException(status_code=500, detail="Payment creation failed")
+        
+        pir = data["data"]["clientPaymentInitiationRequestCreate"]["paymentInitiationRequest"]
+        return {
+            "id": pir["id"],
+            "url": pir["url"]
+        }
+
+def verify_stitch_webhook(request: Request, body: bytes) -> bool:
+    """Verify Stitch webhook signature"""
+    if not STITCH_WEBHOOK_SECRET:
+        return True  # Skip verification if not configured
+    
+    signature = request.headers.get("X-Stitch-Signature", "")
+    timestamp = request.headers.get("X-Stitch-Timestamp", "")
+    
+    if not signature or not timestamp:
+        return False
+    
+    # Build canonical string
+    canonical = f"{timestamp}.{body.decode('utf-8')}"
+    
+    expected = hmac.new(
+        STITCH_WEBHOOK_SECRET.encode(),
+        canonical.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(expected, signature)
+
+
+# ============ EMAIL FUNCTIONS ============
+
+async def send_order_confirmation(order: dict, email: str):
+    """Send order confirmation email"""
+    # Placeholder - integrate with SendGrid/Resend
+    logger.info(f"Order confirmation email would be sent to {email} for order {order['order_number']}")
+
+async def send_shipping_notification(order: dict, tracking_number: str):
+    """Send shipping notification email"""
+    logger.info(f"Shipping notification for order {order['order_number']} with tracking {tracking_number}")
+
+async def send_password_reset(email: str, reset_token: str):
+    """Send password reset email"""
+    logger.info(f"Password reset email would be sent to {email}")
+
+
+# ============ PRODUCT DATA ============
+
+# Extended product catalog
+PRODUCTS = [
+    {
+        "id": "fynbos-roast",
+        "name": "Fynbos Roast",
+        "slug": "fynbos-roast",
+        "description": "Inspired by the wild fynbos of the Cape, this coffee offers a grounded, comforting cup with natural sweetness. A smooth, nutty, and balanced medium roast perfect for everyday enjoyment.",
+        "short_description": "Smooth medium roast with nutty sweetness",
+        "category": ProductCategory.COFFEE_BEANS,
+        "roast_level": RoastLevel.MEDIUM,
+        "origin": "Brazil",
+        "strength": 3,
+        "flavor_notes": "Smooth · Nutty · Balanced",
+        "tasting_notes": [
+            {"note": "Hazelnut", "intensity": 4},
+            {"note": "Caramel", "intensity": 3},
+            {"note": "Cocoa", "intensity": 2}
+        ],
+        "brewing_methods": [
+            {"method": "French Press", "description": "Full-bodied extraction", "ratio": "1:15", "time": "4 min", "temperature": "93°C"},
+            {"method": "Pour Over", "description": "Clean, bright cup", "ratio": "1:16", "time": "3 min", "temperature": "92°C"},
+            {"method": "AeroPress", "description": "Smooth concentrate", "ratio": "1:12", "time": "1.5 min", "temperature": "88°C"}
+        ],
+        "images": [
+            {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg", "alt": "Fynbos Roast Coffee", "is_primary": True, "sort_order": 0}
+        ],
+        "variants": [
+            {"id": "fynbos-250g-whole", "name": "250g Whole Bean", "sku": "CB-FYNB-250W", "price": 149.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 50},
+            {"id": "fynbos-250g-ground", "name": "250g Ground", "sku": "CB-FYNB-250G", "price": 149.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 30},
+            {"id": "fynbos-1kg-whole", "name": "1kg Whole Bean", "sku": "CB-FYNB-1KW", "price": 499.00, "grind": GrindType.WHOLE_BEAN, "weight": "1kg", "stock_quantity": 20}
+        ],
+        "tags": ["bestseller", "everyday", "brazilian"],
+        "is_active": True,
+        "is_featured": True,
+        "is_bundle": False
+    },
+    {
+        "id": "garden-route",
+        "name": "Garden Route Blend",
+        "slug": "garden-route-blend",
+        "description": "A tribute to South Africa's iconic coast. This balanced house blend offers a smooth cup with hints of cocoa and gentle citrus, crafted for everyday enjoyment.",
+        "short_description": "Smooth house blend with cocoa notes",
+        "category": ProductCategory.COFFEE_BEANS,
+        "roast_level": RoastLevel.MEDIUM,
+        "origin": "Blend - Brazil & Ethiopia",
+        "strength": 3,
+        "flavor_notes": "Smooth · Cocoa · Gentle Citrus",
+        "tasting_notes": [
+            {"note": "Milk Chocolate", "intensity": 4},
+            {"note": "Orange Zest", "intensity": 2},
+            {"note": "Brown Sugar", "intensity": 3}
+        ],
+        "brewing_methods": [
+            {"method": "Pour Over", "description": "Bright and clean", "ratio": "1:16", "time": "3.5 min", "temperature": "92°C"},
+            {"method": "Cold Brew", "description": "Sweet and smooth", "ratio": "1:8", "time": "18 hrs", "temperature": "Cold"},
+            {"method": "Espresso", "description": "Rich crema", "ratio": "1:2", "time": "28 sec", "temperature": "93°C"}
+        ],
+        "images": [
+            {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg", "alt": "Garden Route Blend", "is_primary": True, "sort_order": 0}
+        ],
+        "variants": [
+            {"id": "garden-250g-whole", "name": "250g Whole Bean", "sku": "CB-GARD-250W", "price": 149.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 45},
+            {"id": "garden-250g-ground", "name": "250g Ground", "sku": "CB-GARD-250G", "price": 149.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 35},
+            {"id": "garden-1kg-whole", "name": "1kg Whole Bean", "sku": "CB-GARD-1KW", "price": 499.00, "grind": GrindType.WHOLE_BEAN, "weight": "1kg", "stock_quantity": 15}
+        ],
+        "tags": ["house-blend", "everyday", "cold-brew-friendly"],
+        "is_active": True,
+        "is_featured": True,
+        "is_bundle": False
+    },
+    {
+        "id": "ember-reserve",
+        "name": "Ember Reserve",
+        "slug": "ember-reserve",
+        "description": "Crafted for depth and intensity. Ember Reserve delivers a bold, lingering finish with rich dark chocolate notes. A premium dark roast from Colombia for those who appreciate depth.",
+        "short_description": "Bold dark roast with chocolate intensity",
+        "category": ProductCategory.COFFEE_BEANS,
+        "roast_level": RoastLevel.DARK,
+        "origin": "Colombia",
+        "strength": 5,
+        "flavor_notes": "Rich · Dark Chocolate · Intense",
+        "tasting_notes": [
+            {"note": "Dark Chocolate", "intensity": 5},
+            {"note": "Molasses", "intensity": 3},
+            {"note": "Smoke", "intensity": 2}
+        ],
+        "brewing_methods": [
+            {"method": "Espresso", "description": "Bold and intense", "ratio": "1:2", "time": "26 sec", "temperature": "94°C"},
+            {"method": "French Press", "description": "Full body", "ratio": "1:15", "time": "4.5 min", "temperature": "95°C"},
+            {"method": "Moka Pot", "description": "Stovetop intensity", "ratio": "1:10", "time": "4 min", "temperature": "Stovetop"}
+        ],
+        "images": [
+            {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg", "alt": "Ember Reserve", "is_primary": True, "sort_order": 0}
+        ],
+        "variants": [
+            {"id": "ember-250g-whole", "name": "250g Whole Bean", "sku": "CB-EMBR-250W", "price": 159.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 40},
+            {"id": "ember-250g-ground", "name": "250g Ground", "sku": "CB-EMBR-250G", "price": 159.00, "grind": GrindType.FINE, "weight": "250g", "stock_quantity": 25},
+            {"id": "ember-1kg-whole", "name": "1kg Whole Bean", "sku": "CB-EMBR-1KW", "price": 549.00, "grind": GrindType.WHOLE_BEAN, "weight": "1kg", "stock_quantity": 10}
+        ],
+        "tags": ["bold", "espresso", "colombian", "premium"],
+        "is_active": True,
+        "is_featured": True,
+        "is_bundle": False
+    },
+    {
+        "id": "karoo-horizon",
+        "name": "Karoo Horizon",
+        "slug": "karoo-horizon",
+        "description": "From the vast, open plains of the Karoo, this expressive Ethiopian offers delicate blueberry, wildflower notes, and a relaxed honey finish. A limited release light roast.",
+        "short_description": "Delicate light roast with fruity florals",
+        "category": ProductCategory.COFFEE_BEANS,
+        "roast_level": RoastLevel.LIGHT,
+        "origin": "Ethiopia Yirgacheffe",
+        "strength": 2,
+        "flavor_notes": "Floral · Blueberry · Bright",
+        "tasting_notes": [
+            {"note": "Blueberry", "intensity": 4},
+            {"note": "Jasmine", "intensity": 3},
+            {"note": "Honey", "intensity": 3}
+        ],
+        "brewing_methods": [
+            {"method": "Pour Over", "description": "Highlight florals", "ratio": "1:17", "time": "3 min", "temperature": "90°C"},
+            {"method": "AeroPress", "description": "Concentrated fruit", "ratio": "1:13", "time": "1.5 min", "temperature": "85°C"}
+        ],
+        "images": [
+            {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/7rra3n1s_38C77683-E4ED-4917-95F8-08997E2C06FE.jpeg", "alt": "Karoo Horizon", "is_primary": True, "sort_order": 0}
+        ],
+        "variants": [
+            {"id": "karoo-250g-whole", "name": "250g Whole Bean", "sku": "CB-KARO-250W", "price": 169.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 25},
+            {"id": "karoo-250g-ground", "name": "250g Ground", "sku": "CB-KARO-250G", "price": 169.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 15}
+        ],
+        "tags": ["limited-edition", "single-origin", "ethiopian", "specialty"],
+        "is_active": True,
+        "is_featured": True,
+        "is_bundle": False
+    },
+    {
+        "id": "landscape-bundle",
+        "name": "Landscape Range Bundle",
+        "slug": "landscape-bundle",
+        "description": "South African landscapes in every cup. Experience the complete Cape Ember journey with all four signature blends - from the wild fynbos coast to the vast Karoo plains.",
+        "short_description": "Complete collection of all four blends",
+        "category": ProductCategory.GIFT_BOXES,
+        "roast_level": None,
+        "origin": "Various",
+        "strength": None,
+        "flavor_notes": "Complete Collection · 4 x 250g",
+        "tasting_notes": [],
+        "brewing_methods": [],
+        "images": [
+            {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/2yv1tstu_0028652C-25DC-4D60-B03B-3259460E5E93.jpeg", "alt": "Landscape Bundle", "is_primary": True, "sort_order": 0}
+        ],
+        "variants": [
+            {"id": "bundle-whole", "name": "4 x 250g Whole Bean", "sku": "GB-LAND-4X250W", "price": 599.00, "compare_at_price": 626.00, "grind": GrindType.WHOLE_BEAN, "weight": "4 x 250g", "stock_quantity": 15},
+            {"id": "bundle-ground", "name": "4 x 250g Ground", "sku": "GB-LAND-4X250G", "price": 599.00, "compare_at_price": 626.00, "grind": GrindType.MEDIUM, "weight": "4 x 250g", "stock_quantity": 10}
+        ],
+        "tags": ["bundle", "gift", "value", "complete-collection"],
+        "is_active": True,
+        "is_featured": True,
+        "is_bundle": True,
+        "bundle_items": ["fynbos-roast", "garden-route", "ember-reserve", "karoo-horizon"]
+    }
+]
+
+PRODUCTS_MAP = {p["id"]: p for p in PRODUCTS}
+
+
+# ============ SHIPPING ZONES ============
+
+SHIPPING_ZONES = {
+    "Western Cape": {"standard": 50, "express": 95, "local_delivery": 35},
+    "Gauteng": {"standard": 65, "express": 120},
+    "KwaZulu-Natal": {"standard": 70, "express": 130},
+    "Eastern Cape": {"standard": 70, "express": 130},
+    "Free State": {"standard": 70, "express": 125},
+    "Limpopo": {"standard": 75, "express": 140},
+    "Mpumalanga": {"standard": 75, "express": 135},
+    "North West": {"standard": 75, "express": 135},
+    "Northern Cape": {"standard": 80, "express": 150}
+}
+
 
 # ============ AUTH ROUTES ============
 
 @api_router.post("/auth/register", response_model=TokenResponse)
-async def register(user_data: UserCreate):
+async def register(user_data: UserCreate, background_tasks: BackgroundTasks):
     existing = await db.users.find_one({"email": user_data.email.lower()})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
     user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
     user_doc = {
         "_id": user_id,
         "email": user_data.email.lower(),
@@ -262,24 +897,38 @@ async def register(user_data: UserCreate):
         "first_name": user_data.first_name,
         "last_name": user_data.last_name,
         "phone": user_data.phone,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "addresses": [],
+        "accepts_marketing": user_data.accepts_marketing,
+        "is_admin": False,
+        "created_at": now,
+        "updated_at": now
     }
     await db.users.insert_one(user_doc)
     
-    # Create empty cart for user
-    await db.carts.insert_one({"_id": user_id, "items": [], "updated_at": datetime.now(timezone.utc).isoformat()})
+    # Create empty cart
+    await db.carts.insert_one({"_id": user_id, "items": [], "coupon_code": None, "updated_at": now})
     
-    token = create_token(user_id, user_data.email)
+    # Create empty wishlist
+    await db.wishlists.insert_one({"_id": user_id, "items": [], "updated_at": now})
+    
+    access_token = create_access_token(user_id, user_data.email)
+    refresh_token = create_refresh_token(user_id)
+    
     return TokenResponse(
-        access_token=token,
+        access_token=access_token,
+        refresh_token=refresh_token,
         user=UserResponse(
             id=user_id,
             email=user_data.email,
             first_name=user_data.first_name,
             last_name=user_data.last_name,
-            phone=user_data.phone
+            phone=user_data.phone,
+            addresses=[],
+            accepts_marketing=user_data.accepts_marketing,
+            created_at=now
         )
     )
+
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
@@ -287,17 +936,60 @@ async def login(credentials: UserLogin):
     if not user or not verify_password(credentials.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    token = create_token(user["_id"], user["email"])
+    access_token = create_access_token(user["_id"], user["email"], user.get("is_admin", False))
+    refresh_token = create_refresh_token(user["_id"])
+    
     return TokenResponse(
-        access_token=token,
+        access_token=access_token,
+        refresh_token=refresh_token,
         user=UserResponse(
             id=user["_id"],
             email=user["email"],
             first_name=user["first_name"],
             last_name=user["last_name"],
-            phone=user.get("phone")
+            phone=user.get("phone"),
+            addresses=[AddressModel(**a) for a in user.get("addresses", [])],
+            accepts_marketing=user.get("accepts_marketing", False),
+            created_at=user.get("created_at")
         )
     )
+
+
+@api_router.post("/auth/refresh")
+async def refresh_token(refresh_token: str = Header(...)):
+    try:
+        payload = jwt.decode(refresh_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        
+        user = await db.users.find_one({"_id": payload["sub"]})
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        
+        new_access_token = create_access_token(user["_id"], user["email"], user.get("is_admin", False))
+        
+        return {"access_token": new_access_token, "token_type": "bearer"}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(data: PasswordReset, background_tasks: BackgroundTasks):
+    user = await db.users.find_one({"email": data.email.lower()})
+    if user:
+        reset_token = secrets.token_urlsafe(32)
+        await db.password_resets.insert_one({
+            "user_id": user["_id"],
+            "token": reset_token,
+            "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        background_tasks.add_task(send_password_reset, data.email, reset_token)
+    
+    return {"message": "If an account exists, a reset email has been sent"}
+
 
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(user: dict = Depends(get_current_user)):
@@ -306,433 +998,1125 @@ async def get_me(user: dict = Depends(get_current_user)):
         email=user["email"],
         first_name=user["first_name"],
         last_name=user["last_name"],
-        phone=user.get("phone")
+        phone=user.get("phone"),
+        addresses=[AddressModel(**a) for a in user.get("addresses", [])],
+        accepts_marketing=user.get("accepts_marketing", False),
+        created_at=user.get("created_at")
     )
 
-# ============ PRODUCTS ROUTES ============
 
-@api_router.get("/products", response_model=List[Product])
-async def get_products():
-    return PRODUCTS
+@api_router.put("/auth/me", response_model=UserResponse)
+async def update_me(data: UserUpdate, user: dict = Depends(get_current_user)):
+    update_fields = {k: v for k, v in data.dict().items() if v is not None}
+    if update_fields:
+        update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.users.update_one({"_id": user["_id"]}, {"$set": update_fields})
+    
+    updated_user = await db.users.find_one({"_id": user["_id"]})
+    return UserResponse(
+        id=updated_user["_id"],
+        email=updated_user["email"],
+        first_name=updated_user["first_name"],
+        last_name=updated_user["last_name"],
+        phone=updated_user.get("phone"),
+        addresses=[AddressModel(**a) for a in updated_user.get("addresses", [])],
+        accepts_marketing=updated_user.get("accepts_marketing", False)
+    )
 
-@api_router.get("/products/{product_id}", response_model=Product)
+
+# ============ ADDRESS ROUTES ============
+
+@api_router.post("/addresses")
+async def add_address(address: AddressModel, user: dict = Depends(get_current_user)):
+    address_data = address.dict()
+    address_data["id"] = str(uuid.uuid4())
+    
+    # If this is the first address or marked as default, set it as default
+    addresses = user.get("addresses", [])
+    if not addresses or address_data.get("is_default"):
+        # Remove default from other addresses
+        for a in addresses:
+            a["is_default"] = False
+        address_data["is_default"] = True
+    
+    addresses.append(address_data)
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Address added", "address": address_data}
+
+
+@api_router.put("/addresses/{address_id}")
+async def update_address(address_id: str, address: AddressModel, user: dict = Depends(get_current_user)):
+    addresses = user.get("addresses", [])
+    
+    for i, a in enumerate(addresses):
+        if a["id"] == address_id:
+            address_data = address.dict()
+            address_data["id"] = address_id
+            
+            if address_data.get("is_default"):
+                for other in addresses:
+                    other["is_default"] = False
+            
+            addresses[i] = address_data
+            break
+    else:
+        raise HTTPException(status_code=404, detail="Address not found")
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Address updated"}
+
+
+@api_router.delete("/addresses/{address_id}")
+async def delete_address(address_id: str, user: dict = Depends(get_current_user)):
+    addresses = [a for a in user.get("addresses", []) if a["id"] != address_id]
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Address deleted"}
+
+
+# ============ PRODUCT ROUTES ============
+
+@api_router.get("/products")
+async def get_products(
+    category: Optional[str] = None,
+    roast_level: Optional[str] = None,
+    grind: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    in_stock: Optional[bool] = None,
+    tags: Optional[str] = None,
+    search: Optional[str] = None,
+    sort: str = "featured",  # featured, newest, price_asc, price_desc, bestselling
+    page: int = 1,
+    limit: int = 20
+):
+    products = PRODUCTS.copy()
+    
+    # Filter by category
+    if category:
+        products = [p for p in products if p.get("category") == category or (hasattr(p.get("category"), "value") and p["category"].value == category)]
+    
+    # Filter by roast level
+    if roast_level:
+        products = [p for p in products if p.get("roast_level") and (p["roast_level"] == roast_level or (hasattr(p["roast_level"], "value") and p["roast_level"].value == roast_level))]
+    
+    # Filter by price
+    if min_price:
+        products = [p for p in products if p["variants"][0]["price"] >= min_price]
+    if max_price:
+        products = [p for p in products if p["variants"][0]["price"] <= max_price]
+    
+    # Filter by stock
+    if in_stock:
+        products = [p for p in products if sum(v["stock_quantity"] for v in p["variants"]) > 0]
+    
+    # Filter by tags
+    if tags:
+        tag_list = tags.split(",")
+        products = [p for p in products if any(t in p.get("tags", []) for t in tag_list)]
+    
+    # Search
+    if search:
+        search_lower = search.lower()
+        products = [p for p in products if 
+            search_lower in p["name"].lower() or 
+            search_lower in p.get("description", "").lower() or
+            search_lower in p.get("flavor_notes", "").lower()
+        ]
+    
+    # Sort
+    if sort == "price_asc":
+        products.sort(key=lambda p: p["variants"][0]["price"])
+    elif sort == "price_desc":
+        products.sort(key=lambda p: p["variants"][0]["price"], reverse=True)
+    elif sort == "newest":
+        products.reverse()  # Assuming newest at end
+    # featured is default order
+    
+    # Pagination
+    total = len(products)
+    start = (page - 1) * limit
+    end = start + limit
+    products = products[start:end]
+    
+    # Format response
+    result = []
+    for p in products:
+        base_variant = p["variants"][0]
+        result.append({
+            "id": p["id"],
+            "name": p["name"],
+            "slug": p["slug"],
+            "description": p["description"],
+            "short_description": p.get("short_description"),
+            "category": p["category"].value if hasattr(p["category"], "value") else p["category"],
+            "roast_level": p["roast_level"].value if p.get("roast_level") and hasattr(p["roast_level"], "value") else p.get("roast_level"),
+            "origin": p.get("origin"),
+            "strength": p.get("strength"),
+            "flavor_notes": p["flavor_notes"],
+            "images": p["images"],
+            "price": base_variant["price"],
+            "compare_at_price": base_variant.get("compare_at_price"),
+            "variants": p["variants"],
+            "tags": p.get("tags", []),
+            "is_featured": p.get("is_featured", False),
+            "is_bundle": p.get("is_bundle", False),
+            "stock_status": "in_stock" if sum(v["stock_quantity"] for v in p["variants"]) > 0 else "out_of_stock",
+            "total_stock": sum(v["stock_quantity"] for v in p["variants"])
+        })
+    
+    return {
+        "products": result,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit
+    }
+
+
+@api_router.get("/products/search")
+async def search_products(q: str, limit: int = 10):
+    """Autocomplete search"""
+    if len(q) < 2:
+        return {"results": []}
+    
+    q_lower = q.lower()
+    results = []
+    
+    for p in PRODUCTS:
+        if q_lower in p["name"].lower():
+            results.append({
+                "id": p["id"],
+                "name": p["name"],
+                "slug": p["slug"],
+                "image": p["images"][0]["url"] if p["images"] else None,
+                "price": p["variants"][0]["price"]
+            })
+            if len(results) >= limit:
+                break
+    
+    return {"results": results}
+
+
+@api_router.get("/products/categories")
+async def get_categories():
+    """Get all product categories with counts"""
+    categories = {}
+    for p in PRODUCTS:
+        cat = p["category"].value if hasattr(p["category"], "value") else p["category"]
+        if cat not in categories:
+            categories[cat] = {"name": cat.replace("_", " ").title(), "count": 0}
+        categories[cat]["count"] += 1
+    
+    return list(categories.values())
+
+
+@api_router.get("/products/{product_id}")
 async def get_product(product_id: str):
     product = PRODUCTS_MAP.get(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return product
+    
+    # Get reviews
+    reviews = await db.reviews.find({"product_id": product_id, "is_approved": True}).to_list(10)
+    avg_rating = sum(r["rating"] for r in reviews) / len(reviews) if reviews else 0
+    
+    # Get related products (same category, different product)
+    related = [p for p in PRODUCTS if p["id"] != product_id and p.get("category") == product.get("category")][:4]
+    
+    base_variant = product["variants"][0]
+    
+    return {
+        "id": product["id"],
+        "name": product["name"],
+        "slug": product["slug"],
+        "description": product["description"],
+        "short_description": product.get("short_description"),
+        "category": product["category"].value if hasattr(product["category"], "value") else product["category"],
+        "roast_level": product["roast_level"].value if product.get("roast_level") and hasattr(product["roast_level"], "value") else product.get("roast_level"),
+        "origin": product.get("origin"),
+        "strength": product.get("strength"),
+        "flavor_notes": product["flavor_notes"],
+        "tasting_notes": product.get("tasting_notes", []),
+        "brewing_methods": product.get("brewing_methods", []),
+        "images": product["images"],
+        "variants": product["variants"],
+        "price": base_variant["price"],
+        "compare_at_price": base_variant.get("compare_at_price"),
+        "tags": product.get("tags", []),
+        "is_featured": product.get("is_featured", False),
+        "is_bundle": product.get("is_bundle", False),
+        "bundle_items": product.get("bundle_items", []),
+        "stock_status": "in_stock" if sum(v["stock_quantity"] for v in product["variants"]) > 0 else "out_of_stock",
+        "total_stock": sum(v["stock_quantity"] for v in product["variants"]),
+        "average_rating": round(avg_rating, 1),
+        "review_count": len(reviews),
+        "related_products": [{
+            "id": r["id"],
+            "name": r["name"],
+            "slug": r["slug"],
+            "price": r["variants"][0]["price"],
+            "image": r["images"][0]["url"] if r["images"] else None
+        } for r in related]
+    }
+
 
 # ============ CART ROUTES ============
 
+async def get_or_create_cart(user_id: Optional[str], session_id: Optional[str]) -> dict:
+    """Get or create cart for user or guest session"""
+    if user_id:
+        cart = await db.carts.find_one({"_id": user_id})
+        if not cart:
+            cart = {"_id": user_id, "items": [], "coupon_code": None, "updated_at": datetime.now(timezone.utc).isoformat()}
+            await db.carts.insert_one(cart)
+        return cart
+    elif session_id:
+        cart = await db.guest_carts.find_one({"session_id": session_id})
+        if not cart:
+            cart = {"session_id": session_id, "items": [], "coupon_code": None, "updated_at": datetime.now(timezone.utc).isoformat()}
+            await db.guest_carts.insert_one(cart)
+        return cart
+    raise HTTPException(status_code=400, detail="Authentication or session required")
+
+
+def calculate_cart_totals(items: list, coupon: Optional[dict] = None) -> dict:
+    """Calculate cart totals with optional coupon"""
+    subtotal = sum(item["price"] * item["quantity"] for item in items)
+    discount = 0.0
+    
+    if coupon:
+        if coupon["discount_type"] == "percentage":
+            discount = subtotal * (coupon["discount_value"] / 100)
+        elif coupon["discount_type"] == "fixed_amount":
+            discount = min(coupon["discount_value"], subtotal)
+    
+    discounted_subtotal = subtotal - discount
+    vat = calculate_vat(discounted_subtotal)
+    
+    return {
+        "subtotal": round(subtotal, 2),
+        "discount": round(discount, 2),
+        "vat": round(vat, 2),
+        "item_count": sum(item["quantity"] for item in items)
+    }
+
+
 @api_router.get("/cart", response_model=CartResponse)
-async def get_cart(user: dict = Depends(get_current_user)):
-    cart = await db.carts.find_one({"_id": user["_id"]})
-    if not cart:
-        cart = {"_id": user["_id"], "items": []}
-        await db.carts.insert_one(cart)
+async def get_cart(
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    user_id = user["_id"] if user else None
+    cart = await get_or_create_cart(user_id, session_id)
+    
+    # Get coupon if applied
+    coupon = None
+    if cart.get("coupon_code"):
+        coupon = await db.coupons.find_one({"code": cart["coupon_code"], "is_active": True})
     
     items = []
-    subtotal = 0.0
     for item in cart.get("items", []):
         product = PRODUCTS_MAP.get(item["product_id"])
         if product:
+            variant = next((v for v in product["variants"] if v["id"] == item.get("variant_id")), product["variants"][0])
             items.append(CartItemResponse(
-                product_id=product.id,
-                product_name=product.name,
-                price=product.price,
+                id=f"{item['product_id']}_{item.get('variant_id', 'default')}",
+                product_id=product["id"],
+                variant_id=item.get("variant_id"),
+                product_name=product["name"],
+                variant_name=variant["name"],
+                price=variant["price"],
                 quantity=item["quantity"],
-                image_url=product.image_url
+                image_url=product["images"][0]["url"] if product["images"] else "",
+                stock_available=variant["stock_quantity"]
             ))
-            subtotal += product.price * item["quantity"]
     
-    shipping = 0.0 if subtotal >= 399 else 75.0
-    return CartResponse(items=items, subtotal=subtotal, shipping=shipping, total=subtotal + shipping)
+    totals = calculate_cart_totals([{"price": i.price, "quantity": i.quantity} for i in items], coupon)
+    
+    # Calculate shipping (default to standard, Western Cape)
+    shipping = 0.0 if totals["subtotal"] >= 399 else 75.0
+    total = totals["subtotal"] - totals["discount"] + shipping
+    
+    return CartResponse(
+        items=items,
+        subtotal=totals["subtotal"],
+        discount=totals["discount"],
+        shipping=shipping,
+        vat=totals["vat"],
+        total=round(total, 2),
+        coupon_code=cart.get("coupon_code"),
+        item_count=totals["item_count"]
+    )
+
 
 @api_router.post("/cart/add")
-async def add_to_cart(item: CartItem, user: dict = Depends(get_current_user)):
-    if item.product_id not in PRODUCTS_MAP:
+async def add_to_cart(
+    item: CartItemAdd,
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    product = PRODUCTS_MAP.get(item.product_id)
+    if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    cart = await db.carts.find_one({"_id": user["_id"]})
-    if not cart:
-        cart = {"_id": user["_id"], "items": []}
+    # Validate variant
+    variant_id = item.variant_id or product["variants"][0]["id"]
+    variant = next((v for v in product["variants"] if v["id"] == variant_id), None)
+    if not variant:
+        raise HTTPException(status_code=404, detail="Variant not found")
     
-    # Check if product already in cart
+    # Check stock
+    if variant["stock_quantity"] < item.quantity:
+        raise HTTPException(status_code=400, detail="Insufficient stock")
+    
+    user_id = user["_id"] if user else None
+    cart = await get_or_create_cart(user_id, session_id)
+    
     items = cart.get("items", [])
-    found = False
-    for cart_item in items:
-        if cart_item["product_id"] == item.product_id:
-            cart_item["quantity"] += item.quantity
-            found = True
-            break
     
-    if not found:
-        items.append({"product_id": item.product_id, "quantity": item.quantity})
+    # Check if item already in cart
+    existing = next((i for i in items if i["product_id"] == item.product_id and i.get("variant_id") == variant_id), None)
+    
+    if existing:
+        existing["quantity"] += item.quantity
+    else:
+        items.append({
+            "product_id": item.product_id,
+            "variant_id": variant_id,
+            "quantity": item.quantity
+        })
+    
+    collection = db.carts if user_id else db.guest_carts
+    key = "_id" if user_id else "session_id"
+    value = user_id or session_id
+    
+    await collection.update_one(
+        {key: value},
+        {"$set": {"items": items, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Item added to cart"}
+
+
+@api_router.put("/cart/items/{item_id}")
+async def update_cart_item(
+    item_id: str,
+    update: CartItemUpdate,
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    user_id = user["_id"] if user else None
+    cart = await get_or_create_cart(user_id, session_id)
+    
+    items = cart.get("items", [])
+    product_id, variant_id = item_id.rsplit("_", 1) if "_" in item_id else (item_id, "default")
+    
+    if update.quantity <= 0:
+        items = [i for i in items if not (i["product_id"] == product_id and (i.get("variant_id") == variant_id or variant_id == "default"))]
+    else:
+        for item in items:
+            if item["product_id"] == product_id and (item.get("variant_id") == variant_id or variant_id == "default"):
+                item["quantity"] = update.quantity
+                break
+    
+    collection = db.carts if user_id else db.guest_carts
+    key = "_id" if user_id else "session_id"
+    value = user_id or session_id
+    
+    await collection.update_one(
+        {key: value},
+        {"$set": {"items": items, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Cart updated"}
+
+
+@api_router.delete("/cart/items/{item_id}")
+async def remove_from_cart(
+    item_id: str,
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    user_id = user["_id"] if user else None
+    cart = await get_or_create_cart(user_id, session_id)
+    
+    product_id, variant_id = item_id.rsplit("_", 1) if "_" in item_id else (item_id, "default")
+    items = [i for i in cart.get("items", []) if not (i["product_id"] == product_id and (i.get("variant_id") == variant_id or variant_id == "default"))]
+    
+    collection = db.carts if user_id else db.guest_carts
+    key = "_id" if user_id else "session_id"
+    value = user_id or session_id
+    
+    await collection.update_one(
+        {key: value},
+        {"$set": {"items": items, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Item removed"}
+
+
+@api_router.delete("/cart")
+async def clear_cart(
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    user_id = user["_id"] if user else None
+    
+    collection = db.carts if user_id else db.guest_carts
+    key = "_id" if user_id else "session_id"
+    value = user_id or session_id
+    
+    await collection.update_one(
+        {key: value},
+        {"$set": {"items": [], "coupon_code": None, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Cart cleared"}
+
+
+# ============ COUPON ROUTES ============
+
+@api_router.post("/cart/coupon")
+async def apply_coupon(
+    code: str,
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    coupon = await db.coupons.find_one({"code": code.upper(), "is_active": True})
+    
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Invalid coupon code")
+    
+    now = datetime.now(timezone.utc)
+    if coupon["valid_from"] > now or coupon["valid_until"] < now:
+        raise HTTPException(status_code=400, detail="Coupon has expired")
+    
+    user_id = user["_id"] if user else None
+    cart = await get_or_create_cart(user_id, session_id)
+    
+    # Check minimum order
+    items = cart.get("items", [])
+    subtotal = 0
+    for item in items:
+        product = PRODUCTS_MAP.get(item["product_id"])
+        if product:
+            variant = next((v for v in product["variants"] if v["id"] == item.get("variant_id")), product["variants"][0])
+            subtotal += variant["price"] * item["quantity"]
+    
+    if subtotal < coupon.get("minimum_order", 0):
+        raise HTTPException(status_code=400, detail=f"Minimum order of R{coupon['minimum_order']} required")
+    
+    collection = db.carts if user_id else db.guest_carts
+    key = "_id" if user_id else "session_id"
+    value = user_id or session_id
+    
+    await collection.update_one(
+        {key: value},
+        {"$set": {"coupon_code": code.upper(), "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Coupon applied", "discount_type": coupon["discount_type"], "discount_value": coupon["discount_value"]}
+
+
+@api_router.delete("/cart/coupon")
+async def remove_coupon(
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    user_id = user["_id"] if user else None
+    
+    collection = db.carts if user_id else db.guest_carts
+    key = "_id" if user_id else "session_id"
+    value = user_id or session_id
+    
+    await collection.update_one(
+        {key: value},
+        {"$set": {"coupon_code": None, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Coupon removed"}
+
+
+# ============ SHIPPING ROUTES ============
+
+@api_router.get("/shipping/rates")
+async def get_shipping_rates(province: str, subtotal: float):
+    """Get shipping rates for a province"""
+    if subtotal >= 399:
+        return {
+            "rates": [
+                {"method": "standard", "name": "Standard Delivery (3-5 days)", "price": 0, "free": True},
+                {"method": "express", "name": "Express Delivery (1-2 days)", "price": 0, "free": True}
+            ],
+            "free_shipping_threshold": 399,
+            "message": "Free shipping on orders over R399"
+        }
+    
+    zone_rates = SHIPPING_ZONES.get(province, SHIPPING_ZONES.get("Western Cape"))
+    rates = []
+    
+    if "standard" in zone_rates:
+        rates.append({"method": "standard", "name": "Standard Delivery (3-5 days)", "price": zone_rates["standard"]})
+    if "express" in zone_rates:
+        rates.append({"method": "express", "name": "Express Delivery (1-2 days)", "price": zone_rates["express"]})
+    if "local_delivery" in zone_rates:
+        rates.append({"method": "local_delivery", "name": "Local Delivery (Same Day)", "price": zone_rates["local_delivery"]})
+    
+    rates.append({"method": "collection", "name": "Store Collection", "price": 0})
+    
+    return {
+        "rates": rates,
+        "free_shipping_threshold": 399,
+        "amount_until_free": max(0, 399 - subtotal)
+    }
+
+
+# ============ CHECKOUT & ORDER ROUTES ============
+
+@api_router.post("/checkout")
+async def create_checkout(
+    checkout: CheckoutCreate,
+    background_tasks: BackgroundTasks,
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session_id: Optional[str] = Header(None, alias="X-Session-ID")
+):
+    user_id = user["_id"] if user else None
+    
+    # For guest checkout, require email
+    if not user_id and not checkout.guest_email:
+        raise HTTPException(status_code=400, detail="Email required for guest checkout")
+    
+    cart = await get_or_create_cart(user_id, session_id)
+    
+    if not cart.get("items"):
+        raise HTTPException(status_code=400, detail="Cart is empty")
+    
+    # Build order items
+    order_items = []
+    subtotal = 0.0
+    
+    for item in cart["items"]:
+        product = PRODUCTS_MAP.get(item["product_id"])
+        if not product:
+            continue
+        
+        variant = next((v for v in product["variants"] if v["id"] == item.get("variant_id")), product["variants"][0])
+        
+        # Check stock
+        if variant["stock_quantity"] < item["quantity"]:
+            raise HTTPException(status_code=400, detail=f"Insufficient stock for {product['name']}")
+        
+        item_total = variant["price"] * item["quantity"]
+        subtotal += item_total
+        
+        order_items.append({
+            "product_id": product["id"],
+            "product_name": product["name"],
+            "variant_id": variant["id"],
+            "variant_name": variant["name"],
+            "sku": variant["sku"],
+            "price": variant["price"],
+            "quantity": item["quantity"],
+            "total": item_total,
+            "image_url": product["images"][0]["url"] if product["images"] else ""
+        })
+    
+    # Calculate totals
+    discount = 0.0
+    coupon = None
+    if cart.get("coupon_code"):
+        coupon = await db.coupons.find_one({"code": cart["coupon_code"], "is_active": True})
+        if coupon:
+            if coupon["discount_type"] == "percentage":
+                discount = subtotal * (coupon["discount_value"] / 100)
+            elif coupon["discount_type"] == "fixed_amount":
+                discount = min(coupon["discount_value"], subtotal)
+    
+    shipping_cost = calculate_shipping(
+        subtotal - discount,
+        checkout.shipping.method,
+        checkout.shipping.address.province
+    )
+    
+    vat = calculate_vat(subtotal - discount + shipping_cost)
+    total = subtotal - discount + shipping_cost
+    
+    if total < 5.0:
+        raise HTTPException(status_code=400, detail="Minimum order amount is R5.00")
+    
+    # Create order
+    order_id = str(uuid.uuid4())
+    order_number = generate_order_number()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    order_doc = {
+        "_id": order_id,
+        "order_number": order_number,
+        "user_id": user_id,
+        "guest_email": checkout.guest_email if not user_id else None,
+        "items": order_items,
+        "subtotal": round(subtotal, 2),
+        "discount": round(discount, 2),
+        "shipping_cost": round(shipping_cost, 2),
+        "vat": round(vat, 2),
+        "total": round(total, 2),
+        "status": OrderStatus.PENDING_PAYMENT,
+        "payment_status": PaymentStatus.PENDING,
+        "payment_method": checkout.payment_method,
+        "shipping": {
+            "method": checkout.shipping.method,
+            "address": checkout.shipping.address.dict(),
+            "notes": checkout.shipping.notes
+        },
+        "billing": {
+            "same_as_shipping": checkout.billing.same_as_shipping,
+            "address": checkout.billing.address.dict() if checkout.billing.address else checkout.shipping.address.dict()
+        },
+        "coupon_code": cart.get("coupon_code"),
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.orders.insert_one(order_doc)
+    
+    # Generate payment based on method
+    payment_data = None
+    
+    if checkout.payment_method == PaymentMethod.PAYFAST:
+        # PayFast payment
+        email = user["email"] if user else checkout.guest_email
+        first_name = checkout.shipping.address.first_name
+        last_name = checkout.shipping.address.last_name
+        
+        payfast_data = {
+            "merchant_id": PAYFAST_MERCHANT_ID,
+            "merchant_key": PAYFAST_MERCHANT_KEY,
+            "return_url": f"{FRONTEND_URL}/order/success?order_id={order_id}",
+            "cancel_url": f"{FRONTEND_URL}/order/cancel?order_id={order_id}",
+            "notify_url": f"{BACKEND_URL}/api/webhooks/payfast",
+            "m_payment_id": order_id,
+            "amount": f"{total:.2f}",
+            "item_name": f"Cape Ember Order {order_number}",
+            "email_address": email,
+            "name_first": first_name,
+            "name_last": last_name
+        }
+        
+        signature = generate_payfast_signature(payfast_data)
+        payfast_data["signature"] = signature
+        
+        payment_data = {
+            "method": "payfast",
+            "host": get_payfast_host(),
+            "fields": payfast_data
+        }
+    
+    elif checkout.payment_method in [PaymentMethod.STITCH_CARD, PaymentMethod.STITCH_EFT]:
+        # Stitch payment
+        if not STITCH_CLIENT_ID:
+            raise HTTPException(status_code=500, detail="Stitch payments not configured")
+        
+        stitch_result = await create_stitch_payment(
+            total,
+            order_number,
+            checkout.payment_method.value,
+            f"{FRONTEND_URL}/order/success?order_id={order_id}"
+        )
+        
+        # Store Stitch payment ID
+        await db.orders.update_one(
+            {"_id": order_id},
+            {"$set": {"stitch_payment_id": stitch_result["id"]}}
+        )
+        
+        payment_data = {
+            "method": "stitch",
+            "redirect_url": stitch_result["url"]
+        }
+    
+    return {
+        "order_id": order_id,
+        "order_number": order_number,
+        "total": total,
+        "payment": payment_data
+    }
+
+
+@api_router.get("/orders")
+async def get_orders(user: dict = Depends(get_current_user), page: int = 1, limit: int = 10):
+    skip = (page - 1) * limit
+    
+    orders = await db.orders.find(
+        {"user_id": user["_id"]},
+        {"_id": 1, "order_number": 1, "items": 1, "total": 1, "status": 1, "payment_status": 1, "created_at": 1}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    total = await db.orders.count_documents({"user_id": user["_id"]})
+    
+    return {
+        "orders": [{
+            "id": o["_id"],
+            "order_number": o["order_number"],
+            "items": o["items"],
+            "total": o["total"],
+            "status": o["status"],
+            "payment_status": o["payment_status"],
+            "created_at": o["created_at"]
+        } for o in orders],
+        "total": total,
+        "page": page,
+        "total_pages": (total + limit - 1) // limit
+    }
+
+
+@api_router.get("/orders/{order_id}")
+async def get_order(order_id: str, user: Optional[dict] = Depends(get_current_user_optional)):
+    query = {"_id": order_id}
+    if user:
+        query["user_id"] = user["_id"]
+    
+    order = await db.orders.find_one(query)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    return {
+        "id": order["_id"],
+        "order_number": order["order_number"],
+        "items": order["items"],
+        "subtotal": order["subtotal"],
+        "discount": order["discount"],
+        "shipping_cost": order["shipping_cost"],
+        "vat": order["vat"],
+        "total": order["total"],
+        "status": order["status"],
+        "payment_status": order["payment_status"],
+        "payment_method": order["payment_method"],
+        "shipping": order["shipping"],
+        "billing": order["billing"],
+        "tracking_number": order.get("tracking_number"),
+        "created_at": order["created_at"],
+        "updated_at": order["updated_at"]
+    }
+
+
+@api_router.post("/orders/{order_id}/reorder")
+async def reorder(order_id: str, user: dict = Depends(get_current_user)):
+    """Add items from a previous order to cart"""
+    order = await db.orders.find_one({"_id": order_id, "user_id": user["_id"]})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    cart = await db.carts.find_one({"_id": user["_id"]})
+    items = cart.get("items", []) if cart else []
+    
+    for item in order["items"]:
+        existing = next((i for i in items if i["product_id"] == item["product_id"] and i.get("variant_id") == item.get("variant_id")), None)
+        if existing:
+            existing["quantity"] += item["quantity"]
+        else:
+            items.append({
+                "product_id": item["product_id"],
+                "variant_id": item.get("variant_id"),
+                "quantity": item["quantity"]
+            })
     
     await db.carts.update_one(
         {"_id": user["_id"]},
         {"$set": {"items": items, "updated_at": datetime.now(timezone.utc).isoformat()}},
         upsert=True
     )
-    return {"message": "Item added to cart"}
+    
+    return {"message": "Items added to cart"}
 
-@api_router.put("/cart/update")
-async def update_cart_item(item: CartItem, user: dict = Depends(get_current_user)):
-    cart = await db.carts.find_one({"_id": user["_id"]})
-    if not cart:
-        raise HTTPException(status_code=404, detail="Cart not found")
-    
-    items = cart.get("items", [])
-    if item.quantity <= 0:
-        items = [i for i in items if i["product_id"] != item.product_id]
-    else:
-        for cart_item in items:
-            if cart_item["product_id"] == item.product_id:
-                cart_item["quantity"] = item.quantity
-                break
-    
-    await db.carts.update_one(
-        {"_id": user["_id"]},
-        {"$set": {"items": items, "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
-    return {"message": "Cart updated"}
 
-@api_router.delete("/cart/remove/{product_id}")
-async def remove_from_cart(product_id: str, user: dict = Depends(get_current_user)):
-    await db.carts.update_one(
-        {"_id": user["_id"]},
-        {"$pull": {"items": {"product_id": product_id}}}
-    )
-    return {"message": "Item removed from cart"}
+# ============ WEBHOOK ROUTES ============
 
-@api_router.delete("/cart/clear")
-async def clear_cart(user: dict = Depends(get_current_user)):
-    await db.carts.update_one(
-        {"_id": user["_id"]},
-        {"$set": {"items": [], "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
-    return {"message": "Cart cleared"}
-
-# ============ ORDERS ROUTES ============
-
-@api_router.post("/orders")
-async def create_order(order_data: OrderCreate, user: dict = Depends(get_current_user)):
-    cart = await db.carts.find_one({"_id": user["_id"]})
-    if not cart or not cart.get("items"):
-        raise HTTPException(status_code=400, detail="Cart is empty")
-    
-    # Calculate totals
-    items = []
-    subtotal = 0.0
-    for item in cart["items"]:
-        product = PRODUCTS_MAP.get(item["product_id"])
-        if product:
-            items.append({
-                "product_id": product.id,
-                "product_name": product.name,
-                "price": product.price,
-                "quantity": item["quantity"]
-            })
-            subtotal += product.price * item["quantity"]
-    
-    shipping = 0.0 if subtotal >= 399 else 75.0
-    total = subtotal + shipping
-    
-    if total < 5.0:
-        raise HTTPException(status_code=400, detail="Minimum order amount is R5.00")
-    
-    order_id = str(uuid.uuid4())
-    order_doc = {
-        "_id": order_id,
-        "user_id": user["_id"],
-        "items": items,
-        "subtotal": subtotal,
-        "shipping": shipping,
-        "total": total,
-        "shipping_address": order_data.shipping_address.model_dump(),
-        "status": "pending_payment",
-        "is_subscription": order_data.is_subscription,
-        "subscription_frequency": order_data.subscription_frequency,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.orders.insert_one(order_doc)
-    
-    return {
-        "order_id": order_id,
-        "total": total,
-        "status": "pending_payment",
-        "whatsapp_link": generate_whatsapp_link(order_id, total)
-    }
-
-@api_router.get("/orders")
-async def get_orders(user: dict = Depends(get_current_user)):
-    orders = await db.orders.find({"user_id": user["_id"]}, {"_id": 1, "items": 1, "total": 1, "status": 1, "created_at": 1, "is_subscription": 1}).sort("created_at", -1).to_list(100)
-    return [{
-        "id": o["_id"],
-        "items": o["items"],
-        "total": o["total"],
-        "status": o["status"],
-        "created_at": o["created_at"],
-        "is_subscription": o.get("is_subscription", False)
-    } for o in orders]
-
-@api_router.get("/orders/{order_id}")
-async def get_order(order_id: str, user: dict = Depends(get_current_user)):
-    order = await db.orders.find_one({"_id": order_id, "user_id": user["_id"]})
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    return {
-        "id": order["_id"],
-        "items": order["items"],
-        "subtotal": order["subtotal"],
-        "shipping": order["shipping"],
-        "total": order["total"],
-        "shipping_address": order["shipping_address"],
-        "status": order["status"],
-        "is_subscription": order.get("is_subscription", False),
-        "subscription_frequency": order.get("subscription_frequency"),
-        "created_at": order["created_at"]
-    }
-
-# ============ SUBSCRIPTIONS ROUTES ============
-
-@api_router.post("/subscriptions")
-async def create_subscription(sub_data: SubscriptionCreate, user: dict = Depends(get_current_user)):
-    product = PRODUCTS_MAP.get(sub_data.product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    
-    sub_id = str(uuid.uuid4())
-    sub_doc = {
-        "_id": sub_id,
-        "user_id": user["_id"],
-        "product_id": product.id,
-        "product_name": product.name,
-        "quantity": sub_data.quantity,
-        "price_per_delivery": product.price * sub_data.quantity,
-        "frequency": sub_data.frequency,
-        "shipping_address": sub_data.shipping_address.model_dump(),
-        "status": "active",
-        "next_delivery": (datetime.now(timezone.utc) + timedelta(days=7 if sub_data.frequency == "weekly" else 14 if sub_data.frequency == "biweekly" else 30)).isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.subscriptions.insert_one(sub_doc)
-    return {"subscription_id": sub_id, "message": "Subscription created", "next_delivery": sub_doc["next_delivery"]}
-
-@api_router.get("/subscriptions")
-async def get_subscriptions(user: dict = Depends(get_current_user)):
-    subs = await db.subscriptions.find({"user_id": user["_id"]}).to_list(100)
-    return [{
-        "id": s["_id"],
-        "product_name": s["product_name"],
-        "quantity": s["quantity"],
-        "price_per_delivery": s["price_per_delivery"],
-        "frequency": s["frequency"],
-        "status": s["status"],
-        "next_delivery": s["next_delivery"]
-    } for s in subs]
-
-@api_router.put("/subscriptions/{sub_id}/pause")
-async def pause_subscription(sub_id: str, user: dict = Depends(get_current_user)):
-    result = await db.subscriptions.update_one(
-        {"_id": sub_id, "user_id": user["_id"]},
-        {"$set": {"status": "paused"}}
-    )
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Subscription not found")
-    return {"message": "Subscription paused"}
-
-@api_router.put("/subscriptions/{sub_id}/resume")
-async def resume_subscription(sub_id: str, user: dict = Depends(get_current_user)):
-    result = await db.subscriptions.update_one(
-        {"_id": sub_id, "user_id": user["_id"]},
-        {"$set": {"status": "active"}}
-    )
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Subscription not found")
-    return {"message": "Subscription resumed"}
-
-@api_router.delete("/subscriptions/{sub_id}")
-async def cancel_subscription(sub_id: str, user: dict = Depends(get_current_user)):
-    result = await db.subscriptions.update_one(
-        {"_id": sub_id, "user_id": user["_id"]},
-        {"$set": {"status": "cancelled"}}
-    )
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Subscription not found")
-    return {"message": "Subscription cancelled"}
-
-# ============ PAYFAST ROUTES ============
-
-@api_router.post("/payfast/create-payment")
-async def create_payfast_payment(payment_data: PaymentCreate, user: dict = Depends(get_current_user)):
-    order = await db.orders.find_one({"_id": payment_data.order_id, "user_id": user["_id"]})
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    
-    if order["status"] != "pending_payment":
-        raise HTTPException(status_code=400, detail="Order already processed")
-    
-    amount = order["total"]
-    m_payment_id = str(uuid.uuid4())
-    
-    # Get frontend URL for return/cancel
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://axis-creator.preview.emergentagent.com')
-    
-    payfast_data = {
-        "merchant_id": PAYFAST_MERCHANT_ID,
-        "merchant_key": PAYFAST_MERCHANT_KEY,
-        "return_url": f"{frontend_url}/payment/success?order_id={order['_id']}",
-        "cancel_url": f"{frontend_url}/payment/cancel?order_id={order['_id']}",
-        "notify_url": f"{os.environ.get('REACT_APP_BACKEND_URL', 'https://axis-creator.preview.emergentagent.com')}/api/payfast/itn",
-        "m_payment_id": m_payment_id,
-        "amount": f"{amount:.2f}",
-        "item_name": f"Cape Ember Coffee Order #{order['_id'][:8]}",
-        "email_address": user["email"],
-        "name_first": user["first_name"],
-        "name_last": user["last_name"],
-    }
-    
-    signature = generate_payfast_signature(payfast_data)
-    payfast_data["signature"] = signature
-    
-    # Store payment record
-    await db.payments.insert_one({
-        "_id": m_payment_id,
-        "order_id": order["_id"],
-        "amount": amount,
-        "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    
-    return {
-        "payfast_host": get_payfast_host(),
-        "fields": payfast_data
-    }
-
-@api_router.post("/payfast/itn")
-async def payfast_itn(request: Request):
-    form = await request.form()
-    data = dict(form)
-    
-    logger.info(f"Received ITN: {data}")
-    
-    # Verify signature
-    received_signature = data.get("signature", "")
-    our_signature = generate_payfast_signature(data)
-    
-    if received_signature != our_signature:
-        logger.warning("Invalid ITN signature")
+@api_router.post("/webhooks/payfast")
+async def payfast_webhook(request: Request, background_tasks: BackgroundTasks):
+    """PayFast ITN webhook handler"""
+    if not await verify_payfast_itn(request):
         return Response(content="OK", status_code=200)
     
-    m_payment_id = data.get("m_payment_id")
-    pf_payment_id = data.get("pf_payment_id")
+    form_data = await request.form()
+    data = dict(form_data)
+    
+    logger.info(f"PayFast ITN received: {data}")
+    
+    order_id = data.get("m_payment_id")
     payment_status = data.get("payment_status")
-    amount_gross = float(data.get("amount_gross", "0"))
+    pf_payment_id = data.get("pf_payment_id")
     
-    # Find payment
-    payment = await db.payments.find_one({"_id": m_payment_id})
-    if not payment:
-        logger.warning(f"Payment not found: {m_payment_id}")
+    if not order_id:
         return Response(content="OK", status_code=200)
     
-    # Update payment status
-    new_status = "complete" if payment_status == "COMPLETE" else "failed"
-    await db.payments.update_one(
-        {"_id": m_payment_id},
-        {"$set": {"status": new_status, "pf_payment_id": pf_payment_id, "raw_itn": data, "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
+    order = await db.orders.find_one({"_id": order_id})
+    if not order:
+        logger.warning(f"Order not found: {order_id}")
+        return Response(content="OK", status_code=200)
     
-    # Update order status
-    if new_status == "complete":
+    now = datetime.now(timezone.utc).isoformat()
+    
+    if payment_status == "COMPLETE":
+        # Update order status
         await db.orders.update_one(
-            {"_id": payment["order_id"]},
-            {"$set": {"status": "paid", "updated_at": datetime.now(timezone.utc).isoformat()}}
+            {"_id": order_id},
+            {
+                "$set": {
+                    "status": OrderStatus.PAID,
+                    "payment_status": PaymentStatus.COMPLETE,
+                    "payfast_payment_id": pf_payment_id,
+                    "paid_at": now,
+                    "updated_at": now
+                }
+            }
         )
+        
+        # Reduce inventory
+        for item in order["items"]:
+            # In production, update actual inventory
+            pass
+        
         # Clear cart
-        order = await db.orders.find_one({"_id": payment["order_id"]})
-        if order:
-            await db.carts.update_one({"_id": order["user_id"]}, {"$set": {"items": []}})
+        if order.get("user_id"):
+            await db.carts.update_one({"_id": order["user_id"]}, {"$set": {"items": [], "coupon_code": None}})
+        
+        # Send confirmation email
+        email = order.get("guest_email")
+        if order.get("user_id"):
+            user = await db.users.find_one({"_id": order["user_id"]})
+            email = user["email"] if user else email
+        
+        if email:
+            background_tasks.add_task(send_order_confirmation, order, email)
+    
+    elif payment_status == "CANCELLED":
+        await db.orders.update_one(
+            {"_id": order_id},
+            {"$set": {"payment_status": PaymentStatus.CANCELLED, "updated_at": now}}
+        )
+    
+    elif payment_status == "FAILED":
+        await db.orders.update_one(
+            {"_id": order_id},
+            {"$set": {"payment_status": PaymentStatus.FAILED, "updated_at": now}}
+        )
+    
+    # Store webhook event
+    await db.webhook_events.insert_one({
+        "provider": "payfast",
+        "order_id": order_id,
+        "payload": data,
+        "received_at": now
+    })
     
     return Response(content="OK", status_code=200)
 
-@api_router.get("/payfast/payment-status")
-async def get_payment_status(m_payment_id: str = Query(...)):
-    payment = await db.payments.find_one({"_id": m_payment_id})
-    if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-    return {"status": payment["status"]}
 
-# ============ AI RECOMMENDATIONS ============
+@api_router.post("/webhooks/stitch")
+async def stitch_webhook(request: Request, background_tasks: BackgroundTasks):
+    """Stitch payment webhook handler"""
+    body = await request.body()
+    
+    if not verify_stitch_webhook(request, body):
+        logger.warning("Stitch webhook: Invalid signature")
+        return Response(content="OK", status_code=200)
+    
+    import json
+    data = json.loads(body)
+    
+    logger.info(f"Stitch webhook received: {data}")
+    
+    payment_id = data.get("data", {}).get("client", {}).get("paymentInitiationRequest", {}).get("id")
+    status = data.get("data", {}).get("status")
+    
+    if not payment_id:
+        return Response(content="OK", status_code=200)
+    
+    order = await db.orders.find_one({"stitch_payment_id": payment_id})
+    if not order:
+        logger.warning(f"Order not found for Stitch payment: {payment_id}")
+        return Response(content="OK", status_code=200)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    if status == "PaymentReceived":
+        await db.orders.update_one(
+            {"_id": order["_id"]},
+            {
+                "$set": {
+                    "status": OrderStatus.PAID,
+                    "payment_status": PaymentStatus.COMPLETE,
+                    "paid_at": now,
+                    "updated_at": now
+                }
+            }
+        )
+        
+        # Clear cart and send email
+        if order.get("user_id"):
+            await db.carts.update_one({"_id": order["user_id"]}, {"$set": {"items": [], "coupon_code": None}})
+            user = await db.users.find_one({"_id": order["user_id"]})
+            if user:
+                background_tasks.add_task(send_order_confirmation, order, user["email"])
+        elif order.get("guest_email"):
+            background_tasks.add_task(send_order_confirmation, order, order["guest_email"])
+    
+    elif status in ["PaymentCancelled", "PaymentFailed"]:
+        await db.orders.update_one(
+            {"_id": order["_id"]},
+            {"$set": {"payment_status": PaymentStatus.FAILED, "updated_at": now}}
+        )
+    
+    # Store webhook event
+    await db.webhook_events.insert_one({
+        "provider": "stitch",
+        "order_id": order["_id"],
+        "payload": data,
+        "received_at": now
+    })
+    
+    return Response(content="OK", status_code=200)
 
-@api_router.post("/recommendations")
-async def get_recommendations(req: RecommendationRequest, user: dict = Depends(get_current_user)):
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        
-        api_key = os.environ.get('EMERGENT_LLM_KEY')
-        if not api_key:
-            # Return default recommendations if no AI key
-            return {"recommendations": [PRODUCTS[0].id, PRODUCTS[2].id], "message": "Based on our bestsellers"}
-        
-        # Get user's order history
-        orders = await db.orders.find({"user_id": user["_id"], "status": "paid"}).to_list(10)
-        order_history = []
-        for o in orders:
-            for item in o.get("items", []):
-                order_history.append(item["product_name"])
-        
-        products_info = "\n".join([f"- {p.name}: {p.flavor_notes} (R{p.price})" for p in PRODUCTS if not p.is_bundle])
-        
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"rec-{user['_id']}",
-            system_message="You are a coffee expert at Cape Ember Coffee Co. Based on customer preferences and history, recommend 2 coffee products. Return ONLY a JSON object with 'recommendations' (array of product IDs) and 'message' (brief explanation). Product IDs are: fynbos-roast, garden-route, ember-reserve, karoo-horizon"
-        ).with_model("openai", "gpt-4o")
-        
-        prompt = f"""Customer preferences: {req.preferences or 'Not specified'}
-Previous orders: {', '.join(order_history) if order_history else 'New customer'}
 
-Available products:
-{products_info}
+# ============ WISHLIST ROUTES ============
 
-Recommend 2 products that would suit this customer."""
-        
-        response = await chat.send_message(UserMessage(text=prompt))
-        
-        # Parse response
-        import json
-        try:
-            # Try to extract JSON from response
-            text = response.text if hasattr(response, 'text') else str(response)
-            start = text.find('{')
-            end = text.rfind('}') + 1
-            if start >= 0 and end > start:
-                result = json.loads(text[start:end])
-                return result
-        except:
-            pass
-        
-        return {"recommendations": ["fynbos-roast", "ember-reserve"], "message": "Our most popular choices for new customers"}
-    except Exception as e:
-        logger.error(f"AI recommendation error: {e}")
-        return {"recommendations": ["fynbos-roast", "ember-reserve"], "message": "Our most popular choices"}
+@api_router.get("/wishlist")
+async def get_wishlist(user: dict = Depends(get_current_user)):
+    wishlist = await db.wishlists.find_one({"_id": user["_id"]})
+    items = []
+    
+    for product_id in wishlist.get("items", []) if wishlist else []:
+        product = PRODUCTS_MAP.get(product_id)
+        if product:
+            items.append({
+                "id": product["id"],
+                "name": product["name"],
+                "slug": product["slug"],
+                "price": product["variants"][0]["price"],
+                "image": product["images"][0]["url"] if product["images"] else None,
+                "stock_status": "in_stock" if sum(v["stock_quantity"] for v in product["variants"]) > 0 else "out_of_stock"
+            })
+    
+    return {"items": items}
 
-@api_router.get("/recommendations/quick")
-async def get_quick_recommendations():
-    """Public endpoint for quick recommendations without auth"""
+
+@api_router.post("/wishlist")
+async def add_to_wishlist(item: WishlistItemAdd, user: dict = Depends(get_current_user)):
+    if item.product_id not in PRODUCTS_MAP:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    await db.wishlists.update_one(
+        {"_id": user["_id"]},
+        {"$addToSet": {"items": item.product_id}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    return {"message": "Added to wishlist"}
+
+
+@api_router.delete("/wishlist/{product_id}")
+async def remove_from_wishlist(product_id: str, user: dict = Depends(get_current_user)):
+    await db.wishlists.update_one(
+        {"_id": user["_id"]},
+        {"$pull": {"items": product_id}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Removed from wishlist"}
+
+
+# ============ REVIEW ROUTES ============
+
+@api_router.get("/products/{product_id}/reviews")
+async def get_product_reviews(product_id: str, page: int = 1, limit: int = 10):
+    skip = (page - 1) * limit
+    
+    reviews = await db.reviews.find(
+        {"product_id": product_id, "is_approved": True}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    total = await db.reviews.count_documents({"product_id": product_id, "is_approved": True})
+    
     return {
-        "recommendations": [
-            {"id": "fynbos-roast", "name": "Fynbos Roast", "reason": "Bestseller - smooth and balanced"},
-            {"id": "landscape-bundle", "name": "Landscape Bundle", "reason": "Best value - try all four blends"}
-        ]
+        "reviews": [{
+            "id": str(r["_id"]),
+            "user_name": r["user_name"],
+            "rating": r["rating"],
+            "title": r["title"],
+            "content": r["content"],
+            "is_verified_purchase": r.get("is_verified_purchase", False),
+            "helpful_votes": r.get("helpful_votes", 0),
+            "created_at": r["created_at"]
+        } for r in reviews],
+        "total": total,
+        "page": page,
+        "average_rating": await get_average_rating(product_id)
     }
 
-# ============ NEWSLETTER ============
+
+async def get_average_rating(product_id: str) -> float:
+    pipeline = [
+        {"$match": {"product_id": product_id, "is_approved": True}},
+        {"$group": {"_id": None, "avg": {"$avg": "$rating"}}}
+    ]
+    result = await db.reviews.aggregate(pipeline).to_list(1)
+    return round(result[0]["avg"], 1) if result else 0.0
+
+
+@api_router.post("/products/{product_id}/reviews")
+async def create_review(product_id: str, review: ReviewCreate, user: dict = Depends(get_current_user)):
+    if product_id not in PRODUCTS_MAP:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Check if user has purchased this product
+    has_purchased = await db.orders.find_one({
+        "user_id": user["_id"],
+        "items.product_id": product_id,
+        "payment_status": PaymentStatus.COMPLETE
+    })
+    
+    # Check if user already reviewed
+    existing = await db.reviews.find_one({"product_id": product_id, "user_id": user["_id"]})
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already reviewed this product")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    review_doc = {
+        "product_id": product_id,
+        "user_id": user["_id"],
+        "user_name": f"{user['first_name']} {user['last_name'][0]}.",
+        "rating": review.rating,
+        "title": review.title,
+        "content": review.content,
+        "is_verified_purchase": has_purchased is not None,
+        "is_approved": True,  # Auto-approve for now
+        "helpful_votes": 0,
+        "created_at": now
+    }
+    
+    result = await db.reviews.insert_one(review_doc)
+    
+    return {"message": "Review submitted", "review_id": str(result.inserted_id)}
+
+
+# ============ NEWSLETTER ROUTES ============
 
 @api_router.post("/newsletter/subscribe")
-async def subscribe_newsletter(email: EmailStr = Query(...)):
+async def subscribe_newsletter(email: EmailStr):
     existing = await db.newsletter.find_one({"email": email.lower()})
     if existing:
         return {"message": "Already subscribed"}
@@ -740,21 +2124,48 @@ async def subscribe_newsletter(email: EmailStr = Query(...)):
     await db.newsletter.insert_one({
         "_id": str(uuid.uuid4()),
         "email": email.lower(),
-        "subscribed_at": datetime.now(timezone.utc).isoformat()
+        "subscribed_at": datetime.now(timezone.utc).isoformat(),
+        "is_active": True
     })
+    
     return {"message": "Successfully subscribed to newsletter"}
 
-# ============ HEALTH CHECK ============
 
-@api_router.get("/")
-async def root():
-    return {"message": "Cape Ember Coffee API", "status": "healthy"}
+@api_router.post("/newsletter/unsubscribe")
+async def unsubscribe_newsletter(email: EmailStr):
+    await db.newsletter.update_one(
+        {"email": email.lower()},
+        {"$set": {"is_active": False, "unsubscribed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": "Unsubscribed from newsletter"}
 
-@api_router.get("/health")
-async def health_check():
-    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
-# ============ PRODUCT IMAGES ============
+# ============ CONTACT ROUTES ============
+
+@api_router.post("/contact")
+async def submit_contact(
+    name: str,
+    email: EmailStr,
+    subject: str,
+    message: str,
+    background_tasks: BackgroundTasks
+):
+    await db.contact_submissions.insert_one({
+        "_id": str(uuid.uuid4()),
+        "name": name,
+        "email": email,
+        "subject": subject,
+        "message": message,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_read": False
+    })
+    
+    # TODO: Send email notification to admin
+    
+    return {"message": "Message sent successfully"}
+
+
+# ============ STATIC IMAGES ROUTE ============
 
 @api_router.get("/images/products/{product_id}")
 async def get_product_image(product_id: str):
@@ -771,7 +2182,21 @@ async def get_product_image(product_id: str):
         headers={"Cache-Control": "public, max-age=31536000"}
     )
 
-# Include the router
+
+# ============ HEALTH CHECK ============
+
+@api_router.get("/")
+async def root():
+    return {"message": "Cape Ember Coffee API", "version": "2.0.0", "status": "healthy"}
+
+
+@api_router.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+# ============ INCLUDE ROUTERS ============
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -781,6 +2206,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
