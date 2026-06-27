@@ -109,30 +109,44 @@ Build a premium Cape Ember Coffee e-commerce website inspired by capeembercoffee
 
 ### P0 (Critical) - DONE
 - [x] Complete e-commerce flow
-- [x] Payment integration
+- [x] Payment integration (PayFast LIVE mode)
 - [x] User authentication
 - [x] Real product images integrated
+- [x] Frontend-Backend API compatibility (fixed June 2026)
 
 ### P1 (Important)
-- [ ] Order confirmation emails (SendGrid/Resend)
-- [ ] PayFast live credentials setup
-- [ ] Admin dashboard for order management
+- [ ] Stitch Payments integration (second payment gateway)
+- [ ] Enhanced Product Catalog (categories, filters, sorting, search)
+- [ ] Advanced Checkout Flow (guest checkout, shipping details, coupons, VAT)
+- [ ] Admin Dashboard (sales analytics, order management, inventory, user roles)
+- [ ] Enhanced Product Pages (image gallery, tasting notes, reviews)
 
 ### P2 (Nice to Have)
+- [ ] Customer Accounts Expansion (order history, saved addresses, wishlist, reorder)
+- [ ] Marketing & SEO (newsletter, abandoned cart, Meta Pixel, sitemap)
 - [ ] Product reviews and ratings
-- [ ] Wishlist functionality
-- [ ] Social login (Google)
 - [ ] Discount codes / coupons
 - [ ] Inventory management
+- [ ] Social login (Google)
 
 ### P3 (Future)
 - [ ] Mobile app (React Native)
 - [ ] Loyalty program
 - [ ] Gift cards
 - [ ] Multi-language support (Afrikaans)
+- [ ] Security & Performance Optimizations (CSRF, XSS, rate limiting, lazy loading)
+
+## Changelog
+
+### June 27, 2026
+- **Bug Fix**: Fixed 500 Server Error caused by frontend-backend API mismatch
+  - Updated HomePage, ShopPage, ProductDetailPage, SubscriptionsPage to handle new API response format `{products: [...]}`
+  - Updated ProductCard component to use `images` array instead of `image_url`
+  - Added `getImageUrl` helper functions to extract primary image from images array
+  - Added `productWeight` helper to get weight from variants array
 
 ## Next Tasks
-1. Obtain PayFast live merchant credentials from client
-2. Add order confirmation email notifications
-3. Set up admin panel for order management
-4. Configure production deployment
+1. Implement Stitch Payments as second payment gateway (playbook available)
+2. Build Admin Dashboard for order management
+3. Add product categories and filtering
+4. Enhanced checkout with VAT calculation

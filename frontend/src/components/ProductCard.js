@@ -16,6 +16,12 @@ const ProductCard = ({ product, onAuthRequired }) => {
       ? (product.images.find(img => img.is_primary)?.url || product.images[0]?.url)
       : '/placeholder-coffee.jpg');
 
+  // Get weight from variants or old weight field
+  const productWeight = product.weight || 
+    (product.variants && product.variants.length > 0 
+      ? product.variants[0]?.weight 
+      : '250g');
+
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -74,7 +80,7 @@ const ProductCard = ({ product, onAuthRequired }) => {
             <span className="font-semibold text-[#2D2622]">
               R {product.price.toFixed(2)}
             </span>
-            <span className="text-sm text-[#5C534C]">{product.weight}</span>
+            <span className="text-sm text-[#5C534C]">{productWeight}</span>
           </div>
 
           {/* Add to Cart Button */}

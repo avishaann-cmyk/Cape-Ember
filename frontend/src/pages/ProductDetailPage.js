@@ -93,6 +93,12 @@ const ProductDetailPage = () => {
     return '/placeholder-coffee.jpg';
   };
 
+  // Get weight from variants or old weight field
+  const productWeight = product?.weight || 
+    (product?.variants && product.variants.length > 0 
+      ? product.variants[0]?.weight 
+      : '250g');
+
   return (
     <div className="min-h-screen pt-20 md:pt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -140,11 +146,11 @@ const ProductDetailPage = () => {
             <div className="grid grid-cols-2 gap-4 mb-8 py-6 border-y border-[#E5DCD0]">
               <div>
                 <span className="overline text-[#5C534C] block mb-1">Roast Level</span>
-                <span className="font-medium text-[#2D2622]">{product.roast_level}</span>
+                <span className="font-medium text-[#2D2622]">{product.roast_level || 'Medium'}</span>
               </div>
               <div>
                 <span className="overline text-[#5C534C] block mb-1">Weight</span>
-                <span className="font-medium text-[#2D2622]">{product.weight}</span>
+                <span className="font-medium text-[#2D2622]">{productWeight}</span>
               </div>
             </div>
 
