@@ -352,6 +352,16 @@ class CheckoutCreate(BaseModel):
     is_guest: bool = False
     guest_email: Optional[EmailStr] = None
 
+# Simple order creation for legacy frontend
+class SimpleOrderCreate(BaseModel):
+    shipping_address: dict
+    is_subscription: bool = False
+    subscription_frequency: Optional[str] = None
+    payment_method: Optional[str] = "payfast"
+
+class SimplePaymentCreate(BaseModel):
+    order_id: str
+
 class OrderResponse(BaseModel):
     id: str
     order_number: str
@@ -1754,6 +1764,175 @@ async def create_checkout(
         "total": total,
         "payment": payment_data
     }
+
+
+# ============ SIMPLE ORDER ENDPOINTS (Legacy Frontend Support) ============
+
+@api_router.post("/orders")
+async def create_simple_order(
+    order_data: SimpleOrderCreate,
+    user: dict = Depends(get_current_user)
+):
+    """Create order using simple format for legacy frontend"""
+    user_id = user["_id"]
+    
+    # Get cart
+    cart = await db.carts.find_one({"_id": user_id})
+    if not cart or not cart.get("items"):
+        raise HTTPException(status_code=400, detail="Cart is empty")
+    
+    # Build order items
+    order_items = []
+    subtotal = 0.0
+    
+    for item in cart["items"]:
+        product = PRODUCTS_MAP.get(item["product_id"])
+        if not product:
+            continue
+        
+        variant = next((v for v in product["variants"] if v["id"] == item.get("variant_id")), product["variants"][0])
+        item_total = variant["price"] * item["quantity"]
+        subtotal += item_total
+        
+        order_items.append({
+            "product_id": product["id"],
+            "product_name": product["name"],
+            "variant_id": variant["id"],
+            "variant_name": variant["name"],
+            "sku": variant["sku"],
+            "price": variant["price"],
+            "quantity": item["quantity"],
+            "total": item_total,
+            "image_url": product["images"][0]["url"] if product["images"] else ""
+        })
+    
+    # Calculate totals
+    shipping_cost = 0.0 if subtotal >= 399 else 65.0
+    vat = (subtotal + shipping_cost) * VAT_RATE
+    total = subtotal + shipping_cost + vat
+    
+    # Generate order number and ID
+    order_id = str(uuid.uuid4())
+    order_count = await db.orders.count_documents({})
+    order_number = f"CE-{(order_count + 1):06d}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Create order document
+    order_doc = {
+        "_id": order_id,
+        "order_number": order_number,
+        "user_id": user_id,
+        "items": order_items,
+        "subtotal": subtotal,
+        "discount": 0.0,
+        "shipping_cost": shipping_cost,
+        "vat": vat,
+        "total": total,
+        "status": OrderStatus.PENDING.value,
+        "payment_status": PaymentStatus.PENDING.value,
+        "payment_method": order_data.payment_method or "payfast",
+        "shipping": {
+            "method": "standard",
+            "address": order_data.shipping_address,
+            "notes": None
+        },
+        "billing": {
+            "same_as_shipping": True,
+            "address": order_data.shipping_address
+        },
+        "is_subscription": order_data.is_subscription,
+        "subscription_frequency": order_data.subscription_frequency,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.orders.insert_one(order_doc)
+    
+    # Generate WhatsApp link
+    whatsapp_phone = "27810261618"
+    items_text = ", ".join([f"{i['product_name']} x{i['quantity']}" for i in order_items])
+    whatsapp_message = f"Hi! I just placed order {order_number}. Items: {items_text}. Total: R{total:.2f}"
+    whatsapp_link = f"https://wa.me/{whatsapp_phone}?text={urllib.parse.quote(whatsapp_message)}"
+    
+    return {
+        "order_id": order_id,
+        "order_number": order_number,
+        "total": total,
+        "whatsapp_link": whatsapp_link
+    }
+
+
+@api_router.post("/payfast/create-payment")
+async def create_payfast_payment(payment: SimplePaymentCreate, user: dict = Depends(get_current_user)):
+    """Create PayFast payment for an existing order"""
+    order = await db.orders.find_one({"_id": payment.order_id, "user_id": user["_id"]})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    payfast_data = {
+        "merchant_id": PAYFAST_MERCHANT_ID,
+        "merchant_key": PAYFAST_MERCHANT_KEY,
+        "return_url": f"{FRONTEND_URL}/order/success?order_id={payment.order_id}",
+        "cancel_url": f"{FRONTEND_URL}/order/cancel?order_id={payment.order_id}",
+        "notify_url": f"{BACKEND_URL}/api/webhooks/payfast",
+        "m_payment_id": payment.order_id,
+        "amount": f"{order['total']:.2f}",
+        "item_name": f"Cape Ember Order {order['order_number']}",
+        "email_address": user["email"],
+        "name_first": user.get("first_name", "Customer"),
+        "name_last": user.get("last_name", "")
+    }
+    
+    if PAYFAST_PASSPHRASE:
+        payfast_data["passphrase"] = PAYFAST_PASSPHRASE
+    
+    signature = generate_payfast_signature(payfast_data)
+    payfast_data["signature"] = signature
+    
+    # Remove passphrase from returned data
+    if "passphrase" in payfast_data:
+        del payfast_data["passphrase"]
+    
+    return {
+        "payfast_host": get_payfast_host(),
+        "fields": payfast_data
+    }
+
+
+@api_router.post("/stitch/create-payment")
+async def create_stitch_payment_endpoint(payment: SimplePaymentCreate, user: dict = Depends(get_current_user)):
+    """Create Stitch payment for an existing order"""
+    if not STITCH_CLIENT_ID or not STITCH_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Stitch payments not configured")
+    
+    order = await db.orders.find_one({"_id": payment.order_id, "user_id": user["_id"]})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    try:
+        stitch_result = await create_stitch_payment(
+            order["total"],
+            order["order_number"],
+            "stitch_eft",
+            f"{FRONTEND_URL}/order/success?order_id={payment.order_id}"
+        )
+        
+        # Store Stitch payment ID
+        await db.orders.update_one(
+            {"_id": payment.order_id},
+            {"$set": {
+                "stitch_payment_id": stitch_result["id"],
+                "payment_method": "stitch"
+            }}
+        )
+        
+        return {
+            "redirect_url": stitch_result["url"],
+            "payment_id": stitch_result["id"]
+        }
+    except Exception as e:
+        logger.error(f"Stitch payment error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create Stitch payment")
 
 
 @api_router.get("/orders")
