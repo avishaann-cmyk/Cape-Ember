@@ -593,25 +593,51 @@ async def verify_payfast_itn(request: Request) -> bool:
 # ============ STITCH PAYMENT FUNCTIONS ============
 
 async def get_stitch_access_token() -> str:
-    """Get Stitch API access token"""
+    """Get Stitch Express API access token using client credentials"""
     if not STITCH_CLIENT_ID or not STITCH_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Stitch not configured")
     
+    # Stitch Express uses Basic Auth with client_id:client_secret
+    import base64
+    credentials = f"{STITCH_CLIENT_ID}:{STITCH_CLIENT_SECRET}"
+    encoded_credentials = base64.b64encode(credentials.encode()).decode()
+    
     async with httpx.AsyncClient() as client:
+        # Try the Express OAuth endpoint first
         response = await client.post(
-            "https://secure.stitch.money/connect/token",
+            "https://api.stitch.money/oauth/token",
             data={
                 "grant_type": "client_credentials",
-                "client_id": STITCH_CLIENT_ID,
-                "client_secret": STITCH_CLIENT_SECRET,
-                "scope": "client_paymentrequest"
+                "scope": "payments"
+            },
+            headers={
+                "Authorization": f"Basic {encoded_credentials}",
+                "Content-Type": "application/x-www-form-urlencoded"
             }
         )
+        
         if response.status_code != 200:
-            logger.error(f"Stitch token error: {response.text}")
+            # Fallback to standard Stitch endpoint with form data
+            logger.info(f"Trying alternate Stitch token endpoint...")
+            response = await client.post(
+                "https://secure.stitch.money/connect/token",
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": STITCH_CLIENT_ID,
+                    "client_secret": STITCH_CLIENT_SECRET,
+                    "scope": "client_paymentrequest"
+                },
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            )
+        
+        if response.status_code != 200:
+            logger.error(f"Stitch token error: {response.status_code} - {response.text}")
             raise HTTPException(status_code=500, detail="Payment service unavailable")
         
-        return response.json()["access_token"]
+        token_data = response.json()
+        return token_data.get("access_token") or token_data.get("token")
 
 async def create_stitch_payment(
     amount: float,
