@@ -1,0 +1,47 @@
+{
+  "summary": "End-to-end testing of Admin Dashboard (Phase: admin features + copywriting updates). Backend: 12/14 admin pytest cases pass (86%). Frontend: 4/5 admin pages render correctly; 4/4 copywriting checks pass; landscape carousel auto-rotates with 5 images and dot navigation. ONE CRITICAL backend bug found: GET /api/admin/orders returns 500 Internal Server Error (AttributeError at server.py:2552) because some order documents have `shipping` stored as a float (shipping cost) instead of a dict — causing `.get('address')` to fail. This blocks the Admin Orders page (shows 'No orders found' while dashboard shows 7 pending orders).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/admin/orders (no status filter)", "issue": "500 Internal Server Error. server.py:2552 — `order.get('shipping', {}).get('address', {})` fails with `AttributeError: 'float' object has no attribute 'get'` because some legacy order docs store the shipping cost as the `shipping` field (float) rather than a dict with `address` key. Filtering by status accidentally hides this because the broken docs may be in non-matching statuses. Fix options: (a) guard with `shipping = order.get('shipping'); shipping_address = shipping.get('address', {}) if isinstance(shipping, dict) else {}`; (b) rename the legacy `shipping` cost field to `shipping_cost` and back-fill; (c) write a one-off migration that normalises the schema. Recommended (a) — defensive read + (c) migration.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AdminOrders page", "issue": "Renders 'No orders found' even when 7 pending orders exist (per dashboard). Root cause: API 500 (see backend critical). Frontend swallows axios error and shows empty state instead of an error banner. Suggest: show 'Failed to load orders — please retry' on API failure.", "selector": "/admin/orders", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Admin → Orders list", "issue": "Backend 500 swallowed; user sees misleading empty state.", "affected_selectors": ["/admin/orders"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_admin.py",
+    "/app/test_reports/pytest/admin_results.xml"
+  ],
+  "action_items": [
+    "[CRITICAL] Fix /api/admin/orders 500. server.py:2552 — handle case where `order['shipping']` is a float (legacy shipping cost) vs dict. Defensive read: `shipping = order.get('shipping'); shipping_address = shipping.get('address', {}) if isinstance(shipping, dict) else {}`. Also consider migrating the schema so the field is consistently a dict (or rename float occurrences to `shipping_cost`).",
+    "[HIGH] AdminOrders.js: handle API errors with a visible error banner instead of falling back to the 'No orders found' empty state.",
+    "[LOW carry-over from iteration_6] Still open: `/api/cart/coupon` timezone bug at server.py:1545 (offset-naive vs offset-aware datetime comparison). WELCOME10 currently returns 500 — front-end shows misleading 'Invalid coupon code'. Not retested here but still applicable.",
+    "[LOW carry-over from iteration_6] CheckoutPage.js: dead state for `saveAddress` and `guestPhone` (set but not sent to backend)."
+  ],
+  "critical_code_review_comments": [
+    "server.py:2552 — schema inconsistency: `order['shipping']` is sometimes float, sometimes dict. Need normalisation or defensive code. Suggest adding a Pydantic OrderInDB model and validating on read.",
+    "server.py admin_orders endpoint has no try/except around the per-doc projection loop — any single malformed doc kills the whole list response.",
+    "AdminOrders.js does not show an error state when fetch fails — UX regression.",
+    "Pagination on /admin/orders accepts `page` and `limit` query params (works on filtered call) but unfiltered call still 500s due to the data bug above.",
+    "Admin endpoints correctly require `is_admin` (verified: testuser2 gets 403; unauth gets 401/403).",
+    "is_admin flag is correctly returned both in login response (nested under `user`) and via /auth/me — token also embeds `is_admin` claim. Frontend AuthContext should consume `data.user.is_admin` not top-level.",
+    "All admin pages have data-testid attributes (`admin-nav-*`, `stat-*`, `customers-table`, `inventory-table`, `coupons-table`) — good testability."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_admin.py"
+  ],
+  "success_rate": {"backend": "86% (12/14 pytest — both failures are same root cause)", "frontend": "80% (4/5 admin pages OK; orders page blocked by backend 500). Copywriting: 100% (hero, story badge, carousel auto-rotate, about page, product origins all correct)"},
+  "test_credentials": "Admin: admin@capeember.co.za / CapeEmber2024! ✓ works. Test user: testuser2@capeember.co.za / Test1234! ✓ works. is_admin flag confirmed True for admin in both login response (under user) and /auth/me.",
+  "seed_data_creation": "Created/deleted ephemeral TEST_ADMIN_PYT coupon during pytest run (auto-cleaned in same test).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Phase admin-dashboard mostly green. ONE critical backend bug: GET /api/admin/orders 500 due to legacy `shipping` field stored as float in some order docs. After fix, re-run `pytest /app/backend/tests/test_admin.py -v` (should be 14/14 green) and visit /admin/orders as admin to verify the 7 pending orders are listed. is_admin is NESTED under `user` in login response (not top-level), but /auth/me returns top-level — frontend AuthContext should read both. Carousel verified: src changed from IMG_6527.jpeg → IMG_6530.jpeg within 6s, 5 dot indicators present. About page text: 'partners with experienced South African coffee roasters' (note 'coffee' word — exact string is slightly different from request 'partners with experienced South African roasters'; matches intent). Story badge text appears as 'From | Landscape | to Cup' split across DOM nodes — visible correctly in UI screenshot.",
+  "rca of the issue": "RCA — /api/admin/orders 500: stack trace shows `AttributeError: 'float' object has no attribute 'get'` at server.py:2552 `order.get('shipping', {}).get('address', {})`. Some order documents in MongoDB store `shipping` as a float (the shipping cost), while the new schema expects `shipping` to be a dict containing an `address`. When the admin orders endpoint loads all orders and tries to project `shipping.address`, the legacy float-typed doc raises. Reproduction: login as admin → curl GET /api/admin/orders with bearer → 500. Mitigation: defensive `isinstance(order.get('shipping'), dict)` check; longer-term, store shipping cost under `shipping_cost` (already present in the same response on line 2547) and reserve `shipping` for the address dict, then run a migration to rename misplaced floats."
+}

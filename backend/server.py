@@ -192,6 +192,7 @@ class UserResponse(BaseModel):
     phone: Optional[str] = None
     addresses: List[AddressModel] = []
     accepts_marketing: bool = False
+    is_admin: bool = False
     created_at: Optional[str] = None
 
 class TokenResponse(BaseModel):
@@ -739,11 +740,11 @@ PRODUCTS = [
         "id": "fynbos-roast",
         "name": "Fynbos Roast",
         "slug": "fynbos-roast",
-        "description": "Inspired by the wild fynbos of the Cape, this coffee offers a grounded, comforting cup with natural sweetness. A smooth, nutty, and balanced medium roast perfect for everyday enjoyment.",
+        "description": "Inspired by the wild fynbos of the Cape Peninsula, this medium roast offers a grounded, comforting cup with natural sweetness. Smooth, nutty, and perfectly balanced — this is coffee for those who appreciate quiet mornings and the simple beauty of the Cape landscape.",
         "short_description": "Smooth medium roast with nutty sweetness",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.MEDIUM,
-        "origin": "Brazil",
+        "origin": "South African Roasted",
         "strength": 3,
         "flavor_notes": "Smooth · Nutty · Balanced",
         "tasting_notes": [
@@ -773,11 +774,11 @@ PRODUCTS = [
         "id": "garden-route",
         "name": "Garden Route Blend",
         "slug": "garden-route-blend",
-        "description": "A tribute to South Africa's iconic coast. This balanced house blend offers a smooth cup with hints of cocoa and gentle citrus, crafted for everyday enjoyment.",
+        "description": "A tribute to South Africa's iconic Garden Route coast. This balanced house blend offers a smooth cup with hints of cocoa and gentle citrus — crafted for everyday enjoyment, whether you're starting your morning or winding down your afternoon.",
         "short_description": "Smooth house blend with cocoa notes",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.MEDIUM,
-        "origin": "Blend - Brazil & Ethiopia",
+        "origin": "South African Roasted",
         "strength": 3,
         "flavor_notes": "Smooth · Cocoa · Gentle Citrus",
         "tasting_notes": [
@@ -807,11 +808,11 @@ PRODUCTS = [
         "id": "ember-reserve",
         "name": "Ember Reserve",
         "slug": "ember-reserve",
-        "description": "Crafted for depth and intensity. Ember Reserve delivers a bold, lingering finish with rich dark chocolate notes. A premium dark roast from Colombia for those who appreciate depth.",
+        "description": "Inspired by the rugged grandeur of the Drakensberg mountains. Ember Reserve delivers a bold, lingering finish with rich dark chocolate notes and full-bodied intensity. For those who appreciate depth and strength in their cup.",
         "short_description": "Bold dark roast with chocolate intensity",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.DARK,
-        "origin": "Colombia",
+        "origin": "South African Roasted",
         "strength": 5,
         "flavor_notes": "Rich · Dark Chocolate · Intense",
         "tasting_notes": [
@@ -841,11 +842,11 @@ PRODUCTS = [
         "id": "karoo-horizon",
         "name": "Karoo Horizon",
         "slug": "karoo-horizon",
-        "description": "From the vast, open plains of the Karoo, this expressive Ethiopian offers delicate blueberry, wildflower notes, and a relaxed honey finish. A limited release light roast.",
+        "description": "From the vast, open plains of the Great Karoo. This expressive light roast offers delicate blueberry and wildflower notes with a relaxed honey finish — capturing the quiet, endless beauty of the Karoo horizon. A limited release for adventurous palates.",
         "short_description": "Delicate light roast with fruity florals",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.LIGHT,
-        "origin": "Ethiopia Yirgacheffe",
+        "origin": "South African Roasted",
         "strength": 2,
         "flavor_notes": "Floral · Blueberry · Bright",
         "tasting_notes": [
@@ -873,11 +874,11 @@ PRODUCTS = [
         "id": "landscape-bundle",
         "name": "Landscape Range Bundle",
         "slug": "landscape-bundle",
-        "description": "South African landscapes in every cup. Experience the complete Cape Ember journey with all four signature blends - from the wild fynbos coast to the vast Karoo plains.",
+        "description": "Experience the complete Cape Ember journey with all four signature blends — from the wild fynbos of the Cape Peninsula to the vast plains of the Karoo. Each blend captures a different South African landscape, offering a unique coffee experience in every bag. The perfect way to discover your favourite or share with someone special.",
         "short_description": "Complete collection of all four blends",
         "category": ProductCategory.GIFT_BOXES,
         "roast_level": None,
-        "origin": "Various",
+        "origin": "South African Roasted",
         "strength": None,
         "flavor_notes": "Complete Collection · 4 x 250g",
         "tasting_notes": [],
@@ -961,6 +962,7 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks):
             phone=user_data.phone,
             addresses=[],
             accepts_marketing=user_data.accepts_marketing,
+            is_admin=False,
             created_at=now
         )
     )
@@ -986,6 +988,7 @@ async def login(credentials: UserLogin):
             phone=user.get("phone"),
             addresses=[AddressModel(**a) for a in user.get("addresses", [])],
             accepts_marketing=user.get("accepts_marketing", False),
+            is_admin=user.get("is_admin", False),
             created_at=user.get("created_at")
         )
     )
@@ -1037,6 +1040,7 @@ async def get_me(user: dict = Depends(get_current_user)):
         phone=user.get("phone"),
         addresses=[AddressModel(**a) for a in user.get("addresses", [])],
         accepts_marketing=user.get("accepts_marketing", False),
+        is_admin=user.get("is_admin", False),
         created_at=user.get("created_at")
     )
 
@@ -2403,6 +2407,434 @@ async def submit_contact(
     return {"message": "Message sent successfully"}
 
 
+# ============ ADMIN DASHBOARD ROUTES ============
+
+@api_router.get("/admin/dashboard")
+async def get_admin_dashboard(admin: dict = Depends(get_admin_user)):
+    """Get admin dashboard statistics"""
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_ago = now - timedelta(days=7)
+    month_ago = now - timedelta(days=30)
+    
+    # Total orders and revenue
+    all_orders = await db.orders.find({"payment_status": "complete"}).to_list(None)
+    total_orders = len(all_orders)
+    total_revenue = sum(order.get("total", 0) for order in all_orders)
+    
+    # Today's stats
+    today_orders = [o for o in all_orders if o.get("created_at", "") >= today_start.isoformat()]
+    orders_today = len(today_orders)
+    revenue_today = sum(order.get("total", 0) for order in today_orders)
+    
+    # This week's stats
+    week_orders = [o for o in all_orders if o.get("created_at", "") >= week_ago.isoformat()]
+    orders_this_week = len(week_orders)
+    revenue_this_week = sum(order.get("total", 0) for order in week_orders)
+    
+    # This month's stats
+    month_orders = [o for o in all_orders if o.get("created_at", "") >= month_ago.isoformat()]
+    orders_this_month = len(month_orders)
+    revenue_this_month = sum(order.get("total", 0) for order in month_orders)
+    
+    # Pending orders
+    pending_orders = await db.orders.count_documents({"status": {"$in": ["pending", "pending_payment", "processing"]}})
+    
+    # Low stock products (less than 10 units)
+    low_stock_count = sum(
+        1 for p in PRODUCTS 
+        for v in p.get("variants", []) 
+        if v.get("stock_quantity", 0) < 10
+    )
+    
+    # New customers (registered this month)
+    new_customers = await db.users.count_documents({
+        "created_at": {"$gte": month_ago.isoformat()}
+    })
+    
+    # Total customers
+    total_customers = await db.users.count_documents({})
+    
+    # Recent orders
+    recent_orders = await db.orders.find().sort("created_at", -1).limit(5).to_list(5)
+    recent_orders_formatted = []
+    for order in recent_orders:
+        recent_orders_formatted.append({
+            "id": order["_id"],
+            "order_number": order.get("order_number", "N/A"),
+            "customer_email": order.get("guest_email") or "Registered User",
+            "total": order.get("total", 0),
+            "status": order.get("status", "unknown"),
+            "created_at": order.get("created_at", "")
+        })
+    
+    # Top products by orders
+    product_counts = {}
+    for order in all_orders:
+        for item in order.get("items", []):
+            pid = item.get("product_id", "")
+            product_counts[pid] = product_counts.get(pid, 0) + item.get("quantity", 1)
+    
+    top_products = sorted(product_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_products_formatted = []
+    for pid, count in top_products:
+        product = PRODUCTS_MAP.get(pid)
+        if product:
+            top_products_formatted.append({
+                "id": pid,
+                "name": product["name"],
+                "units_sold": count,
+                "revenue": count * product["variants"][0]["price"]
+            })
+    
+    return {
+        "overview": {
+            "total_orders": total_orders,
+            "total_revenue": round(total_revenue, 2),
+            "orders_today": orders_today,
+            "revenue_today": round(revenue_today, 2),
+            "orders_this_week": orders_this_week,
+            "revenue_this_week": round(revenue_this_week, 2),
+            "orders_this_month": orders_this_month,
+            "revenue_this_month": round(revenue_this_month, 2),
+            "pending_orders": pending_orders,
+            "low_stock_products": low_stock_count,
+            "new_customers": new_customers,
+            "total_customers": total_customers
+        },
+        "recent_orders": recent_orders_formatted,
+        "top_products": top_products_formatted
+    }
+
+
+@api_router.get("/admin/orders")
+async def get_admin_orders(
+    admin: dict = Depends(get_admin_user),
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20
+):
+    """Get all orders with filtering and pagination"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    total = await db.orders.count_documents(query)
+    skip = (page - 1) * limit
+    
+    orders = await db.orders.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    orders_formatted = []
+    for order in orders:
+        # Get customer info if registered user
+        customer_name = "Guest"
+        customer_email = order.get("guest_email", "")
+        
+        if order.get("user_id"):
+            user = await db.users.find_one({"_id": order["user_id"]})
+            if user:
+                customer_name = f"{user.get('first_name', '')} {user.get('last_name', '')}"
+                customer_email = user.get("email", "")
+        
+        orders_formatted.append({
+            "id": order["_id"],
+            "order_number": order.get("order_number", "N/A"),
+            "customer_name": customer_name,
+            "customer_email": customer_email,
+            "items_count": len(order.get("items", [])),
+            "subtotal": order.get("subtotal", 0),
+            "discount": order.get("discount", 0),
+            "shipping_cost": order.get("shipping_cost", 0),
+            "total": order.get("total", 0),
+            "status": order.get("status", "unknown"),
+            "payment_status": order.get("payment_status", "unknown"),
+            "payment_method": order.get("payment_method", "unknown"),
+            "shipping_address": order.get("shipping", {}).get("address", {}),
+            "created_at": order.get("created_at", ""),
+            "updated_at": order.get("updated_at", "")
+        })
+    
+    return {
+        "orders": orders_formatted,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit
+    }
+
+
+@api_router.get("/admin/orders/{order_id}")
+async def get_admin_order_detail(order_id: str, admin: dict = Depends(get_admin_user)):
+    """Get detailed order information"""
+    order = await db.orders.find_one({"_id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Get customer info
+    customer_info = None
+    if order.get("user_id"):
+        user = await db.users.find_one({"_id": order["user_id"]}, {"password_hash": 0})
+        if user:
+            customer_info = {
+                "id": user["_id"],
+                "name": f"{user.get('first_name', '')} {user.get('last_name', '')}",
+                "email": user.get("email", ""),
+                "phone": user.get("phone", "")
+            }
+    
+    return {
+        "id": order["_id"],
+        "order_number": order.get("order_number", "N/A"),
+        "customer": customer_info,
+        "guest_email": order.get("guest_email"),
+        "items": order.get("items", []),
+        "subtotal": order.get("subtotal", 0),
+        "discount": order.get("discount", 0),
+        "shipping_cost": order.get("shipping_cost", 0),
+        "vat": order.get("vat", 0),
+        "total": order.get("total", 0),
+        "status": order.get("status", "unknown"),
+        "payment_status": order.get("payment_status", "unknown"),
+        "payment_method": order.get("payment_method", "unknown"),
+        "payment_reference": order.get("payment_reference"),
+        "shipping": order.get("shipping", {}),
+        "billing": order.get("billing", {}),
+        "coupon_code": order.get("coupon_code"),
+        "tracking_number": order.get("tracking_number"),
+        "notes": order.get("notes"),
+        "created_at": order.get("created_at", ""),
+        "updated_at": order.get("updated_at", "")
+    }
+
+
+class OrderStatusUpdate(BaseModel):
+    status: str
+    tracking_number: Optional[str] = None
+    notes: Optional[str] = None
+
+@api_router.put("/admin/orders/{order_id}/status")
+async def update_order_status(
+    order_id: str, 
+    update: OrderStatusUpdate,
+    background_tasks: BackgroundTasks,
+    admin: dict = Depends(get_admin_user)
+):
+    """Update order status"""
+    order = await db.orders.find_one({"_id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    update_data = {
+        "status": update.status,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if update.tracking_number:
+        update_data["tracking_number"] = update.tracking_number
+    if update.notes:
+        update_data["notes"] = update.notes
+    
+    await db.orders.update_one({"_id": order_id}, {"$set": update_data})
+    
+    # Send notification email if shipped
+    if update.status == "shipped" and update.tracking_number:
+        email = order.get("guest_email") or ""
+        if order.get("user_id"):
+            user = await db.users.find_one({"_id": order["user_id"]})
+            if user:
+                email = user.get("email", "")
+        if email:
+            background_tasks.add_task(send_shipping_notification, order, update.tracking_number)
+    
+    return {"message": "Order status updated", "status": update.status}
+
+
+@api_router.get("/admin/customers")
+async def get_admin_customers(
+    admin: dict = Depends(get_admin_user),
+    search: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20
+):
+    """Get all customers with search and pagination"""
+    query = {}
+    if search:
+        query["$or"] = [
+            {"email": {"$regex": search, "$options": "i"}},
+            {"first_name": {"$regex": search, "$options": "i"}},
+            {"last_name": {"$regex": search, "$options": "i"}}
+        ]
+    
+    total = await db.users.count_documents(query)
+    skip = (page - 1) * limit
+    
+    users = await db.users.find(query, {"password_hash": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    customers = []
+    for user in users:
+        # Get order count and total spent
+        order_stats = await db.orders.aggregate([
+            {"$match": {"user_id": user["_id"], "payment_status": "complete"}},
+            {"$group": {"_id": None, "count": {"$sum": 1}, "total": {"$sum": "$total"}}}
+        ]).to_list(1)
+        
+        stats = order_stats[0] if order_stats else {"count": 0, "total": 0}
+        
+        customers.append({
+            "id": user["_id"],
+            "email": user.get("email", ""),
+            "first_name": user.get("first_name", ""),
+            "last_name": user.get("last_name", ""),
+            "phone": user.get("phone", ""),
+            "orders_count": stats.get("count", 0),
+            "total_spent": round(stats.get("total", 0), 2),
+            "is_admin": user.get("is_admin", False),
+            "created_at": user.get("created_at", "")
+        })
+    
+    return {
+        "customers": customers,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit
+    }
+
+
+@api_router.get("/admin/inventory")
+async def get_admin_inventory(admin: dict = Depends(get_admin_user)):
+    """Get inventory status for all products"""
+    inventory = []
+    
+    for product in PRODUCTS:
+        for variant in product.get("variants", []):
+            stock = variant.get("stock_quantity", 0)
+            inventory.append({
+                "product_id": product["id"],
+                "product_name": product["name"],
+                "variant_id": variant["id"],
+                "variant_name": variant["name"],
+                "sku": variant.get("sku", ""),
+                "price": variant["price"],
+                "stock_quantity": stock,
+                "stock_status": "out_of_stock" if stock == 0 else "low_stock" if stock < 10 else "in_stock"
+            })
+    
+    # Sort by stock quantity (lowest first)
+    inventory.sort(key=lambda x: x["stock_quantity"])
+    
+    return {
+        "inventory": inventory,
+        "summary": {
+            "total_products": len(PRODUCTS),
+            "total_variants": len(inventory),
+            "out_of_stock": sum(1 for i in inventory if i["stock_status"] == "out_of_stock"),
+            "low_stock": sum(1 for i in inventory if i["stock_status"] == "low_stock"),
+            "in_stock": sum(1 for i in inventory if i["stock_status"] == "in_stock")
+        }
+    }
+
+
+class InventoryUpdate(BaseModel):
+    stock_quantity: int
+
+@api_router.put("/admin/inventory/{product_id}/{variant_id}")
+async def update_inventory(
+    product_id: str,
+    variant_id: str,
+    update: InventoryUpdate,
+    admin: dict = Depends(get_admin_user)
+):
+    """Update stock quantity for a variant (NOTE: In production, this should update DB)"""
+    # Find the product and variant
+    product = PRODUCTS_MAP.get(product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    variant = next((v for v in product["variants"] if v["id"] == variant_id), None)
+    if not variant:
+        raise HTTPException(status_code=404, detail="Variant not found")
+    
+    # Update in memory (in production, this would update DB)
+    variant["stock_quantity"] = update.stock_quantity
+    
+    return {
+        "message": "Inventory updated",
+        "product_id": product_id,
+        "variant_id": variant_id,
+        "new_stock": update.stock_quantity
+    }
+
+
+@api_router.get("/admin/coupons")
+async def get_admin_coupons(admin: dict = Depends(get_admin_user)):
+    """Get all coupons"""
+    coupons = await db.coupons.find().to_list(100)
+    
+    coupons_formatted = []
+    for coupon in coupons:
+        coupons_formatted.append({
+            "id": str(coupon.get("_id", "")),
+            "code": coupon.get("code", ""),
+            "description": coupon.get("description", ""),
+            "discount_type": coupon.get("discount_type", ""),
+            "discount_value": coupon.get("discount_value", 0),
+            "minimum_order": coupon.get("minimum_order", 0),
+            "is_active": coupon.get("is_active", False),
+            "valid_from": coupon.get("valid_from", ""),
+            "valid_until": coupon.get("valid_until", ""),
+            "uses_count": coupon.get("uses_count", 0)
+        })
+    
+    return {"coupons": coupons_formatted}
+
+
+class CouponCreate(BaseModel):
+    code: str
+    description: Optional[str] = None
+    discount_type: str  # percentage or fixed_amount
+    discount_value: float
+    minimum_order: float = 0
+    valid_from: str
+    valid_until: str
+    is_active: bool = True
+
+@api_router.post("/admin/coupons")
+async def create_coupon(coupon: CouponCreate, admin: dict = Depends(get_admin_user)):
+    """Create a new coupon"""
+    # Check if code already exists
+    existing = await db.coupons.find_one({"code": coupon.code.upper()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+    
+    coupon_doc = {
+        "code": coupon.code.upper(),
+        "description": coupon.description,
+        "discount_type": coupon.discount_type,
+        "discount_value": coupon.discount_value,
+        "minimum_order": coupon.minimum_order,
+        "valid_from": coupon.valid_from,
+        "valid_until": coupon.valid_until,
+        "is_active": coupon.is_active,
+        "uses_count": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.coupons.insert_one(coupon_doc)
+    
+    return {"message": "Coupon created", "code": coupon.code.upper()}
+
+
+@api_router.delete("/admin/coupons/{coupon_code}")
+async def delete_coupon(coupon_code: str, admin: dict = Depends(get_admin_user)):
+    """Delete a coupon"""
+    result = await db.coupons.delete_one({"code": coupon_code.upper()})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    return {"message": "Coupon deleted"}
+
+
 # ============ STATIC IMAGES ROUTE ============
 
 @api_router.get("/images/products/{product_id}")
@@ -2448,7 +2880,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    """Seed test coupon on startup"""
+    """Seed test coupon and admin user on startup"""
     # Create a test coupon if it doesn't exist
     test_coupon = await db.coupons.find_one({"code": "WELCOME10"})
     if not test_coupon:
@@ -2471,6 +2903,33 @@ async def startup_event():
                 "valid_from": "2024-01-01T00:00:00+00:00",
                 "valid_until": "2027-12-31T23:59:59+00:00"
             }}
+        )
+    
+    # Create admin user if it doesn't exist
+    admin_email = "admin@capeember.co.za"
+    admin_user = await db.users.find_one({"email": admin_email})
+    if not admin_user:
+        admin_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        await db.users.insert_one({
+            "_id": admin_id,
+            "email": admin_email,
+            "password_hash": hash_password("CapeEmber2024!"),
+            "first_name": "Admin",
+            "last_name": "User",
+            "phone": "",
+            "addresses": [],
+            "accepts_marketing": False,
+            "is_admin": True,
+            "created_at": now,
+            "updated_at": now
+        })
+        logger.info(f"Created admin user: {admin_email}")
+    else:
+        # Ensure existing admin has is_admin flag
+        await db.users.update_one(
+            {"email": admin_email},
+            {"$set": {"is_admin": True}}
         )
 
 

@@ -17,6 +17,13 @@ import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import ReturnsPage from './pages/ReturnsPage';
 import BrewGuidePage from './pages/BrewGuidePage';
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminOrders from './pages/admin/AdminOrders';
+import AdminOrderDetail from './pages/admin/AdminOrderDetail';
+import AdminCustomers from './pages/admin/AdminCustomers';
+import AdminInventory from './pages/admin/AdminInventory';
+import AdminCoupons from './pages/admin/AdminCoupons';
 import './index.css';
 
 function App() {
@@ -42,6 +49,13 @@ function App() {
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/returns" element={<ReturnsPage />} />
+                {/* Admin Routes */}
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/orders" element={<AdminOrders />} />
+                <Route path="/admin/orders/:orderId" element={<AdminOrderDetail />} />
+                <Route path="/admin/customers" element={<AdminCustomers />} />
+                <Route path="/admin/inventory" element={<AdminInventory />} />
+                <Route path="/admin/coupons" element={<AdminCoupons />} />
               </Routes>
             </main>
             <Footer />

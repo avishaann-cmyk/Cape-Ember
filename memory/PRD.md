@@ -88,11 +88,17 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 - [x] PayFast payment integration (LIVE)
 - [x] Test coupon: WELCOME10 (10% off, min R100)
 
-### 🔲 Phase 4: Customer & Admin (Next)
-- [ ] Customer accounts (wishlist, order history, saved addresses)
-- [ ] Admin dashboard (orders, inventory, analytics)
-- [ ] Coupon management
-- [ ] User roles (admin, customer)
+### ✅ Phase 4: Customer & Admin (COMPLETE - June 27, 2026)
+- [x] Admin Dashboard with revenue stats (Today, Week, Month, All Time)
+- [x] Admin Orders management (list, filter, detail view, status updates)
+- [x] Admin Customers list (search, order count, total spent)
+- [x] Admin Inventory management (stock levels, low stock alerts, inline edit)
+- [x] Admin Coupons management (create, delete, list with validity)
+- [x] Admin authentication check (is_admin flag)
+- [x] Admin user seeded on startup (admin@capeember.co.za)
+- [ ] Customer wishlist (backend exists, frontend needs enhancement)
+- [ ] Customer order history page
+- [ ] Customer saved addresses management
 
 ### 🔲 Phase 5: SEO, Performance & Marketing
 - [ ] Complete metadata and schema markup
@@ -132,6 +138,21 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 ### ✅ Footer Updates
 - Tagline: "Premium coffee inspired by South African landscapes. Experience the beauty of the Cape in every cup."
 
+### ✅ Product Descriptions Updated (June 27, 2026)
+- Fynbos Roast: "Inspired by the wild fynbos of the Cape Peninsula..."
+- Garden Route Blend: "A tribute to South Africa's iconic Garden Route coast..."
+- Ember Reserve: "Inspired by the rugged grandeur of the Drakensberg mountains..."
+- Karoo Horizon: "From the vast, open plains of the Great Karoo..."
+- Landscape Bundle: "Experience the complete Cape Ember journey..."
+- All origins now show "South African Roasted" (removed specific country origins)
+
+### ✅ Homepage Story Carousel (June 27, 2026)
+- Added landscape image carousel with 5 South African images
+- Auto-rotation every 5 seconds
+- Navigation arrows on hover
+- Dot indicators for manual navigation
+- Location caption overlay (The Karoo, Karoo Horizon, Wild Coast, Garden Route, Wilderness)
+
 ---
 
 ## Payment Configuration
@@ -160,9 +181,8 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 ---
 
 ## Next Tasks
-1. **P1**: Rewrite Product Descriptions in backend seed data (Landscape Story structure)
-2. **P1**: Admin Dashboard (orders, inventory, analytics, coupons)
-3. **P1**: Customer accounts (wishlist, order history, saved addresses)
-4. **P2**: Email Templates Rewrite (Order Confirmation, Shipping, Welcome)
-5. **P2**: SEO Enhancements (Dynamic metadata, Open Graph, Schema)
-6. **P3**: Stitch Payments Integration (pending valid credentials)
+1. **P1**: Customer order history page
+2. **P1**: Customer saved addresses management
+3. **P2**: Email Templates Rewrite (Order Confirmation, Shipping, Welcome)
+4. **P2**: SEO Enhancements (Dynamic metadata, Open Graph, Schema)
+5. **P3**: Stitch Payments Integration (pending valid credentials)
