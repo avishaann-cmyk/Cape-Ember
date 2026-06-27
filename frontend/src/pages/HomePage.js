@@ -57,9 +57,12 @@ const HomePage = () => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get(`${API}/products`);
-        setProducts(response.data);
+        // API returns {products: [...]} structure
+        const productsData = response.data.products || response.data;
+        setProducts(Array.isArray(productsData) ? productsData : []);
       } catch (error) {
         console.error('Failed to fetch products:', error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -69,6 +72,17 @@ const HomePage = () => {
 
   const individualProducts = products.filter(p => !p.is_bundle);
   const bundle = products.find(p => p.is_bundle);
+
+  // Helper to get image URL from product (supports both old and new format)
+  const getImageUrl = (product) => {
+    if (!product) return '/placeholder-coffee.jpg';
+    if (product.image_url) return product.image_url;
+    if (product.images && product.images.length > 0) {
+      const primary = product.images.find(img => img.is_primary);
+      return primary?.url || product.images[0]?.url || '/placeholder-coffee.jpg';
+    }
+    return '/placeholder-coffee.jpg';
+  };
 
   return (
     <div className="min-h-screen">
@@ -169,7 +183,7 @@ const HomePage = () => {
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="product-image-container aspect-square">
                 <img
-                  src={bundle.image_url}
+                  src={getImageUrl(bundle)}
                   alt={bundle.name}
                   className="w-full h-full object-cover"
                 />

@@ -10,6 +10,12 @@ const ProductCard = ({ product, onAuthRequired }) => {
   const [adding, setAdding] = React.useState(false);
   const [added, setAdded] = React.useState(false);
 
+  // Support both old image_url and new images array format
+  const imageUrl = product.image_url || 
+    (product.images && product.images.length > 0 
+      ? (product.images.find(img => img.is_primary)?.url || product.images[0]?.url)
+      : '/placeholder-coffee.jpg');
+
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -41,7 +47,7 @@ const ProductCard = ({ product, onAuthRequired }) => {
         {/* Image */}
         <div className="product-image-container aspect-square bg-[#F2EEE8]">
           <img
-            src={product.image_url}
+            src={imageUrl}
             alt={product.name}
             className="w-full h-full object-cover"
             loading="lazy"

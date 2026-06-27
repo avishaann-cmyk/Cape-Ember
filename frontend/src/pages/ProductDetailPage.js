@@ -29,7 +29,9 @@ const ProductDetailPage = () => {
           axios.get(`${API}/products`)
         ]);
         setProduct(productRes.data);
-        setAllProducts(allRes.data);
+        // API returns {products: [...]} structure
+        const productsData = allRes.data.products || allRes.data;
+        setAllProducts(Array.isArray(productsData) ? productsData : []);
       } catch (error) {
         console.error('Failed to fetch product:', error);
       } finally {
@@ -80,6 +82,17 @@ const ProductDetailPage = () => {
     ? allProducts.filter(p => product.bundle_items.includes(p.id))
     : [];
 
+  // Helper to get image URL from product (supports both old and new format)
+  const getImageUrl = (p) => {
+    if (!p) return '/placeholder-coffee.jpg';
+    if (p.image_url) return p.image_url;
+    if (p.images && p.images.length > 0) {
+      const primary = p.images.find(img => img.is_primary);
+      return primary?.url || p.images[0]?.url || '/placeholder-coffee.jpg';
+    }
+    return '/placeholder-coffee.jpg';
+  };
+
   return (
     <div className="min-h-screen pt-20 md:pt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -97,7 +110,7 @@ const ProductDetailPage = () => {
           {/* Image */}
           <div className="aspect-square bg-[#F2EEE8] overflow-hidden">
             <img
-              src={product.image_url}
+              src={getImageUrl(product)}
               alt={product.name}
               className="w-full h-full object-cover"
             />

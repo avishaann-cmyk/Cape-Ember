@@ -1,0 +1,47 @@
+{
+  "summary": "Frontend-only retest after fix for 500 Server Error. Validated that HomePage, ShopPage, ProductDetailPage and SubscriptionsPage all consume the new API shape ({products:[...]}) and the new product images array. All four pages load successfully on the public URL with no 500 error, no React error boundary, and no broken images. Filters on Shop page work. Product detail loads via slug-id (fynbos-roast).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ProductDetailPage",
+        "issue": "'Weight' field renders empty because backend no longer exposes top-level product.weight (it is now per variant). The ROAST LEVEL label shows correctly, but the WEIGHT column under the product info grid is blank.",
+        "selector": "ProductDetailPage info grid - product.weight",
+        "priority": "LOW"
+      },
+      {
+        "component": "ProductCard",
+        "issue": "Card footer shows price but the right-hand weight label (product.weight) renders empty for the same reason (weight now lives on variants).",
+        "selector": "[data-testid^=\"product-card-\"] .text-sm",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_evidence": {
+    "homepage": "carousel visible, hero CTA visible, 4 individual product cards rendered, 9/9 images loaded (0 broken)",
+    "shop": "5 product cards rendered (4 individual + 1 bundle), filter-bundle returns 1 card, 7/7 images loaded",
+    "product_detail": "fynbos-roast loaded, add-to-cart button visible, hero product image rendered (3/3 images loaded)",
+    "subscriptions": "4 subscription product cards rendered (bundle filtered out), 6/6 images loaded"
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optionally: show variant-derived weight (e.g. default variant.weight) on ProductCard and ProductDetailPage so the 'Weight' label is no longer blank. This is cosmetic, not a regression of the 500 fix."
+  ],
+  "critical_code_review_comments": [
+    "Helper getImageUrl is duplicated across HomePage.js, ProductDetailPage.js, SubscriptionsPage.js and ProductCard.js. Extract into a shared util (e.g. /app/frontend/src/utils/productImage.js) to follow DRY.",
+    "All four pages independently fetch /api/products with the same parse logic; consider a useProducts hook to centralize this.",
+    "ProductDetailPage and ProductCard still reference product.weight which no longer exists on the API contract; safe-guard with optional chaining and a fallback so empty values don't render as blank cells."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only retest)", "frontend": "100% (4/4 target pages load without 500 and render products+images)"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "500 error reported in the original problem statement is resolved. Public URL https://axis-creator.preview.emergentagent.com/ now correctly renders the Home, Shop, Product Detail (fynbos-roast) and Subscriptions pages with images from the new images[] array. Only remaining cosmetic gap is the unused product.weight field showing blank in cards and detail page.",
+  "rca of the issue": "Backend changed contract to return {products:[...]} with images[] array. Frontend was previously reading response.data (array) and product.image_url (string). E1 fix added array/object normalization on each page and a getImageUrl helper that prefers primary image then first image. Verified working end-to-end."
+}

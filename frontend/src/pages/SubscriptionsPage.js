@@ -17,9 +17,13 @@ const SubscriptionsPage = () => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get(`${API}/products`);
-        setProducts(response.data.filter(p => !p.is_bundle));
+        // API returns {products: [...]} structure
+        const productsData = response.data.products || response.data;
+        const productsArray = Array.isArray(productsData) ? productsData : [];
+        setProducts(productsArray.filter(p => !p.is_bundle));
       } catch (error) {
         console.error('Failed to fetch products:', error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -33,6 +37,17 @@ const SubscriptionsPage = () => {
     'Free delivery on all subscription orders',
     'Be the first to try new blends',
   ];
+
+  // Helper to get image URL from product (supports both old and new format)
+  const getImageUrl = (product) => {
+    if (!product) return '/placeholder-coffee.jpg';
+    if (product.image_url) return product.image_url;
+    if (product.images && product.images.length > 0) {
+      const primary = product.images.find(img => img.is_primary);
+      return primary?.url || product.images[0]?.url || '/placeholder-coffee.jpg';
+    }
+    return '/placeholder-coffee.jpg';
+  };
 
   return (
     <div className="min-h-screen pt-20 md:pt-24">
@@ -127,7 +142,7 @@ const SubscriptionsPage = () => {
                 >
                   <div className="aspect-square">
                     <img
-                      src={product.image_url}
+                      src={getImageUrl(product)}
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
