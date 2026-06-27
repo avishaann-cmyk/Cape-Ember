@@ -1526,12 +1526,16 @@ async def clear_cart(
 
 # ============ COUPON ROUTES ============
 
+class CouponApply(BaseModel):
+    code: str
+
 @api_router.post("/cart/coupon")
 async def apply_coupon(
-    code: str,
+    coupon_data: CouponApply,
     user: Optional[dict] = Depends(get_current_user_optional),
     session_id: Optional[str] = Header(None, alias="X-Session-ID")
 ):
+    code = coupon_data.code
     coupon = await db.coupons.find_one({"code": code.upper(), "is_active": True})
     
     if not coupon:
@@ -1565,7 +1569,14 @@ async def apply_coupon(
         {"$set": {"coupon_code": code.upper(), "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     
-    return {"message": "Coupon applied", "discount_type": coupon["discount_type"], "discount_value": coupon["discount_value"]}
+    return {
+        "message": "Coupon applied", 
+        "coupon": {
+            "code": code.upper(),
+            "discount_type": coupon["discount_type"], 
+            "discount_value": coupon["discount_value"]
+        }
+    }
 
 
 @api_router.delete("/cart/coupon")
@@ -2417,6 +2428,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Seed test coupon on startup"""
+    # Create a test coupon if it doesn't exist
+    test_coupon = await db.coupons.find_one({"code": "WELCOME10"})
+    if not test_coupon:
+        await db.coupons.insert_one({
+            "code": "WELCOME10",
+            "discount_type": "percentage",
+            "discount_value": 10,
+            "minimum_order": 100,
+            "is_active": True,
+            "valid_from": datetime(2024, 1, 1, tzinfo=timezone.utc),
+            "valid_until": datetime(2027, 12, 31, tzinfo=timezone.utc),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        logger.info("Created test coupon: WELCOME10")
 
 
 @app.on_event("shutdown")

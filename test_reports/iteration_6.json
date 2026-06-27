@@ -1,0 +1,45 @@
+{
+  "summary": "Phase 3 Cart & Checkout testing. Backend: 10/12 pytest cases passed (83%). Frontend: 15/15 Phase-3 UI features verified end-to-end. CRITICAL backend bug found: /api/cart/coupon throws 500 Internal Server Error for the seeded WELCOME10 coupon due to timezone-naive vs timezone-aware datetime comparison (server.py:1545). Frontend swallows the 500 and shows generic 'Invalid coupon code' - misleading UX. All other features (free-shipping progress, VAT display, upsells, 3-step checkout, guest checkout email, SA province dropdown, subscribe-and-save w/ frequency, order notes, PayFast wiring, order summary sidebar) work correctly.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/cart/coupon", "issue": "500 Internal Server Error on valid coupon 'WELCOME10'. TypeError: can't compare offset-naive and offset-aware datetimes at server.py:1545 — coupon['valid_from']/['valid_until'] from MongoDB are naive but `now = datetime.now(timezone.utc)` is aware. The seeded WELCOME10 coupon is therefore completely unusable in production. Fix: either store ISO-format strings consistently and parse to aware, or normalise both sides: `now = datetime.now(timezone.utc)` and convert mongo values via `.replace(tzinfo=timezone.utc)` if naive, OR store the seed as tz-aware ISO strings. Same bug breaks coupon case-insensitive flow.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CartPage.handleApplyCoupon", "issue": "When backend returns 500 (uncaught exception), the catch block falls back to a generic 'Invalid coupon code'. Detail message from server is `Internal Server Error` (no `detail`). User sees misleading text for a server-side bug. Should distinguish 500 from 404.", "selector": "[data-testid='coupon-input']+error", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase3_cart_checkout.py",
+    "/app/test_reports/pytest/phase3_results.xml"
+  ],
+  "action_items": [
+    "[CRITICAL] Fix /api/cart/coupon timezone bug at server.py:1545. WELCOME10 currently returns 500 and is completely unusable. Normalise datetimes by either re-reading the coupon doc with tz-aware values OR adjust the comparison: `valid_from = coupon['valid_from'].replace(tzinfo=timezone.utc) if coupon['valid_from'].tzinfo is None else coupon['valid_from']` (same for valid_until). Also re-check the coupon seed script to write ISO-format strings instead of naive datetimes.",
+    "[MEDIUM] CartPage.js handleApplyCoupon: surface backend 500 errors distinctly (e.g. 'Could not apply coupon, please try again') instead of 'Invalid coupon code', and log the response to console for debugging.",
+    "[LOW] Carry-over from iteration_5: ProductDetailPage hard-coded compare_at price (currentPrice*1.2) for bundles, hard-coded Processing/Altitude, and mocked reviews list. Not retested here (out of Phase 3 scope)."
+  ],
+  "critical_code_review_comments": [
+    "server.py:1545 - mixing tz-naive (Mongo) with tz-aware (`datetime.now(timezone.utc)`) is a recurring class of bug — recommend a central helper `ensure_utc(dt)` used everywhere times come out of Mongo.",
+    "CartPage.js (411 lines) - approaching the soft 700-line limit but acceptable. Coupon error handling could be extracted.",
+    "CheckoutPage.js (707 lines) - LARGE file exceeding the 700-line guideline. Strongly consider splitting into Step1Information.js, Step2Shipping.js, Step3Payment.js and an OrderSummarySidebar.js component.",
+    "CheckoutPage.js validateStep1: when isAuthenticated && !guestCheckout, returns true; but when !isAuthenticated && !guestCheckout (i.e. user opened checkout while logged out and didn't enter guest email yet), returns false with NO error message — user clicks 'Continue' button is disabled by `disabled={!guestEmail}` so flow is fine, but defensive `setError('Sign in or enter email')` would be cleaner.",
+    "CheckoutPage.js line 178 VAT calc: `total * 0.15 / 1.15` is computed AFTER discount + shipping which matches SA inclusive VAT model — but VAT amount and total are displayed without indicating VAT is INCLUDED IN total. The label 'VAT (included)' helps. OK.",
+    "CheckoutPage.js: `saveAddress` checkbox state is set but never sent to backend — currently dead state.",
+    "CheckoutPage.js: `guestPhone` state is captured but never sent in /api/orders payload — dead state.",
+    "Both pages correctly use process.env.REACT_APP_BACKEND_URL and have good data-testid coverage."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase3_cart_checkout.py"
+  ],
+  "success_rate": {"backend": "83% (10/12 pytest)", "frontend": "100% (15/15 Phase-3 UI features verified)"},
+  "test_credentials": "testuser2@capeember.co.za / Test1234! — works. Test user has 5x Fynbos Roast = R745 cart pre-seeded. Note: AuthContext stores token under localStorage key 'token' (not 'access_token').",
+  "seed_data_creation": "Created 2 test orders via /api/orders (order_notes prefixed 'TEST_phase3_') — these can be cleaned up by main agent if needed. No additional seed data required.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Phase 3 UI is solid — all 15 listed features verified. The ONE backend bug blocking E2E coupon flow is the timezone comparison in apply_coupon at server.py:1545. After main agent applies the fix, re-run: `pytest /app/backend/tests/test_phase3_cart_checkout.py::TestCoupon -v` (should be 4/4 green) AND in browser, log in as test user → /cart → apply WELCOME10 → expect green chip 'WELCOME10 applied' instead of red 'Invalid coupon code'. AuthContext localStorage key is 'token'. Frontend was tested via direct token injection at localStorage['token']. PayFast form submission was NOT triggered (would redirect off-site) — verified at POST /payfast/create-payment level via pytest (returns payfast_host + fields dict).",
+  "rca of the issue": "RCA - /api/cart/coupon 500: The Mongo `coupons` collection stores `valid_from`/`valid_until` as Python datetime objects without tzinfo (naive). In `apply_coupon` the comparator uses `now = datetime.now(timezone.utc)` which is tz-aware. Python raises `TypeError: can't compare offset-naive and offset-aware datetimes`. The exception is uncaught → FastAPI returns 500 with body 'Internal Server Error'. The frontend's catch block reads `error.response?.data?.detail` which is undefined for plain-text 500, so it falls back to 'Invalid coupon code'. Fix: ensure both sides of the comparison are tz-aware (recommended: normalise on read from Mongo) — `vf = coupon['valid_from']; vu = coupon['valid_until']; if vf.tzinfo is None: vf = vf.replace(tzinfo=timezone.utc); if vu.tzinfo is None: vu = vu.replace(tzinfo=timezone.utc); if vf > now or vu < now: ...`. Reproduction: `curl -X POST $URL/api/cart/coupon -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{\"code\":\"WELCOME10\"}'` returns 500."
+}
