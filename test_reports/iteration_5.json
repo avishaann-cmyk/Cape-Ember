@@ -1,0 +1,48 @@
+{
+  "summary": "Phase 2 frontend-only test of Cape Ember Coffee Shop + Product Detail pages. 31/31 critical assertions PASS across two browser runs. Shop page (16/16): search input filters live (e.g. 'karoo' -> 2 products), 6 sort options (Featured / Price asc/desc / Name asc/desc / Newest), grid+list view toggle, sidebar filters for Category (all/single/bundle), Roast (light/medium/dark), Strength (1-5), Price (4 buckets), filter click updates product count (5 -> 2 after roast=medium) and shows active-filter tag ('Medium Roast' chip), clear-filters button. Product Detail page (15/15 on bundle + extra single-origin checks): breadcrumb 'Home / Shop / Landscape Range Bundle', strength meter (5 dots, 3 filled), star rating with '(3 reviews)', Size & Grind variants (2 for bundle, 3 for Fynbos Roast), 'In Stock' with green Check icon, 3 tabs (Tasting Notes / Brewing Guide / Reviews (3)) with proper switching + animated indicator, Brewing Guide cards show Ratio/Time/Temp, Reviews show 3 customer reviews (Sarah M./David K./Lisa P.) with star ratings + 'Write a Review' button + aggregate '4.9 / Based on 3 reviews', 'You May Also Like' section with 4 ProductCards, qty +/- + Add-to-Cart buttons. Tasting Notes intensity bars confirmed on /product/fynbos-roast (6 notes including Hazelnut:4, Caramel:3) — for bundle products tasting_notes array is empty so it correctly falls back to plain flavor_notes text.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "ProductDetailPage - bundle variant",
+        "issues": [
+          "Bundle product (Landscape Range Bundle) shows discount strikethrough as 'R 599.00  R 718.80' computed as currentPrice * 1.2 — this is hard-coded in ProductDetailPage.js line 314 (`R ${(currentPrice * 1.2).toFixed(2)}`). It is a fake compare-at price, not data-driven. Consider wiring product.compare_at_price or removing for compliance with SA Consumer Protection Act (advertised crossed-out prices must be genuine former selling prices).",
+          "Hard-coded 'Processing: Washed' and 'Altitude: 1,200 - 1,800m' shown for every product on the Tasting Notes tab (ProductDetailPage.js lines 500 + 504). Should come from product data."
+        ]
+      },
+      {
+        "screen": "ShopPage",
+        "issues": [
+          "View-mode toggle re-renders the grid which detaches existing button handles in DOM (purely test-side observation, no user impact). The 'List view' visually still uses sm:grid-cols-2 lg:grid-cols-3 collapsed to grid-cols-1; rows look identical to a single-column grid — there is no list-specific layout (no horizontal cards). Consider a distinct ProductCard list variant."
+        ]
+      }
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_5.json"],
+  "action_items": [
+    "[LOW] ProductDetailPage.js line 313-315: replace hard-coded `currentPrice * 1.2` strikethrough with real `product.compare_at_price` or remove for bundles to avoid misleading pricing.",
+    "[LOW] ProductDetailPage.js lines 500/504: replace hard-coded 'Processing: Washed' and 'Altitude: 1,200 - 1,800m' with product fields (product.processing, product.altitude).",
+    "[LOW] Reviews are MOCKED inline in ProductDetailPage.js (lines 184-188). When a Reviews API is built, wire it via axios and gate the 'Write a Review' button behind isAuthenticated.",
+    "[LOW] Shop list-view mode does not visually differ from grid (no horizontal card layout). Consider a list-specific ProductCard layout, or remove the toggle until implemented.",
+    "[LOW] Phase 1 carry-over bug (from iteration_4.json) still un-verified here: hero 'OUR STORY' button contrast on / homepage — out of scope of this Phase 2 review but still open."
+  ],
+  "critical_code_review_comments": [
+    "ProductDetailPage.js mixes data + UI components in a 591-line file. Strength/Tasting/BrewingMethodCard/ReviewStars should be extracted to /components for reuse (also used implicitly on Shop hover state).",
+    "ProductDetailPage.js line 184: `const reviews = [...]` is mocked — this should be HIGHLIGHTED as MOCKED until backend endpoint exists. Aggregate '4.9' rating is also hard-coded (line 536).",
+    "ProductDetailPage.js line 313-315 fake strikethrough price for bundles is misleading and likely a SA CPA compliance issue.",
+    "ShopPage.js line 97 uses parseInt(activeFilters.strength) === p.strength — confirmed working, but products without numeric strength field will be silently filtered out.",
+    "ShopPage.js line 169 hasActiveFilters does not include sortBy; users can't tell sorting changed. Consider including or rendering sort label as a chip.",
+    "ProductDetailPage.js: no error toast when addToCart throws — only console.error (line 140). User sees no feedback if cart API fails.",
+    "Both pages correctly use process.env.REACT_APP_BACKEND_URL and data-testid attributes for testability."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "100% (31/31 critical Phase-2 assertions; 0 blockers)"},
+  "test_credentials": "testuser2@capeember.co.za / Test1234! (not used - all Phase 2 features tested without login since Add-to-Cart auth gating is verified in iteration_4)",
+  "seed_data_creation": "None - used existing seeded products: fynbos-roast (3 variants, 6 tasting notes), landscape-bundle (2 variants, bundle of 4)",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Phase 2 Shop + Product Detail features are fully working (31/31 assertions pass). All requested features verified: breadcrumb, strength meter, star rating + review count, Size & Grind variants, In Stock + green check, 3 tabs with animated indicator, intensity bars on tasting notes (single-origin only - bundles intentionally fall back), brewing method cards w/ ratio+time+temp, customer reviews mock list, You May Also Like (4 cards), shop search filter, all 4 sidebar filter groups, count update + active filter chip, sort dropdown w/ 6 options, grid/list toggle. Mocked-but-working: reviews list + '4.9' aggregate rating + bundle strikethrough price. Hero 'Our Story' contrast bug from iteration_4 was NOT re-tested - still open if not yet fixed by main agent. test_credentials in /app/memory/test_credentials.md are valid.",
+  "rca of the issue": "N/A - no functional bugs found. Only mock/hard-coded data observations (reviews list, 4.9 rating, processing, altitude, bundle strikethrough) which are expected pre-API integrations."
+}
