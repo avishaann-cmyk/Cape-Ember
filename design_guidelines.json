@@ -1,97 +1,71 @@
 {
-  "theme": "light",
-  "archetype": "1 (Organic & Earthy)",
+  "domain": "E-commerce",
+  "theme": "Light",
+  "archetype": "Archetype 1 (Organic & Earthy) blended with Archetype 5 (Luxury)",
   "brand": {
     "name": "Cape Ember Coffee Co.",
-    "tagline": "Experience South Africa in Every Cup",
-    "tone": "Premium, organic, earthy, tactile"
-  },
-  "colors": {
-    "background": "#FAFAF7",
-    "surface": "#F2EEE8",
-    "border": "#E5DCD0",
-    "text_primary": "#2D2622",
-    "text_secondary": "#5C534C",
-    "primary": "#A94826",
-    "primary_hover": "#8C3C20",
-    "secondary": "#4A5D4E",
-    "error": "#D32F2F",
-    "success": "#388E3C"
+    "feeling": "Premium, Luxury, Warm, Modern, Elegant, Minimal, South African, Artisan, Freshly Roasted"
   },
   "typography": {
     "heading_font": "Cormorant Garamond",
-    "body_font": "Manrope",
+    "body_font": "Outfit",
+    "rules": {
+      "h1": "text-5xl sm:text-6xl tracking-tighter leading-none font-light",
+      "h2": "text-3xl sm:text-4xl tracking-tight leading-tight",
+      "h3": "text-2xl sm:text-3xl",
+      "h4": "text-xl",
+      "body": "text-base leading-relaxed tracking-wide",
+      "overlines": "uppercase text-xs tracking-[0.2em] font-medium text-accent_copper"
+    }
+  },
+  "colors": {
+    "background_primary": "#FDFBF7",
+    "background_secondary": "#F4EFE6",
+    "primary_brand": "#D05C23",
+    "text_main": "#2C1A12",
+    "text_muted": "#6B5048",
+    "accent_copper": "#C86333",
+    "accent_wood": "#8A5A44",
+    "border_subtle": "#E6DCD1",
     "rules": [
-      "Headings must use tracking-tight.",
-      "Overlines/labels must be Uppercase + Wide Spacing (tracking-[0.2em]).",
-      "Do not use generic sans for headings.",
-      "Max hero heading size is text-6xl."
+      "No pure black or pure white. Always tint to warm earthy Karoo tones.",
+      "Ensure WCAG AA contrast for text.",
+      "Use #D05C23 strictly for interactive CTAs and core accents."
     ]
   },
-  "layout": {
-    "spacing": "Generous spacing. Use p-12, p-16, p-24 for sections. Components with borders need p-6.",
-    "grid_strategy": "Tetris grid for marketing sections. Bento-style layouts for product highlights. Avoid perfectly symmetrical basic grids. Use col-span-full for featured items.",
-    "border_radius": "rounded-none or rounded-sm. Keep it sharp and premium.",
-    "shadows": "Minimal. Use 1px borders instead of heavy shadows. On hover, use shadow-md or shadow-lg with a warm tint."
+  "media_urls": {
+    "flame_logo": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/58knaa6d_Flame.jpeg",
+    "full_logo_with_text": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/se338umo_Cape%20Ember%20Coffee%20Co%20Logo.jpeg",
+    "hero_banner": "https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxNzV8MHwxfHNlYXJjaHwxfHxhcnRpc2FuJTIwY29mZmVlJTIwcm9hc3Rpbmd8ZW58MHx8fHwxNzgyNTcyODY4fDA&ixlib=rb-4.1.0&q=85",
+    "roasting_story": "https://images.unsplash.com/photo-1636634434235-23e4fee2aa42?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwxfHxrYXJvbyUyMGxhbmRzY2FwZSUyMHN1bnJpc2V8ZW58MHx8fHwxNzgyNTcyODY4fDA&ixlib=rb-4.1.0&q=85",
+    "product_category_1": "https://images.unsplash.com/photo-1524350876685-274059332603?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxhcnRpc2FuJTIwY29mZmVlJTIwYmFnfGVufDB8fHx8MTc4MjU3Mjg3M3ww&ixlib=rb-4.1.0&q=85",
+    "product_category_2": "https://images.unsplash.com/photo-1442512595331-e89e73853f31?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwyfHxwb3VyJTIwb3ZlciUyMGNvZmZlZXxlbnwwfHx8fDE3ODI1NzI4NzN8MA&ixlib=rb-4.1.0&q=85",
+    "testimonial_bg": "https://images.unsplash.com/photo-1637716217524-b4cd1c92cf53?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwxfHxjb2ZmZWUlMjBjdXAlMjB3YXJtJTIwd29vZHxlbnwwfHx8fDE3ODI1NzI4Njh8MA&ixlib=rb-4.1.0&q=85"
   },
-  "components": {
-    "buttons": "Flat solid background, sharp edges (rounded-none), tracking-wide. Never rely on default Vercel-look. Primary buttons in Terracotta (#A94826).",
-    "cards": "Cardless or flat surface (#F2EEE8) with 1px subtle border (#E5DCD0). No massive shadows.",
-    "inputs": "Flat, bottom border only (border-b-2) or subtle full border. Solid background #FAFAF7. Focus ring in Terracotta.",
-    "navigation": "Solid background (#FAFAF7) or Crystal Glass (backdrop-blur-xl bg-[#FAFAF7]/80). Must have visible navigation links.",
-    "data_test_attributes": "MUST include data-testid attribute on all interactive elements (buttons, links, form inputs)."
+  "layout_and_spacing": {
+    "system": "Generous Spacing (p-8 to p-32) for a luxurious, uncrowded feel.",
+    "grid_protocol": "MODE A: THE 'TETRIS' GRID. Asymmetrical bento grids with wide gaps (gap-8 to gap-12). Leave negative space for breathing room.",
+    "alignment": "Mobile-first approach. Optical alignment. Headings are elegantly aligned to complement layout balance."
   },
-  "media": {
-    "hero_image": "https://images.pexels.com/photos/33702492/pexels-photo-33702492.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "story_image": "https://images.pexels.com/photos/5306368/pexels-photo-5306368.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "products": [
-      {
-        "id": "fynbos_roast",
-        "name": "Fynbos Roast",
-        "price": "R149",
-        "image_url": "https://images.pexels.com/photos/15093129/pexels-photo-15093129.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
-      },
-      {
-        "id": "garden_route",
-        "name": "Garden Route Blend",
-        "price": "R149",
-        "image_url": "https://images.pexels.com/photos/17303602/pexels-photo-17303602.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
-      },
-      {
-        "id": "ember_reserve",
-        "name": "Ember Reserve",
-        "price": "R159",
-        "image_url": "https://images.pexels.com/photos/14498531/pexels-photo-14498531.jpeg"
-      },
-      {
-        "id": "karoo_horizon",
-        "name": "Karoo Horizon",
-        "price": "R169",
-        "image_url": "https://images.pexels.com/photos/12039675/pexels-photo-12039675.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
-      },
-      {
-        "id": "landscape_bundle",
-        "name": "Landscape Bundle",
-        "price": "R599",
-        "image_url": "https://images.pexels.com/photos/13121702/pexels-photo-13121702.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
-      }
-    ],
-    "packaging_mockup": "https://images.pexels.com/photos/29795384/pexels-photo-29795384.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+  "components_and_features": {
+    "header": "Premium sticky header (shrinks on scroll). Crystal glassmorphism with backdrop-blur-xl and bg-[#FDFBF7]/80. Bottom border border-[#E6DCD1]/50. Includes Nav, Search, Account, Wishlist, Cart.",
+    "logo_rules": "CRITICAL: Flame logo to the left, 'Cape Ember Coffee Co.' text to the right, professionally spaced, vertically centered. NEVER place logo inside a black square.",
+    "hero_section": "Immersive parallax hero banner using the roasting_story or hero_banner media. Gradient overlay max bg-black/30 so the image breathes.",
+    "product_pages": "Large image gallery with zoom, roast profile visualizer, strength meter, tasting notes, and reviews.",
+    "collections": "Advanced filtering sidebar. Minimalist product cards without harsh shadows. Focus on the coffee bags.",
+    "checkout_accounts": "Premium checkout flow, wishlist tracking, and customer accounts natively integrated."
   },
-  "animations": {
-    "hover": "Slight lift (-translate-y-1), subtle warm shadow. Images scale up slightly inside overflow-hidden containers.",
-    "page_transitions": "Smooth fade in, stagger entrance for product grids."
-  },
-  "accessibility": {
-    "contrast": "Ensure text meets 4.5:1 ratio over backgrounds. Use text shadow over images.",
-    "focus": "Focus states must have high contrast outline."
+  "interactions_and_animations": {
+    "hover_states": "All buttons must have explicit hover states altering text/bg color contrast. Cards lift slightly (-translate-y-1).",
+    "motion": "Use Framer Motion for smooth, unhurried fade-ins. Setup Lenis for buttery momentum scrolling."
   },
   "instructions_to_main_agent": [
-    "Do not use generic Shadcn styling. Override all colors and border radii to match the Organic & Earthy theme.",
-    "All text over hero images must be clearly readable. Use gradient overlays (e.g. from-black/70 to-transparent) if needed.",
-    "Implement a bento grid or asymmetrical layout for marketing sections.",
-    "Always use the provided image URLs. NEVER use placeholders.",
-    "Ensure the shopping cart, checkout (PayFast), and user dashboards look seamless and use the same flat, sharp design language.",
-    "All interactive elements must include a data-testid attribute in kebab-case."
+    "Use .js/.jsx file extensions (NOT .tsx).",
+    "Ensure 'Cormorant Garamond' is applied for headings and 'Outfit' for body text.",
+    "Implement `data-testid` attributes (kebab-case, role-based) on all interactive UI elements.",
+    "Install and use '@phosphor-icons/react' for elegant, high-end duotone icons.",
+    "Do NOT build generic Shopify-like rows. Embrace asymmetric grids and editorial layouts.",
+    "Rely ONLY on the provided media_urls. Do not use placeholder services.",
+    "Respect the logo rule strictly: Flame left, text right, vertically centered, NO black square container."
   ]
 }
