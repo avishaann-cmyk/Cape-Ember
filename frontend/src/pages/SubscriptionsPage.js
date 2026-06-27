@@ -34,8 +34,8 @@ const SubscriptionsPage = () => {
   const benefits = [
     'Fresh coffee delivered to your door',
     'Change, pause, or cancel anytime',
-    'Free delivery on all subscription orders',
-    'Be the first to try new blends',
+    'Complimentary delivery on all subscription orders',
+    'Be the first to try new blends and limited releases',
   ];
 
   // Helper to get image URL from product (supports both old and new format)
@@ -56,13 +56,13 @@ const SubscriptionsPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <span className="overline text-[#A94826] mb-4 block">Subscribe & Save</span>
+              <span className="overline text-[#A94826] mb-4 block">The Ember Circle</span>
               <h1 className="font-heading text-4xl md:text-5xl text-[#2D2622] mb-6">
                 Never Run Out of Great Coffee
               </h1>
               <p className="text-[#5C534C] text-lg mb-8">
-                Set up a subscription and enjoy fresh, small-batch roasted coffee 
-                delivered straight to your door. Customize your frequency and 
+                Set up a subscription and enjoy fresh, small-batch coffee 
+                delivered straight to your door. Customise your frequency and 
                 manage your subscription anytime.
               </p>
               
@@ -122,7 +122,7 @@ const SubscriptionsPage = () => {
       <section id="products" className="section-padding">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="overline text-[#A94826] mb-2 block">Choose Your Blend</span>
+            <span className="overline text-[#A94826] mb-2 block">The Collection</span>
             <h2 className="font-heading text-4xl text-[#2D2622]">
               Available for Subscription
             </h2>
@@ -193,15 +193,15 @@ const SubscriptionsPage = () => {
             {[
               {
                 q: 'How often will I receive my coffee?',
-                a: 'You choose! We offer weekly, bi-weekly, and monthly delivery options. You can change your frequency anytime from your account.'
+                a: 'You choose! We offer weekly, fortnightly, and monthly delivery options. You can change your frequency anytime from your account.'
               },
               {
                 q: 'Can I cancel my subscription?',
                 a: 'Yes, absolutely. You can pause, skip, or cancel your subscription at any time with no penalties. We believe in keeping you because you love our coffee, not because you\'re locked in.'
               },
               {
-                q: 'Is there free delivery on subscriptions?',
-                a: 'Yes! All subscription orders include free delivery anywhere in South Africa.'
+                q: 'Is there complimentary delivery on subscriptions?',
+                a: 'Yes! All subscription orders include complimentary delivery anywhere in South Africa.'
               },
               {
                 q: 'Can I change my blend?',

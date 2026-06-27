@@ -1,13 +1,31 @@
 # Cape Ember Coffee Co. - Premium E-Commerce
 
 ## Original Problem Statement
-Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce experience that rivals and exceeds Shopify. The website should feel: Premium, Luxury, Warm, Modern, Elegant, Minimal, South African, Artisan, Freshly Roasted.
+Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce experience that rivals and exceeds Shopify. The website should feel: Premium, Luxury, Warm, Modern, Elegant, Minimal, South African, Artisan.
+
+## Critical Brand Positioning
+**Cape Ember Coffee Co. is NOT a coffee roastery.**
+- Cape Ember Coffee Co. **partners with experienced South African coffee roasters** to create exceptional coffees inspired by South Africa's landscapes
+- Our focus is creating **memorable coffee experiences** that allow customers to explore South Africa from home, one cup at a time
+- Every blend represents a **real South African destination** and is crafted to capture the feeling, beauty and character of that place
+
+### ❌ DO NOT Use:
+- "10 Years of Roasting"
+- "We roast the coffee ourselves"
+- Any fabricated history or unverifiable claims
+- "Freshly Roasted within 48 hours"
+
+### ✅ Use Instead:
+- "Partners with experienced South African roasters"
+- "Small-batch freshness"
+- "Landscape inspired"
+- "Premium coffee inspired by South African landscapes"
 
 ## Brand Guidelines
 - **Logo**: Flame logo only (copper/gold gradient) with "Cape Ember" heading + "COFFEE CO." subtext
 - **Colors**: Warm earthy tones - Background #FDFBF7, Primary #D05C23, Copper #C86333, Wood #8A5A44, Text #2C1A12
 - **Typography**: Cormorant Garamond (serif) for headings, Outfit (sans-serif) for body
-- **Feel**: Handcrafted, premium, South African artisan coffee
+- **Feel**: Handcrafted, premium, South African coffee experience
 
 ## Tech Stack
 - **Frontend**: React 18, Tailwind CSS, Framer Motion, Phosphor Icons
@@ -24,12 +42,12 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 - [x] Flame logo + "Cape Ember Coffee Co." header branding
 - [x] Sticky header with glassmorphism (shrinks on scroll)
 - [x] Navigation: Shop, Our Story, Subscribe, Brew Guide + Search, Wishlist, Account, Cart
-- [x] Luxury homepage hero with roasting imagery
+- [x] Luxury homepage hero with "Experience South Africa in Every Cup"
 - [x] Products section with premium cards (roast tags, hover effects)
-- [x] "Our Story" section with 10+ Years badge
+- [x] "From Landscape to Cup" story section (partnership messaging)
 - [x] Customer testimonials with star ratings
-- [x] Newsletter subscription section
-- [x] Trust badges (Secure Checkout, Freshly Roasted, SA Owned, Free Returns)
+- [x] Newsletter subscription section ("Join the Ember Circle")
+- [x] Trust badges (Secure Checkout, Small-Batch Quality, Proudly South African, Nationwide Delivery)
 - [x] Premium footer with logo, links, contact, WhatsApp CTA
 - [x] Mobile responsive design
 - [x] Cormorant Garamond + Outfit fonts
@@ -88,6 +106,34 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 
 ---
 
+## Copywriting Audit (COMPLETE - June 27, 2026)
+
+### ✅ Homepage Updates
+- Hero: "Experience South Africa in Every Cup" (removed "Roasted with Passion")
+- Subtext: "From the wild fynbos coast to the vast Karoo plains — Cape Ember Coffee Co. brings together coffee, landscape, and ritual in one refined collection."
+- CTAs: "Discover the Landscape Bundle" + "Explore Individual Blends"
+- Features Strip: Small-Batch Freshness, Complimentary Delivery, Landscape Inspired, Proudly South African
+- Story Section: "From Landscape to Cup" (removed "10+ Years of Excellence")
+- Story Text: "Cape Ember Coffee Co. partners with experienced South African coffee roasters..."
+- Newsletter: "Join the Ember Circle" + "Stay Close to New Roasts and Offers"
+- Trust Badges: Secure Checkout, Small-Batch Quality, Proudly South African, Nationwide Delivery
+
+### ✅ About Page Updates
+- Hero: "Cape Ember Coffee Co. partners with experienced South African coffee roasters..."
+- Story: Removed "roast them in small batches at our Cape Town roastery"
+- Values: Quality First (partner with roasters), Landscape Inspired, Proudly South African, Coffee Experiences
+- CTA: "Discover the Landscape Bundle"
+
+### ✅ Subscriptions Page Updates
+- Header: "The Ember Circle" (was "Subscribe & Save")
+- Benefits: "Complimentary delivery" (was "Free delivery")
+- FAQ: "Complimentary delivery on subscriptions", "fortnightly" (was "bi-weekly")
+
+### ✅ Footer Updates
+- Tagline: "Premium coffee inspired by South African landscapes. Experience the beauty of the Cape in every cup."
+
+---
+
 ## Payment Configuration
 
 ### PayFast (LIVE - Active)
@@ -114,7 +160,9 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 ---
 
 ## Next Tasks
-1. **Phase 4**: Admin Dashboard (orders, inventory, analytics, coupons)
-2. **Phase 4**: Customer accounts (wishlist, order history, saved addresses)
-3. **Phase 5**: SEO & Performance (schema markup, sitemaps, Core Web Vitals)
-4. **Phase 5**: Marketing integrations (GA4, Meta Pixel, newsletter)
+1. **P1**: Rewrite Product Descriptions in backend seed data (Landscape Story structure)
+2. **P1**: Admin Dashboard (orders, inventory, analytics, coupons)
+3. **P1**: Customer accounts (wishlist, order history, saved addresses)
+4. **P2**: Email Templates Rewrite (Order Confirmation, Shipping, Welcome)
+5. **P2**: SEO Enhancements (Dynamic metadata, Open Graph, Schema)
+6. **P3**: Stitch Payments Integration (pending valid credentials)

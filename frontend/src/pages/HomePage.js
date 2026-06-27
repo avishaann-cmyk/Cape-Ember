@@ -59,10 +59,10 @@ const HomePage = () => {
   };
 
   const features = [
-    { icon: Fire, title: 'Freshly Roasted', desc: 'Roasted within 48 hours of your order' },
-    { icon: Truck, title: 'Free Delivery', desc: 'On orders over R399' },
-    { icon: Leaf, title: 'Ethically Sourced', desc: 'Direct trade relationships' },
-    { icon: Package, title: 'Subscribe & Save', desc: '15% off recurring orders' },
+    { icon: Fire, title: 'Small-Batch Freshness', desc: 'Roasted in small batches for quality' },
+    { icon: Truck, title: 'Complimentary Delivery', desc: 'On orders over R399' },
+    { icon: Leaf, title: 'Landscape Inspired', desc: 'Every blend tells a South African story' },
+    { icon: Package, title: 'Proudly South African', desc: 'Supporting local roasters' },
   ];
 
   const testimonials = [
@@ -95,17 +95,17 @@ const HomePage = () => {
               className="inline-block text-white/80 text-sm tracking-[0.3em] uppercase mb-6"
               variants={fadeInUp}
             >
-              Artisan Coffee from South Africa
+              Premium Small-Batch Coffee · South Africa
             </motion.span>
             
             <motion.h1 
               className="font-heading text-5xl sm:text-6xl lg:text-7xl text-white leading-none mb-8"
               variants={fadeInUp}
             >
-              Roasted with
+              Experience South Africa
               <br />
               <span className="text-gradient bg-gradient-to-r from-[#D05C23] to-[#C86333] bg-clip-text text-transparent">
-                Passion
+                in Every Cup
               </span>
             </motion.h1>
             
@@ -113,8 +113,8 @@ const HomePage = () => {
               className="text-white/90 text-lg sm:text-xl max-w-lg mb-10 leading-relaxed font-light"
               variants={fadeInUp}
             >
-              Discover small-batch, ethically sourced coffee beans roasted to perfection 
-              in the heart of South Africa's Western Cape.
+              From the wild fynbos coast to the vast Karoo plains — Cape Ember Coffee Co. 
+              brings together coffee, landscape, and ritual in one refined collection.
             </motion.p>
             
             <motion.div 
@@ -122,19 +122,19 @@ const HomePage = () => {
               variants={fadeInUp}
             >
               <Link 
-                to="/shop" 
+                to="/product/landscape-bundle" 
                 className="btn-primary inline-flex items-center gap-3 group"
                 data-testid="hero-shop-btn"
               >
-                Explore Our Coffees
+                Discover the Landscape Bundle
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link 
-                to="/about" 
+                to="/shop" 
                 className="btn-secondary-light"
                 data-testid="hero-story-btn"
               >
-                Our Story
+                Explore Individual Blends
               </Link>
             </motion.div>
           </motion.div>
@@ -295,14 +295,14 @@ const HomePage = () => {
                 <div className="aspect-[4/5] overflow-hidden">
                   <img
                     src={ROASTING_IMAGE}
-                    alt="Coffee roasting process"
+                    alt="Premium coffee preparation"
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-[#D05C23] flex items-center justify-center text-white p-6">
                   <div className="text-center">
-                    <span className="block text-4xl font-heading">10+</span>
-                    <span className="text-sm tracking-wide">Years of<br/>Excellence</span>
+                    <span className="block text-3xl font-heading">From</span>
+                    <span className="text-sm tracking-wide">Landscape<br/>to Cup</span>
                   </div>
                 </div>
               </div>
@@ -314,21 +314,20 @@ const HomePage = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
             >
-              <span className="overline block mb-4">Our Story</span>
+              <span className="overline block mb-4">The Cape Ember Experience</span>
               <h2 className="font-heading text-4xl sm:text-5xl text-[#2C1A12] mb-6">
-                From the Heart of<br/>South Africa
+                From Landscape<br/>to Cup
               </h2>
               <div className="space-y-4 text-[#6B5048] leading-relaxed mb-8">
                 <p>
-                  Cape Ember Coffee Co. was born from a passion for exceptional coffee and 
-                  a deep love for the South African landscape. What started as a small 
-                  roastery in the Western Cape has grown into something we're incredibly proud of.
+                  Cape Ember Coffee Co. partners with experienced South African coffee roasters 
+                  to create exceptional coffees inspired by South Africa's most beautiful landscapes.
                 </p>
                 <p>
-                  Every batch we roast tells a story—of the farmers who nurture the beans, 
-                  the land that shapes their character, and the craft that brings out their 
-                  finest qualities. We source directly from sustainable farms across Africa 
-                  and South America.
+                  Every blend represents a real South African destination — from the delicate 
+                  fynbos of the Cape Peninsula to the vast, open horizons of the Karoo. 
+                  Our focus is creating memorable coffee experiences that allow you to explore 
+                  South Africa from home, one cup at a time.
                 </p>
               </div>
               <Link 
@@ -336,7 +335,7 @@ const HomePage = () => {
                 className="btn-secondary inline-flex items-center gap-3"
                 data-testid="story-cta"
               >
-                Read Our Full Story
+                Discover Our Story
                 <ArrowRight size={18} />
               </Link>
             </motion.div>
@@ -397,12 +396,12 @@ const HomePage = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <span className="overline block mb-4">Join the Circle</span>
+            <span className="overline block mb-4">Join the Ember Circle</span>
             <h2 className="font-heading text-4xl sm:text-5xl text-[#2C1A12] mb-6">
-              Stay Close to New Roasts
+              Stay Close to New Roasts and Offers
             </h2>
             <p className="text-[#6B5048] mb-8">
-              Be the first to hear about new blends, limited releases, and exclusive offers.
+              Be the first to hear about new blends, limited releases, and refined coffee updates from Cape Ember Coffee Co.
             </p>
             <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
               <input
@@ -432,9 +431,9 @@ const HomePage = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
               { label: 'Secure Checkout', icon: '🔒' },
-              { label: 'Freshly Roasted', icon: '☕' },
-              { label: 'SA Owned', icon: '🇿🇦' },
-              { label: 'Free Returns', icon: '↩️' },
+              { label: 'Small-Batch Quality', icon: '☕' },
+              { label: 'Proudly South African', icon: '🇿🇦' },
+              { label: 'Nationwide Delivery', icon: '🚚' },
             ].map((badge, index) => (
               <div key={index} className="flex flex-col items-center gap-2">
                 <span className="text-2xl">{badge.icon}</span>

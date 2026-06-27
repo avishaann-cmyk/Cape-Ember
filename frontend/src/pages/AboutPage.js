@@ -21,7 +21,7 @@ const AboutPage = () => {
             From Landscape to Cup
           </h1>
           <p className="text-white/80 text-lg max-w-2xl mx-auto">
-            Cape Ember Coffee Co. was born from a love of South African landscapes and the ritual of a perfect cup of coffee.
+            Cape Ember Coffee Co. partners with experienced South African coffee roasters to create exceptional coffees inspired by South Africa's landscapes.
           </p>
         </div>
       </section>
@@ -41,9 +41,9 @@ const AboutPage = () => {
                 coffee experiences.
               </p>
               <p className="text-[#5C534C] text-lg mb-4">
-                We source premium beans and roast them in small batches at our Cape Town 
-                roastery, ensuring every bag delivers the freshest, most flavorful coffee 
-                possible.
+                Cape Ember Coffee Co. partners with experienced South African coffee roasters 
+                who share our commitment to quality. Together, we create small-batch coffees 
+                that capture the character of each landscape they represent.
               </p>
               <p className="text-[#5C534C] text-lg">
                 Our mission is simple: to bring the beauty of South Africa into your 
@@ -74,22 +74,22 @@ const AboutPage = () => {
               { 
                 icon: Coffee, 
                 title: 'Quality First', 
-                desc: 'We never compromise on quality. Every bean is carefully selected and roasted to perfection.' 
+                desc: 'We partner with experienced roasters who share our commitment to exceptional coffee.' 
               },
               { 
                 icon: Leaf, 
-                title: 'Sustainability', 
-                desc: 'We partner with farms that share our commitment to environmental responsibility.' 
+                title: 'Landscape Inspired', 
+                desc: 'Every blend reflects a unique South African landscape, turning every brew into a journey.' 
               },
               { 
                 icon: MapPin, 
-                title: 'Local Pride', 
-                desc: 'We celebrate South African heritage and support our local community.' 
+                title: 'Proudly South African', 
+                desc: 'Inspired by the beauty, heritage and spirit of South Africa — from coastlines to mountains.' 
               },
               { 
                 icon: Heart, 
-                title: 'Passion', 
-                desc: 'Coffee is our passion. We put love into every step of the process.' 
+                title: 'Coffee Experiences', 
+                desc: 'Creating memorable moments that allow you to explore South Africa from home.' 
               },
             ].map((value, idx) => (
               <div key={idx} className="text-center p-6">
@@ -122,25 +122,25 @@ const AboutPage = () => {
               {
                 name: 'Fynbos Roast',
                 region: 'Cape Peninsula',
-                desc: 'Inspired by the wild fynbos of the Cape, this coffee offers a grounded, comforting cup with natural sweetness. Smooth, nutty, and perfectly balanced.',
+                desc: 'Inspired by the wild fynbos of the Cape, this medium roast offers a grounded, comforting cup with natural sweetness. Smooth, nutty, and perfectly balanced for everyday enjoyment.',
                 image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
               },
               {
                 name: 'Garden Route Blend',
                 region: 'Garden Route',
-                desc: 'A tribute to South Africa\'s iconic coast. This balanced house blend offers a smooth cup with hints of cocoa and gentle citrus notes.',
+                desc: 'A tribute to South Africa\'s iconic coast. This balanced house blend offers a smooth cup with hints of cocoa and gentle citrus notes — perfect for any time of day.',
                 image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg'
               },
               {
                 name: 'Ember Reserve',
                 region: 'Drakensberg',
-                desc: 'Crafted for depth and intensity. This premium dark roast from Colombia delivers a bold, lingering finish with rich dark chocolate notes.',
+                desc: 'For those who appreciate depth and intensity. This premium dark roast delivers a bold, lingering finish with rich dark chocolate notes and a full-bodied character.',
                 image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg'
               },
               {
                 name: 'Karoo Horizon',
                 region: 'Great Karoo',
-                desc: 'From the vast, open plains of the Karoo, this limited release Ethiopian offers delicate blueberry, wildflower notes, and a relaxed honey finish.',
+                desc: 'From the vast, open plains of the Karoo. This expressive light roast offers delicate blueberry and wildflower notes with a relaxed honey finish — a limited release for adventurous palates.',
                 image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/7rra3n1s_38C77683-E4ED-4917-95F8-08997E2C06FE.jpeg'
               },
             ].map((blend, idx) => (
@@ -170,17 +170,17 @@ const AboutPage = () => {
       <section className="section-padding bg-[#2D2622]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="font-heading text-4xl text-white mb-6">
-            Ready to Experience South Africa?
+            Begin Your South African Coffee Journey
           </h2>
           <p className="text-white/70 text-lg mb-8">
-            Start your journey with our Landscape Range Bundle and discover all four signature blends.
+            Start with our Landscape Range Bundle and discover all four signature blends — each inspired by a distinct South African landscape.
           </p>
           <Link 
             to="/product/landscape-bundle" 
             className="btn-primary inline-block"
             data-testid="about-cta"
           >
-            Shop the Bundle
+            Discover the Landscape Bundle
           </Link>
         </div>
       </section>

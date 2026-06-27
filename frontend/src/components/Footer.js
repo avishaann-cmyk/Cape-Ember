@@ -47,8 +47,8 @@ const Footer = () => {
               </div>
             </Link>
             <p className="text-white/60 text-sm leading-relaxed mb-6">
-              Premium small-batch coffee roasted in the heart of South Africa. 
-              Experience the warmth of the Cape in every cup.
+              Premium coffee inspired by South African landscapes. 
+              Experience the beauty of the Cape in every cup.
             </p>
             <div className="flex gap-4">
               <a 
