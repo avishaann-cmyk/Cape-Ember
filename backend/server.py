@@ -1929,7 +1929,7 @@ async def create_payfast_payment(payment: SimplePaymentCreate, user: dict = Depe
 async def create_stitch_payment_endpoint(payment: SimplePaymentCreate, user: dict = Depends(get_current_user)):
     """Create Stitch payment for an existing order"""
     if not STITCH_CLIENT_ID or not STITCH_CLIENT_SECRET:
-        raise HTTPException(status_code=500, detail="Stitch payments not configured")
+        raise HTTPException(status_code=400, detail="Stitch payments not configured. Please use PayFast instead.")
     
     order = await db.orders.find_one({"_id": payment.order_id, "user_id": user["_id"]})
     if not order:
@@ -1956,9 +1956,15 @@ async def create_stitch_payment_endpoint(payment: SimplePaymentCreate, user: dic
             "redirect_url": stitch_result["url"],
             "payment_id": stitch_result["id"]
         }
+    except HTTPException as he:
+        # Re-raise HTTP exceptions as-is
+        raise he
     except Exception as e:
         logger.error(f"Stitch payment error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create Stitch payment")
+        raise HTTPException(
+            status_code=503, 
+            detail="Stitch payment service temporarily unavailable. Please try PayFast or try again later."
+        )
 
 
 @api_router.get("/orders")

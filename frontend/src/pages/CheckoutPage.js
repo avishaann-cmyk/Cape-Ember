@@ -66,14 +66,23 @@ const CheckoutPage = () => {
 
       if (paymentMethod === 'stitch') {
         // Create Stitch payment
-        const paymentRes = await axios.post(`${API}/stitch/create-payment`, {
-          order_id
-        });
+        try {
+          const paymentRes = await axios.post(`${API}/stitch/create-payment`, {
+            order_id
+          });
 
-        const { redirect_url } = paymentRes.data;
-        
-        // Redirect to Stitch payment page
-        window.location.href = redirect_url;
+          const { redirect_url } = paymentRes.data;
+          
+          // Redirect to Stitch payment page
+          window.location.href = redirect_url;
+        } catch (stitchErr) {
+          // If Stitch fails, offer to fallback to PayFast
+          const stitchError = stitchErr.response?.data?.detail || 'Stitch payment unavailable';
+          setError(`${stitchError} Would you like to try PayFast instead?`);
+          setPaymentMethod('payfast');
+          setLoading(false);
+          return;
+        }
       } else {
         // Create PayFast payment
         const paymentRes = await axios.post(`${API}/payfast/create-payment`, {
