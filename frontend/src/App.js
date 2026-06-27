@@ -13,6 +13,10 @@ import { PaymentSuccessPage, PaymentCancelPage } from './pages/PaymentPages';
 import AccountPage from './pages/AccountPage';
 import AboutPage from './pages/AboutPage';
 import SubscriptionsPage from './pages/SubscriptionsPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
+import ReturnsPage from './pages/ReturnsPage';
+import BrewGuidePage from './pages/BrewGuidePage';
 import './index.css';
 
 function App() {
@@ -34,6 +38,10 @@ function App() {
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/subscriptions" element={<SubscriptionsPage />} />
+                <Route path="/brew-guide" element={<BrewGuidePage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/returns" element={<ReturnsPage />} />
               </Routes>
             </main>
             <Footer />

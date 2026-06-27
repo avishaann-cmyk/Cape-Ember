@@ -4,6 +4,7 @@ import { MessageCircle, Mail, MapPin, Phone } from 'lucide-react';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/se338umo_Cape%20Ember%20Coffee%20Co%20Logo.jpeg";
 
 const Footer = () => {
   const [email, setEmail] = useState('');
@@ -70,7 +71,11 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <h4 className="font-heading text-2xl mb-4">Cape Ember Coffee Co.</h4>
+            <img 
+              src={LOGO_URL} 
+              alt="Cape Ember Coffee Co." 
+              className="h-16 w-auto mb-4"
+            />
             <p className="text-white/70 mb-6 max-w-md">
               Premium small-batch coffee inspired by the beautiful landscapes of South Africa. 
               Experience the Cape in every cup.
@@ -99,6 +104,11 @@ const Footer = () => {
               <li>
                 <Link to="/subscriptions" className="text-white/70 hover:text-[#A94826] transition-colors">
                   Subscriptions
+                </Link>
+              </li>
+              <li>
+                <Link to="/brew-guide" className="text-white/70 hover:text-[#A94826] transition-colors">
+                  Brew Guide
                 </Link>
               </li>
               <li>
@@ -143,8 +153,10 @@ const Footer = () => {
           <p className="text-white/50 text-sm">
             © {new Date().getFullYear()} Cape Ember Coffee Co. All rights reserved.
           </p>
-          <div className="flex gap-6 text-sm">
-            <span className="text-white/50">Proudly South African 🇿🇦</span>
+          <div className="flex gap-6 text-sm text-white/50">
+            <Link to="/terms" className="hover:text-[#A94826] transition-colors">Terms</Link>
+            <Link to="/privacy" className="hover:text-[#A94826] transition-colors">Privacy</Link>
+            <Link to="/returns" className="hover:text-[#A94826] transition-colors">Returns</Link>
           </div>
         </div>
       </div>

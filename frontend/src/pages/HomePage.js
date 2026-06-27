@@ -7,27 +7,27 @@ import AuthModal from '../components/AuthModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Hero carousel images - lifestyle shots
+// Hero carousel images - lifestyle & landscape shots
 const HERO_IMAGES = [
   {
-    url: `${process.env.REACT_APP_BACKEND_URL}/api/images/products/ember-reserve`,
-    title: "Bold & Intense",
-    subtitle: "Dark roast perfection"
+    url: "https://images.pexels.com/photos/33641653/pexels-photo-33641653.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    title: "The Garden Route",
+    subtitle: "South Africa's iconic coastline"
   },
   {
-    url: `${process.env.REACT_APP_BACKEND_URL}/api/images/products/garden-route`,
-    title: "Smooth & Balanced",
-    subtitle: "Journey through the Garden Route"
+    url: "https://images.pexels.com/photos/4927237/pexels-photo-4927237.jpeg",
+    title: "Crafted with Care",
+    subtitle: "Artisan coffee creation"
   },
   {
-    url: `${process.env.REACT_APP_BACKEND_URL}/api/images/products/fynbos-roast`,
-    title: "Naturally Sweet",
-    subtitle: "Inspired by Cape fynbos"
+    url: "https://images.pexels.com/photos/6248548/pexels-photo-6248548.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    title: "Moments of Joy",
+    subtitle: "Coffee brings people together"
   },
   {
-    url: `${process.env.REACT_APP_BACKEND_URL}/api/images/products/karoo-horizon`,
-    title: "Bright & Floral",
-    subtitle: "Limited release light roast"
+    url: "https://images.pexels.com/photos/31890552/pexels-photo-31890552.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    title: "Freshly Roasted",
+    subtitle: "Small-batch perfection"
   }
 ];
 

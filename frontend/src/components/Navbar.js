@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import AuthModal from './AuthModal';
 
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/se338umo_Cape%20Ember%20Coffee%20Co%20Logo.jpeg";
+
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -32,10 +34,12 @@ const Navbar = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center" data-testid="nav-logo">
-              <span className="font-heading text-xl md:text-2xl text-[#2D2622] tracking-tight">
-                Cape Ember Coffee Co.
-              </span>
+            <Link to="/" className="flex items-center gap-3" data-testid="nav-logo">
+              <img 
+                src={LOGO_URL} 
+                alt="Cape Ember Coffee Co." 
+                className="h-10 md:h-12 w-auto"
+              />
             </Link>
 
             {/* Desktop Navigation */}
@@ -60,6 +64,13 @@ const Navbar = () => {
                 data-testid="nav-subscriptions"
               >
                 Subscribe
+              </Link>
+              <Link 
+                to="/brew-guide" 
+                className="text-[#5C534C] hover:text-[#A94826] font-medium transition-colors"
+                data-testid="nav-brew-guide"
+              >
+                Brew Guide
               </Link>
             </div>
 
@@ -146,6 +157,14 @@ const Navbar = () => {
                 data-testid="mobile-nav-subscriptions"
               >
                 Subscribe
+              </Link>
+              <Link 
+                to="/brew-guide" 
+                className="block text-[#2D2622] font-medium py-2"
+                onClick={() => setMobileMenuOpen(false)}
+                data-testid="mobile-nav-brew-guide"
+              >
+                Brew Guide
               </Link>
               
               <div className="border-t border-[#E5DCD0] pt-4 mt-4">
