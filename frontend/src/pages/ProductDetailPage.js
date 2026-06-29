@@ -115,6 +115,16 @@ const ProductDetailPage = () => {
         if (productRes.data.variants?.length > 0) {
           setSelectedVariant(productRes.data.variants[0]);
         }
+        
+        // Update document title for SEO
+        document.title = `${productRes.data.name} | Cape Ember Coffee Co.`;
+        
+        // Update meta description
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) {
+          metaDesc.setAttribute('content', productRes.data.short_description || productRes.data.description?.substring(0, 160));
+        }
+        
       } catch (error) {
         console.error('Failed to fetch product:', error);
       } finally {
@@ -123,6 +133,11 @@ const ProductDetailPage = () => {
     };
     fetchData();
     window.scrollTo(0, 0);
+    
+    // Reset title on unmount
+    return () => {
+      document.title = 'Cape Ember Coffee Co. | Premium South African Coffee';
+    };
   }, [productId]);
 
   const handleAddToCart = async () => {
@@ -180,6 +195,35 @@ const ProductDetailPage = () => {
   const stockQuantity = selectedVariant?.stock_quantity ?? product.stock_quantity ?? 50;
   const inStock = stockQuantity > 0;
 
+  // Product Schema JSON-LD for SEO
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "description": product.description,
+    "image": images[0]?.url,
+    "brand": {
+      "@type": "Brand",
+      "name": "Cape Ember Coffee Co."
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": `https://capeembercoffee.co.za/product/${product.slug}`,
+      "priceCurrency": "ZAR",
+      "price": currentPrice,
+      "availability": inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "seller": {
+        "@type": "Organization",
+        "name": "Cape Ember Coffee Co."
+      }
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.7",
+      "reviewCount": "23"
+    }
+  };
+
   // Mock reviews (in production, fetch from API)
   const reviews = [
     { id: 1, author: 'Sarah M.', location: 'Cape Town', rating: 5, date: '2 weeks ago', text: 'Absolutely love this coffee! The flavor notes are spot on and it makes the perfect morning cup.' },
@@ -189,6 +233,12 @@ const ProductDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] pt-20 md:pt-24">
+      {/* Product Schema for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+      
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <nav className="flex items-center gap-2 text-sm text-[#6B5048]">

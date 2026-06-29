@@ -51,6 +51,9 @@ const ShopPage = () => {
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'featured');
 
   useEffect(() => {
+    // Set page title
+    document.title = 'Shop Premium South African Coffee | Cape Ember Coffee Co.';
+    
     const fetchProducts = async () => {
       try {
         const response = await axios.get(`${API}/products`);
@@ -64,6 +67,10 @@ const ShopPage = () => {
       }
     };
     fetchProducts();
+    
+    return () => {
+      document.title = 'Cape Ember Coffee Co. | Premium South African Coffee';
+    };
   }, []);
 
   // Apply filters and sorting

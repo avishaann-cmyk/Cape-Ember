@@ -3,7 +3,7 @@ Cape Ember Coffee Co. - Production E-commerce Backend
 Enterprise-grade e-commerce platform with PayFast & Stitch Payments
 """
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, BackgroundTasks, Header
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -719,17 +719,521 @@ def verify_stitch_webhook(request: Request, body: bytes) -> bool:
 # ============ EMAIL FUNCTIONS ============
 
 async def send_order_confirmation(order: dict, email: str):
-    """Send order confirmation email"""
-    # Placeholder - integrate with SendGrid/Resend
-    logger.info(f"Order confirmation email would be sent to {email} for order {order['order_number']}")
+    """Send order confirmation email with premium Cape Ember branding"""
+    try:
+        import resend
+        import asyncio
+        
+        resend_key = os.environ.get("RESEND_API_KEY")
+        sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+        
+        if not resend_key:
+            logger.warning("RESEND_API_KEY not configured - skipping email")
+            return
+        
+        resend.api_key = resend_key
+        
+        # Build items HTML
+        items_html = ""
+        for item in order.get("items", []):
+            items_html += f"""
+            <tr>
+                <td style="padding: 16px 0; border-bottom: 1px solid #E6DCD1;">
+                    <div style="font-weight: 600; color: #2C1A12;">{item.get('product_name', 'Product')}</div>
+                    <div style="font-size: 14px; color: #6B5048;">{item.get('variant_name', '')}</div>
+                </td>
+                <td style="padding: 16px 0; border-bottom: 1px solid #E6DCD1; text-align: center; color: #6B5048;">
+                    {item.get('quantity', 1)}
+                </td>
+                <td style="padding: 16px 0; border-bottom: 1px solid #E6DCD1; text-align: right; color: #2C1A12; font-weight: 500;">
+                    R {item.get('price', 0) * item.get('quantity', 1):.2f}
+                </td>
+            </tr>
+            """
+        
+        # Shipping address
+        shipping = order.get("shipping", {})
+        address = shipping.get("address", {}) if isinstance(shipping, dict) else {}
+        address_html = f"""
+            {address.get('first_name', '')} {address.get('last_name', '')}<br>
+            {address.get('address_line1', '')}<br>
+            {address.get('address_line2', '') + '<br>' if address.get('address_line2') else ''}
+            {address.get('city', '')}, {address.get('province', '')} {address.get('postal_code', '')}<br>
+            South Africa
+        """
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #F8F5F0; font-family: 'Segoe UI', Arial, sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F8F5F0; padding: 40px 20px;">
+                <tr>
+                    <td align="center">
+                        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border: 1px solid #E6DCD1;">
+                            <!-- Header -->
+                            <tr>
+                                <td style="background-color: #2C1A12; padding: 30px; text-align: center;">
+                                    <h1 style="margin: 0; color: #D05C23; font-size: 28px; font-weight: 400; letter-spacing: 2px;">CAPE EMBER</h1>
+                                    <p style="margin: 5px 0 0; color: #FFFFFF; font-size: 11px; letter-spacing: 3px;">COFFEE CO.</p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Thank You Message -->
+                            <tr>
+                                <td style="padding: 40px 40px 20px; text-align: center;">
+                                    <h2 style="margin: 0; color: #2C1A12; font-size: 24px; font-weight: 400;">Thank You for Your Order</h2>
+                                    <p style="margin: 15px 0 0; color: #6B5048; font-size: 16px; line-height: 1.6;">
+                                        Your order has been confirmed and we're preparing it with care.
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Order Details -->
+                            <tr>
+                                <td style="padding: 20px 40px;">
+                                    <table width="100%" style="background-color: #F8F5F0; padding: 20px;">
+                                        <tr>
+                                            <td>
+                                                <p style="margin: 0; font-size: 12px; color: #6B5048; text-transform: uppercase; letter-spacing: 1px;">Order Number</p>
+                                                <p style="margin: 5px 0 0; font-size: 18px; color: #D05C23; font-weight: 600;">#{order.get('order_number', 'N/A')}</p>
+                                            </td>
+                                            <td style="text-align: right;">
+                                                <p style="margin: 0; font-size: 12px; color: #6B5048; text-transform: uppercase; letter-spacing: 1px;">Order Date</p>
+                                                <p style="margin: 5px 0 0; font-size: 16px; color: #2C1A12;">{order.get('created_at', '')[:10]}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            
+                            <!-- Items -->
+                            <tr>
+                                <td style="padding: 20px 40px;">
+                                    <h3 style="margin: 0 0 15px; color: #2C1A12; font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Order Items</h3>
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr style="border-bottom: 2px solid #E6DCD1;">
+                                            <th style="padding: 10px 0; text-align: left; font-size: 12px; color: #6B5048; text-transform: uppercase; letter-spacing: 1px;">Item</th>
+                                            <th style="padding: 10px 0; text-align: center; font-size: 12px; color: #6B5048; text-transform: uppercase; letter-spacing: 1px;">Qty</th>
+                                            <th style="padding: 10px 0; text-align: right; font-size: 12px; color: #6B5048; text-transform: uppercase; letter-spacing: 1px;">Price</th>
+                                        </tr>
+                                        {items_html}
+                                    </table>
+                                </td>
+                            </tr>
+                            
+                            <!-- Totals -->
+                            <tr>
+                                <td style="padding: 20px 40px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td style="padding: 8px 0; color: #6B5048;">Subtotal</td>
+                                            <td style="padding: 8px 0; text-align: right; color: #2C1A12;">R {order.get('subtotal', 0):.2f}</td>
+                                        </tr>
+                                        {"<tr><td style='padding: 8px 0; color: #2F855A;'>Discount</td><td style='padding: 8px 0; text-align: right; color: #2F855A;'>- R " + f"{order.get('discount', 0):.2f}</td></tr>" if order.get('discount', 0) > 0 else ""}
+                                        <tr>
+                                            <td style="padding: 8px 0; color: #6B5048;">Shipping</td>
+                                            <td style="padding: 8px 0; text-align: right; color: #2C1A12;">{"Free" if order.get('shipping_cost', 0) == 0 else f"R {order.get('shipping_cost', 0):.2f}"}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 8px 0; color: #6B5048;">VAT (included)</td>
+                                            <td style="padding: 8px 0; text-align: right; color: #6B5048;">R {order.get('vat', 0):.2f}</td>
+                                        </tr>
+                                        <tr style="border-top: 2px solid #E6DCD1;">
+                                            <td style="padding: 15px 0 0; font-size: 18px; font-weight: 600; color: #2C1A12;">Total</td>
+                                            <td style="padding: 15px 0 0; text-align: right; font-size: 18px; font-weight: 600; color: #D05C23;">R {order.get('total', 0):.2f}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            
+                            <!-- Shipping Address -->
+                            <tr>
+                                <td style="padding: 20px 40px;">
+                                    <h3 style="margin: 0 0 15px; color: #2C1A12; font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Shipping Address</h3>
+                                    <p style="margin: 0; color: #6B5048; line-height: 1.8;">
+                                        {address_html}
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Footer -->
+                            <tr>
+                                <td style="background-color: #F8F5F0; padding: 30px 40px; text-align: center;">
+                                    <p style="margin: 0; color: #6B5048; font-size: 14px; line-height: 1.6;">
+                                        Questions about your order?<br>
+                                        <a href="mailto:hello@capeembercoffee.co.za" style="color: #D05C23; text-decoration: none;">hello@capeembercoffee.co.za</a>
+                                    </p>
+                                    <p style="margin: 20px 0 0; color: #A9998C; font-size: 12px;">
+                                        © 2024 Cape Ember Coffee Co. | Premium South African Coffee
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
+        
+        params = {
+            "from": sender_email,
+            "to": [email],
+            "subject": f"Order Confirmed - #{order.get('order_number', 'N/A')} | Cape Ember Coffee Co.",
+            "html": html_content
+        }
+        
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Order confirmation email sent to {email} for order {order['order_number']}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send order confirmation email: {str(e)}")
 
 async def send_shipping_notification(order: dict, tracking_number: str):
-    """Send shipping notification email"""
-    logger.info(f"Shipping notification for order {order['order_number']} with tracking {tracking_number}")
+    """Send shipping notification email with tracking info"""
+    try:
+        import resend
+        import asyncio
+        
+        resend_key = os.environ.get("RESEND_API_KEY")
+        sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+        
+        if not resend_key:
+            logger.warning("RESEND_API_KEY not configured - skipping email")
+            return
+        
+        resend.api_key = resend_key
+        
+        # Get customer email
+        email = order.get("guest_email", "")
+        if order.get("user_id"):
+            user = await db.users.find_one({"_id": order["user_id"]})
+            if user:
+                email = user.get("email", "")
+        
+        if not email:
+            logger.warning(f"No email found for order {order.get('order_number')}")
+            return
+        
+        # Shipping address
+        shipping = order.get("shipping", {})
+        address = shipping.get("address", {}) if isinstance(shipping, dict) else {}
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #F8F5F0; font-family: 'Segoe UI', Arial, sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F8F5F0; padding: 40px 20px;">
+                <tr>
+                    <td align="center">
+                        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border: 1px solid #E6DCD1;">
+                            <!-- Header -->
+                            <tr>
+                                <td style="background-color: #2C1A12; padding: 30px; text-align: center;">
+                                    <h1 style="margin: 0; color: #D05C23; font-size: 28px; font-weight: 400; letter-spacing: 2px;">CAPE EMBER</h1>
+                                    <p style="margin: 5px 0 0; color: #FFFFFF; font-size: 11px; letter-spacing: 3px;">COFFEE CO.</p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Shipping Icon & Message -->
+                            <tr>
+                                <td style="padding: 40px 40px 20px; text-align: center;">
+                                    <div style="width: 80px; height: 80px; background-color: #D05C23; border-radius: 50%; margin: 0 auto 20px; line-height: 80px;">
+                                        <span style="color: #FFFFFF; font-size: 36px;">📦</span>
+                                    </div>
+                                    <h2 style="margin: 0; color: #2C1A12; font-size: 24px; font-weight: 400;">Your Order is On Its Way!</h2>
+                                    <p style="margin: 15px 0 0; color: #6B5048; font-size: 16px; line-height: 1.6;">
+                                        Great news! Your Cape Ember coffee has been shipped and is making its way to you.
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Tracking Info -->
+                            <tr>
+                                <td style="padding: 20px 40px;">
+                                    <table width="100%" style="background-color: #F8F5F0; padding: 25px; text-align: center;">
+                                        <tr>
+                                            <td>
+                                                <p style="margin: 0; font-size: 12px; color: #6B5048; text-transform: uppercase; letter-spacing: 1px;">Order Number</p>
+                                                <p style="margin: 5px 0 15px; font-size: 18px; color: #2C1A12; font-weight: 600;">#{order.get('order_number', 'N/A')}</p>
+                                                
+                                                <p style="margin: 0; font-size: 12px; color: #6B5048; text-transform: uppercase; letter-spacing: 1px;">Tracking Number</p>
+                                                <p style="margin: 5px 0 0; font-size: 20px; color: #D05C23; font-weight: 600; font-family: monospace;">{tracking_number}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            
+                            <!-- Delivery Address -->
+                            <tr>
+                                <td style="padding: 20px 40px;">
+                                    <h3 style="margin: 0 0 15px; color: #2C1A12; font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Delivering To</h3>
+                                    <p style="margin: 0; color: #6B5048; line-height: 1.8;">
+                                        {address.get('first_name', '')} {address.get('last_name', '')}<br>
+                                        {address.get('address_line1', '')}<br>
+                                        {address.get('city', '')}, {address.get('province', '')} {address.get('postal_code', '')}
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- What's Next -->
+                            <tr>
+                                <td style="padding: 20px 40px;">
+                                    <h3 style="margin: 0 0 15px; color: #2C1A12; font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">What's Next?</h3>
+                                    <p style="margin: 0; color: #6B5048; line-height: 1.8;">
+                                        Your package is on its way via our courier partner. You can track your delivery using the tracking number above. 
+                                        Most orders arrive within 2-5 business days.
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Footer -->
+                            <tr>
+                                <td style="background-color: #F8F5F0; padding: 30px 40px; text-align: center;">
+                                    <p style="margin: 0; color: #6B5048; font-size: 14px; line-height: 1.6;">
+                                        Questions about your delivery?<br>
+                                        <a href="mailto:hello@capeembercoffee.co.za" style="color: #D05C23; text-decoration: none;">hello@capeembercoffee.co.za</a>
+                                    </p>
+                                    <p style="margin: 20px 0 0; color: #A9998C; font-size: 12px;">
+                                        © 2024 Cape Ember Coffee Co. | Premium South African Coffee
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
+        
+        params = {
+            "from": sender_email,
+            "to": [email],
+            "subject": f"Your Order Has Shipped! 📦 - #{order.get('order_number', 'N/A')} | Cape Ember Coffee Co.",
+            "html": html_content
+        }
+        
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Shipping notification sent to {email} for order {order['order_number']}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send shipping notification: {str(e)}")
 
 async def send_password_reset(email: str, reset_token: str):
     """Send password reset email"""
-    logger.info(f"Password reset email would be sent to {email}")
+    try:
+        import resend
+        import asyncio
+        
+        resend_key = os.environ.get("RESEND_API_KEY")
+        sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+        
+        if not resend_key:
+            logger.warning("RESEND_API_KEY not configured - skipping email")
+            return
+        
+        resend.api_key = resend_key
+        
+        # Reset link (would be your frontend URL in production)
+        reset_link = f"https://capeembercoffee.co.za/reset-password?token={reset_token}"
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #F8F5F0; font-family: 'Segoe UI', Arial, sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F8F5F0; padding: 40px 20px;">
+                <tr>
+                    <td align="center">
+                        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border: 1px solid #E6DCD1;">
+                            <!-- Header -->
+                            <tr>
+                                <td style="background-color: #2C1A12; padding: 30px; text-align: center;">
+                                    <h1 style="margin: 0; color: #D05C23; font-size: 28px; font-weight: 400; letter-spacing: 2px;">CAPE EMBER</h1>
+                                    <p style="margin: 5px 0 0; color: #FFFFFF; font-size: 11px; letter-spacing: 3px;">COFFEE CO.</p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Message -->
+                            <tr>
+                                <td style="padding: 40px;">
+                                    <h2 style="margin: 0 0 20px; color: #2C1A12; font-size: 24px; font-weight: 400; text-align: center;">Reset Your Password</h2>
+                                    <p style="margin: 0 0 30px; color: #6B5048; font-size: 16px; line-height: 1.6; text-align: center;">
+                                        We received a request to reset your password. Click the button below to create a new password.
+                                    </p>
+                                    
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td align="center">
+                                                <a href="{reset_link}" style="display: inline-block; background-color: #D05C23; color: #FFFFFF; padding: 15px 40px; text-decoration: none; font-size: 16px; font-weight: 600; letter-spacing: 1px;">
+                                                    RESET PASSWORD
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                    <p style="margin: 30px 0 0; color: #A9998C; font-size: 14px; line-height: 1.6; text-align: center;">
+                                        This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Footer -->
+                            <tr>
+                                <td style="background-color: #F8F5F0; padding: 30px 40px; text-align: center;">
+                                    <p style="margin: 0; color: #A9998C; font-size: 12px;">
+                                        © 2024 Cape Ember Coffee Co. | Premium South African Coffee
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
+        
+        params = {
+            "from": sender_email,
+            "to": [email],
+            "subject": "Reset Your Password | Cape Ember Coffee Co.",
+            "html": html_content
+        }
+        
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Password reset email sent to {email}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send password reset email: {str(e)}")
+
+
+async def send_welcome_email(email: str, first_name: str):
+    """Send welcome email to new customers"""
+    try:
+        import resend
+        import asyncio
+        
+        resend_key = os.environ.get("RESEND_API_KEY")
+        sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+        
+        if not resend_key:
+            logger.warning("RESEND_API_KEY not configured - skipping email")
+            return
+        
+        resend.api_key = resend_key
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #F8F5F0; font-family: 'Segoe UI', Arial, sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F8F5F0; padding: 40px 20px;">
+                <tr>
+                    <td align="center">
+                        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border: 1px solid #E6DCD1;">
+                            <!-- Header -->
+                            <tr>
+                                <td style="background-color: #2C1A12; padding: 30px; text-align: center;">
+                                    <h1 style="margin: 0; color: #D05C23; font-size: 28px; font-weight: 400; letter-spacing: 2px;">CAPE EMBER</h1>
+                                    <p style="margin: 5px 0 0; color: #FFFFFF; font-size: 11px; letter-spacing: 3px;">COFFEE CO.</p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Welcome Message -->
+                            <tr>
+                                <td style="padding: 40px; text-align: center;">
+                                    <h2 style="margin: 0 0 20px; color: #2C1A12; font-size: 28px; font-weight: 400;">
+                                        Welcome to Cape Ember, {first_name}!
+                                    </h2>
+                                    <p style="margin: 0 0 30px; color: #6B5048; font-size: 16px; line-height: 1.8;">
+                                        Thank you for joining us. You're now part of a community that appreciates 
+                                        premium coffee inspired by South Africa's most beautiful landscapes.
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Features -->
+                            <tr>
+                                <td style="padding: 0 40px 30px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td width="33%" style="text-align: center; padding: 20px;">
+                                                <div style="font-size: 36px; margin-bottom: 10px;">☕</div>
+                                                <p style="margin: 0; color: #2C1A12; font-weight: 600; font-size: 14px;">Small-Batch<br>Quality</p>
+                                            </td>
+                                            <td width="33%" style="text-align: center; padding: 20px;">
+                                                <div style="font-size: 36px; margin-bottom: 10px;">🇿🇦</div>
+                                                <p style="margin: 0; color: #2C1A12; font-weight: 600; font-size: 14px;">Proudly<br>South African</p>
+                                            </td>
+                                            <td width="33%" style="text-align: center; padding: 20px;">
+                                                <div style="font-size: 36px; margin-bottom: 10px;">🚚</div>
+                                                <p style="margin: 0; color: #2C1A12; font-weight: 600; font-size: 14px;">Free Shipping<br>Over R399</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            
+                            <!-- CTA -->
+                            <tr>
+                                <td style="padding: 0 40px 40px; text-align: center;">
+                                    <p style="margin: 0 0 20px; color: #6B5048; font-size: 16px;">
+                                        Ready to explore? Use code <strong style="color: #D05C23;">WELCOME10</strong> for 10% off your first order.
+                                    </p>
+                                    <a href="https://capeembercoffee.co.za/shop" style="display: inline-block; background-color: #D05C23; color: #FFFFFF; padding: 15px 40px; text-decoration: none; font-size: 16px; font-weight: 600; letter-spacing: 1px;">
+                                        EXPLORE THE COLLECTION
+                                    </a>
+                                </td>
+                            </tr>
+                            
+                            <!-- Footer -->
+                            <tr>
+                                <td style="background-color: #F8F5F0; padding: 30px 40px; text-align: center;">
+                                    <p style="margin: 0 0 15px; color: #6B5048; font-size: 14px;">
+                                        Follow us for updates, brewing tips, and behind-the-scenes content.
+                                    </p>
+                                    <p style="margin: 0; color: #A9998C; font-size: 12px;">
+                                        © 2024 Cape Ember Coffee Co. | Premium South African Coffee
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
+        
+        params = {
+            "from": sender_email,
+            "to": [email],
+            "subject": f"Welcome to Cape Ember Coffee Co., {first_name}! ☕",
+            "html": html_content
+        }
+        
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Welcome email sent to {email}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send welcome email: {str(e)}")
 
 
 # ============ PRODUCT DATA ============
@@ -947,6 +1451,9 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks):
     
     # Create empty wishlist
     await db.wishlists.insert_one({"_id": user_id, "items": [], "updated_at": now})
+    
+    # Send welcome email
+    background_tasks.add_task(send_welcome_email, user_data.email.lower(), user_data.first_name)
     
     access_token = create_access_token(user_id, user_data.email)
     refresh_token = create_refresh_token(user_id)
@@ -2936,3 +3443,60 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+# ============ SEO ROUTES ============
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+async def robots_txt():
+    """Generate robots.txt for SEO"""
+    content = """User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /api/
+
+Sitemap: https://capeembercoffee.co.za/sitemap.xml
+"""
+    return content
+
+
+@app.get("/sitemap.xml")
+async def sitemap_xml():
+    """Generate XML sitemap for SEO"""
+    base_url = "https://capeembercoffee.co.za"
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    urls = [
+        {"loc": f"{base_url}/", "changefreq": "weekly", "priority": "1.0"},
+        {"loc": f"{base_url}/shop", "changefreq": "daily", "priority": "0.9"},
+        {"loc": f"{base_url}/about", "changefreq": "monthly", "priority": "0.7"},
+        {"loc": f"{base_url}/subscriptions", "changefreq": "weekly", "priority": "0.8"},
+        {"loc": f"{base_url}/brew-guide", "changefreq": "monthly", "priority": "0.6"},
+    ]
+    
+    # Add product pages
+    for product in PRODUCTS:
+        urls.append({
+            "loc": f"{base_url}/product/{product['slug']}",
+            "changefreq": "weekly",
+            "priority": "0.8"
+        })
+    
+    xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    for url in urls:
+        xml_content += f"""  <url>
+    <loc>{url['loc']}</loc>
+    <lastmod>{now}</lastmod>
+    <changefreq>{url['changefreq']}</changefreq>
+    <priority>{url['priority']}</priority>
+  </url>\n"""
+    
+    xml_content += '</urlset>'
+    
+    return Response(content=xml_content, media_type="application/xml")
+

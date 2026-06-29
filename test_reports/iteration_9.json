@@ -1,0 +1,54 @@
+{
+  "summary": "Tested P2: SEO endpoints (sitemap.xml, robots.txt), dynamic page titles (Shop & Product), Product JSON-LD schema, and cart update/delete regression. Backend pytest 5/7 PASS — local backend serves /sitemap.xml and /robots.txt correctly. CRITICAL BUG: both routes are unreachable via the public ingress URL because the kubernetes ingress only proxies /api/* to the backend; public GET /sitemap.xml returns the React index.html (200, text/html) and public GET /robots.txt returns Cloudflare's managed robots.txt (no 'Disallow: /admin/'). Frontend: Shop title MATCHES exactly, PDP title is dynamic and includes product name, Product JSON-LD is injected (2 ld+json blocks: site-wide CoffeeStore from index.html + per-product Product schema). Cart regression (PUT/DELETE /api/cart/items/{id}) confirmed still working.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /sitemap.xml (public)", "issue": "Public URL returns text/html (React app), not the FastAPI XML. Ingress only routes /api/* to backend. SEO crawlers will not see the sitemap. FIX: Either (a) move route to /api/sitemap.xml AND add a frontend route/rewrite, or (b) write sitemap.xml as a static file under /app/frontend/public/ (and regenerate on product changes), or (c) update ingress to route /sitemap.xml and /robots.txt to backend.", "priority": "CRITICAL"},
+      {"endpoint": "GET /robots.txt (public)", "issue": "Public URL returns Cloudflare's managed robots.txt instead of the backend's custom rules (Disallow: /admin/, /cart, /checkout, /account, /api/). Same root cause as sitemap. FIX: place static robots.txt in /app/frontend/public/ OR route via ingress.", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "GET /sitemap.xml (backend direct)", "issue": "Sitemap loc uses hardcoded base 'https://capeembercoffee.co.za' regardless of env (works for production but not for preview). Consider reading from FRONTEND_URL env."},
+      {"endpoint": "Email senders (send_order_confirmation, send_shipping_notification, send_password_reset, send_welcome_email)", "issue": "RESEND_API_KEY not configured in backend/.env — all four helpers log a warning and skip sending. Confirmed by code path; emails were NOT functionally tested end-to-end. Add RESEND_API_KEY and SENDER_EMAIL to .env to enable."},
+      {"endpoint": "Module imports", "issue": "`import resend` is repeated locally inside each of the 4 send_* functions in server.py (lines 724, 899, 1035, 1127). Lift to module level to avoid 4 import statements per send and to fail fast on missing dependency."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "SEO crawlers reading /sitemap.xml and /robots.txt", "issue": "Browser/crawler GETs to the public site return SPA HTML for sitemap and a generic Cloudflare robots — backend SEO routes are effectively dead from the outside.", "affected_selectors": ["public /sitemap.xml", "public /robots.txt"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_seo_email.py",
+    "/app/test_reports/pytest/seo_email.xml",
+    "/app/test_reports/pytest/seo_email_cart.xml"
+  ],
+  "action_items": [
+    "[CRITICAL] Make /sitemap.xml and /robots.txt reachable from the public URL. Recommended: write them as static files into /app/frontend/public/sitemap.xml and /app/frontend/public/robots.txt (the CRA build copies them to /), and have a backend endpoint /api/sitemap/regenerate that rewrites the file on product change. Alternatively, update the Kubernetes ingress to route the two paths to backend:8001.",
+    "[HIGH] Add RESEND_API_KEY and SENDER_EMAIL to backend/.env to actually enable email sending; otherwise all 4 transactional emails are silently skipped (logged warning only).",
+    "[MEDIUM] Lift `import resend` to module top in server.py (currently imported 4× inside the send_* functions).",
+    "[LOW] Use FRONTEND_URL env for sitemap base URL instead of hardcoded 'https://capeembercoffee.co.za'.",
+    "[Carry-over from iteration_8] CartPage Order Summary still does not show Discount line / corrected Total after applying WELCOME10 (CartPage.js reads couponApplied?.discount which doesn't exist; should read cart.discount and cart.total from CartContext).",
+    "[Carry-over from iteration_8] Shipping mismatch — frontend hardcodes R65, backend computes R75 for sub-R399 orders. Use cart.shipping from backend.",
+    "[Carry-over from iteration_7] /api/admin/orders 500 (server.py:2552 shipping float vs dict)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 3503 lines — far above the 700-line guideline. Split into routers (auth, cart, checkout, products, admin, seo, email) and a services module.",
+    "Email helpers (send_order_confirmation, send_shipping_notification, send_password_reset, send_welcome_email) each contain ~170+ lines of inline HTML — extract templates to /app/backend/email_templates/ and render with a small helper.",
+    "DRY violation: the four send_* functions repeat identical resend init/guard/try-except boilerplate; extract a `_send_email(to, subject, html)` helper.",
+    "Hardcoded base URL 'https://capeembercoffee.co.za' in sitemap.xml route — should be env-driven.",
+    "Sitemap is regenerated on every request (cheap today, but cache for 1h once product catalogue grows).",
+    "PDP and Shop set document.title directly via useEffect — works, but consider react-helmet-async for proper SSR/SEO behaviour (CRA SPA = crawlers without JS execution will still see static <title>Cape Ember Coffee Co. | Premium South African Coffee</title> from index.html).",
+    "Cleanup useEffect on PDP/Shop resets title to default on unmount — good practice, retained."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_seo_email.py"
+  ],
+  "success_rate": {"backend": "71% (5/7 pytest — 2 SEO public-URL failures are environment routing bugs, not regressions)", "frontend": "100% (3/3 SEO front-end checks: Shop title, PDP title, Product JSON-LD; cart regression also OK)"},
+  "test_credentials": "testuser2@capeember.co.za / Test1234! — login OK (response key is `access_token`, not `token`; tests now read both).",
+  "seed_data_creation": "Cart fixtures clear + add + update + delete one item on testuser2; no other persistent data.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "P2 features status: ✅ Shop title, ✅ PDP dynamic title, ✅ Product JSON-LD schema, ✅ cart update/delete regression. ❌ /sitemap.xml and /robots.txt are NOT reachable from the public URL — they exist correctly on the backend (verified via localhost:8001) but the kubernetes ingress only proxies /api/* so external crawlers see SPA HTML / Cloudflare robots instead. After the fix, retest with: curl -sk https://<host>/sitemap.xml and /robots.txt; both must return XML / backend-custom text. Email send functions are wired but RESEND_API_KEY is missing — they log a warning and exit. End-to-end email delivery was NOT tested.",
+  "rca of the issue": "ROUTING RCA: /robots.txt and /sitemap.xml are defined on FastAPI's `app` object (server.py:3450, 3466). FastAPI returns them correctly at localhost:8001 (verified via curl). However the kubernetes ingress in this environment is configured to forward only paths matching /api/* to the backend service (port 8001); everything else falls through to the frontend (port 3000) which serves the React SPA's index.html for any unknown path. Therefore: GET https://<public>/sitemap.xml -> frontend returns index.html with content-type text/html (status 200, body starts with '<!doctype html>'), and GET https://<public>/robots.txt -> intercepted by Cloudflare (returns its managed AI-bot robots.txt, no 'Disallow: /admin/'). FIX OPTIONS: (1) Place static sitemap.xml and robots.txt under /app/frontend/public/ — CRA copies them verbatim to the served root. Regenerate sitemap.xml from a backend job whenever PRODUCTS changes. (2) Move backend routes to /api/sitemap.xml and /api/robots.txt and add a frontend rewrite/redirect — but most crawlers will follow /sitemap.xml only, so (1) is preferable. (3) Update ingress to also route /sitemap.xml and /robots.txt to backend."
+}
