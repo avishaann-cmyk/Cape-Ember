@@ -108,6 +108,24 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 - [x] Unified shipping cost (R65) between frontend and backend
 - [x] Cart update (+/- quantity) verified working
 - [x] Cart delete (trash icon) verified working
+
+### ✅ P2: Email Templates (June 29, 2026)
+- [x] Order Confirmation email (premium branded HTML template)
+- [x] Shipping Notification email with tracking number
+- [x] Welcome email for new customers (includes WELCOME10 coupon)
+- [x] Password Reset email
+- [x] All emails use Resend API (requires RESEND_API_KEY in .env)
+- [x] Welcome email sent automatically on user registration
+
+### ✅ P2: SEO Enhancements (June 29, 2026)
+- [x] sitemap.xml with all pages and products
+- [x] robots.txt with proper Disallow rules
+- [x] Open Graph meta tags in index.html
+- [x] Twitter Card meta tags
+- [x] Schema.org CoffeeStore structured data
+- [x] Product JSON-LD schema on product detail pages
+- [x] Dynamic page titles (Shop, Product pages)
+
 - [x] Coupon application and removal verified working
 
 - [ ] Customer saved addresses management
@@ -193,7 +211,7 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 ---
 
 ## Next Tasks
-1. **P2**: Email Templates Rewrite (Order Confirmation, Shipping, Welcome)
-2. **P2**: SEO Enhancements - Add product-specific schema, sitemap
-3. **P2**: Customer order history page enhancement
-4. **P3**: Stitch Payments Integration (pending valid credentials)
+1. **P2**: Add RESEND_API_KEY to backend/.env to enable email sending
+2. **P3**: Stitch Payments Integration (pending valid credentials)
+3. **P3**: Customer order history page enhancement
+4. **Refactor**: Split server.py into modular routers (auth, cart, checkout, products, admin)
