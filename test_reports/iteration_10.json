@@ -1,0 +1,36 @@
+{
+  "summary": "End-to-end frontend cart regression on the public preview URL with testuser2@capeember.co.za. All 5 user-reported cart flows PASS: add-to-cart from PDP, qty + button, qty - button, trash/delete, and WELCOME10 coupon (10% discount applied to a 1797 subtotal => discount 179.70, total 1617.30). Discount line is now correctly rendered in the Order Summary (previous carry-over from iteration_8 is FIXED). Cart is fully functional on the preview environment.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/cart/clear", "issue": "Returns 404 on the public URL. CartContext.clearCart() will always fail. Not user-facing today (CartPage never calls it; only triggered after successful order). Either remove the front-end function or add a clear endpoint."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CartPage Order Summary", "issue": "Pluralization bug: 'Subtotal (1 items)' instead of 'Subtotal (1 item)'. cart.items.length only counts distinct lines so even quantity=3 of one product shows '1 items'. Use a helper that pluralizes correctly and consider summing quantities for the badge.", "selector": "cart-summary subtotal label", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "[LOW] Fix pluralization: 'Subtotal (1 item)' vs 'Subtotal (N items)' on CartPage.js line 319.",
+    "[LOW] Either implement DELETE /api/cart/clear on the backend or remove CartContext.clearCart() (currently 404).",
+    "[INFO] User-reported bug 'cart not working' is NOT reproducible on the preview environment. If the user is still seeing this on production (capeembercoffee.co.za), the preview needs to be redeployed to production — fix already lives in /app/frontend code (CartContext.js update/remove use encodeURIComponent(itemId) with productId_variantId format which matches backend item_id)."
+  ],
+  "critical_code_review_comments": [
+    "CartContext.fetchCart() inside useEffect with isAuthenticated dep triggers two cart fetches on first mount (fetchCart changes ref when isAuthenticated flips). Mostly harmless but causes a brief flash of guest cart -> user cart. Consider gating on auth-resolved state.",
+    "CartPage.js mixes backend-computed values with hardcoded constants (FREE_SHIPPING_THRESHOLD=399, SHIPPING_COST=65). Backend uses 75 for sub-R399. Always trust cart.shipping/cart.total when present (current code partially does via the `!== undefined` checks; clean up the fallback path).",
+    "CartPage.js useEffect for upsell fetches /api/products on every cart.items change with no debouncing; could spam the products endpoint while user clicks +/-.",
+    "addToCart in CartContext doesn't show toast / inline feedback — user clicking 'Add to Cart' on PDP has no visual confirmation other than the badge count changing. PDP should surface a success toast."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only request)", "frontend": "100% (8/8 cart assertions: login, add-to-cart, item appears, qty+, qty-, coupon UI, coupon backend, delete)"},
+  "test_credentials": "testuser2@capeember.co.za / Test1234! — login OK (response key access_token).",
+  "seed_data_creation": "Test added/removed one bundle product (landscape-bundle) on testuser2 cart; final state is empty cart.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Cart flows verified working on preview URL (https://axis-creator.preview.emergentagent.com). Backend cart endpoints (POST /api/cart/add, PUT /api/cart/items/{id}, DELETE /api/cart/items/{id}, POST /api/cart/coupon) all return 200 and persist correctly. Backend cart returns discount=179.7, subtotal=1797, total=1617.3 for WELCOME10 on a 3x bundle order. Discount line now displays in Order Summary (iteration_8 carry-over fixed). DELETE /api/cart/clear returns 404 but is not invoked by UI flows. If user still reports cart issues, they are testing production not preview — request a redeploy.",
+  "rca of the issue": "ORIGINAL BUG NOT REPRODUCIBLE ON PREVIEW: All cart CRUD operations succeed on https://axis-creator.preview.emergentagent.com. The fix from earlier iterations (CartContext.updateQuantity / removeFromCart building itemId as `${productId}_${variantId}` when a variant exists, and using encodeURIComponent before PUT/DELETE) matches the backend's expected item_id key, so 404s/no-ops are not occurring. Most likely user is hitting the production deployment (capeembercoffee.co.za) which has not been redeployed with these front-end changes. ACTION: Trigger a fresh production deploy from main branch and ask user to hard-refresh (CF cache busts on new asset hashes)."
+}
