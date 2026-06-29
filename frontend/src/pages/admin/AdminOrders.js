@@ -20,6 +20,7 @@ const AdminOrders = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 1 });
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
 
@@ -34,6 +35,7 @@ const AdminOrders = () => {
 
   const fetchOrders = async () => {
     setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem('token');
       const params = new URLSearchParams();
@@ -52,6 +54,7 @@ const AdminOrders = () => {
       });
     } catch (err) {
       console.error('Failed to fetch orders:', err);
+      setError(err.response?.data?.detail || 'Failed to load orders. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -142,6 +145,22 @@ const AdminOrders = () => {
           {loading ? (
             <div className="p-8 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#D05C23] border-t-transparent mx-auto"></div>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center">
+              <div className="text-red-500 mb-4">
+                <svg className="w-12 h-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="font-medium">Failed to load orders</p>
+                <p className="text-sm text-[#6B5048] mt-1">{error}</p>
+              </div>
+              <button
+                onClick={() => fetchOrders()}
+                className="btn-primary"
+              >
+                Retry
+              </button>
             </div>
           ) : orders.length === 0 ? (
             <div className="p-8 text-center text-[#6B5048]">

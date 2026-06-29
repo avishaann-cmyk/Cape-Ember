@@ -2549,7 +2549,7 @@ async def get_admin_orders(
             "status": order.get("status", "unknown"),
             "payment_status": order.get("payment_status", "unknown"),
             "payment_method": order.get("payment_method", "unknown"),
-            "shipping_address": order.get("shipping", {}).get("address", {}),
+            "shipping_address": order.get("shipping", {}).get("address", {}) if isinstance(order.get("shipping"), dict) else {},
             "created_at": order.get("created_at", ""),
             "updated_at": order.get("updated_at", "")
         })

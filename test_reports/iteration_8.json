@@ -1,0 +1,47 @@
+{
+  "summary": "Verified the CRITICAL cart bug fix. Backend pytest 7/7 PASS for PUT /api/cart/items/{item_id}, DELETE /api/cart/items/{item_id}, POST /api/cart/coupon (WELCOME10), DELETE /api/cart/coupon. Frontend Playwright e2e on /cart confirms: + increases qty, - decreases qty, trash icon deletes item, cart counter and subtotal update correctly, WELCOME10 applies and shows 'applied' badge, X removes the coupon. User-reported blocker (cart update/delete) is RESOLVED. However found one related UI regression in Order Summary — see action_items.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST/GET /api/cart", "issue": "Backend uses shipping=75 for orders < R399 (server.py:1391), but frontend CartPage.js uses hardcoded SHIPPING_COST=65 (line 15). Frontend total will diverge from backend total by R10. Standardise the value (env or fetch from /api/cart)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CartPage Order Summary", "issue": "When WELCOME10 is applied, backend GET /api/cart returns discount=29.8 and total=343.2, but Order Summary shows NO 'Discount' line and the Total stays at R363.00 (uncorrected). Root cause: CartPage.js:82 reads `couponApplied?.discount`, but POST /api/cart/coupon response is `{coupon:{code, discount_type, discount_value}}` — there is no `discount` key. Fix: use `cart.discount` (already returned by GET /api/cart via CartContext) instead of local couponApplied state, OR map discount_value/discount_type into a numeric discount. Also detect existing coupon from `cart.coupon_code` on mount so the applied badge persists across reloads.", "selector": "Order Summary > Discount line / Total", "priority": "HIGH"},
+      {"component": "CartPage", "issue": "Shipping is computed client-side with hardcoded R65, but backend computes R75 for sub-R399 orders. Use cart.shipping from backend.", "selector": "Order Summary > Shipping row", "priority": "MEDIUM"},
+      {"component": "CartPage coupon handlers", "issue": "handleApplyCoupon/handleRemoveCoupon in CartPage.js call raw axios endpoints; they currently work only because AuthContext sets axios.defaults.headers.common.Authorization globally. Prefer using applyCoupon/removeCoupon from CartContext for consistency with the rest of the cart actions (those add X-Session-ID for guests).", "selector": "n/a", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Apply coupon", "issue": "Coupon applied successfully on backend (discount=29.8, total=343.2) but UI Total does not reflect it (still 363). Misleads users into thinking the coupon didn't take effect.", "affected_selectors": ["text=Total", "text=Discount"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cart_bugfix.py",
+    "/app/test_reports/pytest/cart_bugfix.xml"
+  ],
+  "action_items": [
+    "[HIGH] Fix Order Summary discount/total. In CartPage.js, derive `discount` from `cart.discount` (provided by GET /api/cart via CartContext) and `total` from `cart.total` so the order summary reflects the backend-computed values after a coupon is applied. Also restore `couponApplied` state on initial load when `cart.coupon_code` is non-null so the 'applied' badge survives page reload.",
+    "[MEDIUM] Replace hardcoded SHIPPING_COST=65 in CartPage.js with `cart.shipping` from backend (or unify the threshold/cost between frontend and backend).",
+    "[LOW] Refactor handleApplyCoupon/handleRemoveCoupon to use applyCoupon/removeCoupon from CartContext (consistency + guest cart X-Session-ID support).",
+    "[Carry-over from iteration_7] /api/admin/orders 500 (server.py:2552 shipping float vs dict) still needs the defensive `isinstance(...,dict)` guard."
+  ],
+  "critical_code_review_comments": [
+    "CartContext.updateQuantity / removeFromCart now correctly use PUT and DELETE on /cart/items/{item_id} with Authorization + X-Session-ID headers — confirmed working end-to-end.",
+    "Backend item_id parsing uses `rsplit('_', 1)` (server.py:1466, 1497) which works for IDs like `fynbos-roast_fynbos-250g-whole`. Verified.",
+    "CartPage.js maintains a parallel `couponApplied` state that diverges from CartContext.cart — single source of truth would be cleaner.",
+    "Hardcoded shipping in two places (frontend CartPage R65, backend cart.py R75) — schema drift risk.",
+    "Order Summary VAT computation is client-side from local subtotal/shipping; once discount is fixed, ensure VAT is also re-derived from backend `cart.vat` (already returned)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cart_bugfix.py"
+  ],
+  "success_rate": {"backend": "100% (7/7 pytest)", "frontend": "85% (qty+/-/trash/coupon-apply/coupon-remove all work; Order Summary Total does not reflect discount)"},
+  "test_credentials": "testuser2@capeember.co.za / Test1234! — login OK, token returned, cart endpoints authorised.",
+  "seed_data_creation": "Tests add and clear cart items on testuser2 between test cases; no other persistent data.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Cart update/delete user-blocker is fixed and verified (backend pytest + Playwright). Remaining open: Order Summary on /cart does not show Discount line nor adjusted Total when a coupon is applied — CartPage.js needs to read discount/total from cart (CartContext) rather than from couponApplied.discount (which doesn't exist in the apply-coupon response). Shipping cost mismatch frontend(65) vs backend(75). Carry-over: admin/orders 500 bug from iteration_7 still open.",
+  "rca of the issue": "ORIGINAL BUG RCA: CartContext.updateQuantity/removeFromCart were calling the wrong endpoints / missing auth headers. Fix in CartContext.js now PUTs to `/api/cart/items/{productId_variantId}` and DELETEs the same path with Authorization + X-Session-ID — confirmed by curl/pytest and Playwright. NEW UI BUG RCA (Order Summary): POST /api/cart/coupon returns `{message, coupon:{code, discount_type, discount_value}}` (no top-level `discount` numeric). CartPage.js stores this object into `couponApplied` then reads `couponApplied?.discount` which is undefined → discount=0 → Total never decreases. Backend cart object (GET /api/cart) does contain the correctly computed `discount` and `total`; the page should consume those."
+}

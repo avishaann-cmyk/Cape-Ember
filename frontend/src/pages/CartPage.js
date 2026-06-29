@@ -223,7 +223,7 @@ const CartPage = () => {
                         <p className="text-[#6B5048] mt-1">R {item.price.toFixed(2)} each</p>
                       </div>
                       <button
-                        onClick={() => removeFromCart(item.product_id)}
+                        onClick={() => removeFromCart(item.product_id, item.variant_id)}
                         className="text-[#6B5048] hover:text-[#C53030] transition-colors p-1"
                         data-testid={`remove-${item.product_id}`}
                         aria-label="Remove item"
@@ -236,7 +236,7 @@ const CartPage = () => {
                       {/* Quantity */}
                       <div className="flex items-center border border-[#E6DCD1]">
                         <button
-                          onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.product_id, item.variant_id, item.quantity - 1)}
                           className="p-2 hover:bg-[#F4EFE6] transition-colors"
                           data-testid={`qty-decrease-${item.product_id}`}
                           disabled={item.quantity <= 1}
@@ -245,7 +245,7 @@ const CartPage = () => {
                         </button>
                         <span className="w-10 text-center font-medium text-[#2C1A12]">{item.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.product_id, item.variant_id, item.quantity + 1)}
                           className="p-2 hover:bg-[#F4EFE6] transition-colors"
                           data-testid={`qty-increase-${item.product_id}`}
                         >
