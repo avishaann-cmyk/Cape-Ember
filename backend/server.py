@@ -1388,7 +1388,7 @@ async def get_cart(
     totals = calculate_cart_totals([{"price": i.price, "quantity": i.quantity} for i in items], coupon)
     
     # Calculate shipping (default to standard, Western Cape)
-    shipping = 0.0 if totals["subtotal"] >= 399 else 75.0
+    shipping = 0.0 if totals["subtotal"] >= 399 else 65.0
     total = totals["subtotal"] - totals["discount"] + shipping
     
     return CartResponse(

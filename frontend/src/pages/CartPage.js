@@ -15,12 +15,11 @@ const FREE_SHIPPING_THRESHOLD = 399;
 const SHIPPING_COST = 65;
 
 const CartPage = () => {
-  const { cart, updateQuantity, removeFromCart, loading, refreshCart } = useCart();
+  const { cart, updateQuantity, removeFromCart, loading, refreshCart, applyCoupon, removeCoupon } = useCart();
   const { isAuthenticated } = useAuth();
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
-  const [couponApplied, setCouponApplied] = useState(null);
   const [upsellProducts, setUpsellProducts] = useState([]);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
@@ -50,12 +49,10 @@ const CartPage = () => {
     setCouponError('');
     
     try {
-      const response = await axios.post(`${API}/cart/coupon`, { code: couponCode });
-      setCouponApplied(response.data.coupon);
-      await refreshCart();
+      await applyCoupon(couponCode);
+      setCouponCode('');
     } catch (error) {
       setCouponError(error.response?.data?.detail || 'Invalid coupon code');
-      setCouponApplied(null);
     } finally {
       setCouponLoading(false);
     }
@@ -63,10 +60,7 @@ const CartPage = () => {
 
   const handleRemoveCoupon = async () => {
     try {
-      await axios.delete(`${API}/cart/coupon`);
-      setCouponApplied(null);
-      setCouponCode('');
-      await refreshCart();
+      await removeCoupon();
     } catch (error) {
       console.error('Failed to remove coupon:', error);
     }
@@ -77,16 +71,16 @@ const CartPage = () => {
     return '/placeholder-coffee.jpg';
   };
 
-  // Calculate values
-  const subtotal = cart.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
-  const discount = couponApplied?.discount || 0;
-  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  // Use backend-computed values from cart
+  const subtotal = cart.subtotal || cart.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
+  const discount = cart.discount || 0;
+  const shippingCost = cart.shipping !== undefined ? cart.shipping : (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST);
   const amountToFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
   const progressToFreeShipping = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
   
-  // Calculate VAT (15% included in prices in SA)
-  const vatAmount = (subtotal - discount + shippingCost) * 0.15 / 1.15;
-  const total = subtotal - discount + shippingCost;
+  // Use backend VAT and total if available
+  const vatAmount = cart.vat || (subtotal - discount + shippingCost) * 0.15 / 1.15;
+  const total = cart.total || (subtotal - discount + shippingCost);
 
   if (!isAuthenticated) {
     return (
@@ -270,11 +264,11 @@ const CartPage = () => {
                 <span className="font-medium text-[#2C1A12]">Have a coupon?</span>
               </div>
               
-              {couponApplied ? (
+              {cart.coupon_code ? (
                 <div className="flex items-center justify-between bg-[#2F855A]/10 p-3 border border-[#2F855A]/30">
                   <div className="flex items-center gap-2">
                     <Tag size={18} className="text-[#2F855A]" />
-                    <span className="text-[#2F855A] font-medium">{couponApplied.code}</span>
+                    <span className="text-[#2F855A] font-medium">{cart.coupon_code}</span>
                     <span className="text-[#2F855A]">applied</span>
                   </div>
                   <button

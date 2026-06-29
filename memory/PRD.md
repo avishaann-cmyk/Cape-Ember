@@ -98,6 +98,18 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 - [x] Admin user seeded on startup (admin@capeember.co.za)
 - [ ] Customer wishlist (backend exists, frontend needs enhancement)
 - [ ] Customer order history page
+
+### ✅ Bug Fix: Cart Update/Delete (CRITICAL - June 29, 2026)
+- [x] Fixed CartContext API endpoints (was using wrong URLs)
+- [x] updateQuantity now calls PUT /api/cart/items/{item_id}
+- [x] removeFromCart now calls DELETE /api/cart/items/{item_id}
+- [x] Added proper Authorization + X-Session-ID headers
+- [x] Fixed Order Summary to use backend-computed discount/total
+- [x] Unified shipping cost (R65) between frontend and backend
+- [x] Cart update (+/- quantity) verified working
+- [x] Cart delete (trash icon) verified working
+- [x] Coupon application and removal verified working
+
 - [ ] Customer saved addresses management
 
 ### 🔲 Phase 5: SEO, Performance & Marketing
@@ -181,8 +193,7 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 ---
 
 ## Next Tasks
-1. **P1**: Customer order history page
-2. **P1**: Customer saved addresses management
-3. **P2**: Email Templates Rewrite (Order Confirmation, Shipping, Welcome)
-4. **P2**: SEO Enhancements (Dynamic metadata, Open Graph, Schema)
-5. **P3**: Stitch Payments Integration (pending valid credentials)
+1. **P2**: Email Templates Rewrite (Order Confirmation, Shipping, Welcome)
+2. **P2**: SEO Enhancements - Add product-specific schema, sitemap
+3. **P2**: Customer order history page enhancement
+4. **P3**: Stitch Payments Integration (pending valid credentials)
