@@ -115,23 +115,21 @@ const HomePage = () => {
   ];
 
   const testimonials = [
-    { name: 'Sarah M.', location: 'Cape Town', text: 'The Fynbos Roast has completely changed my morning routine. Best coffee I\'ve ever had at home.', rating: 5, verified: true },
-    { name: 'David K.', location: 'Johannesburg', text: 'Incredible quality and the subscription service is so convenient. Highly recommend!', rating: 5, verified: true },
-    { name: 'Lisa P.', location: 'Durban', text: 'The Ember Reserve is pure luxury. Worth every cent for special occasions.', rating: 5, verified: true },
-    { name: 'Michael T.', location: 'Pretoria', text: 'Finally found a South African coffee brand that rivals international premium roasters.', rating: 5, verified: true },
-    { name: 'Emma L.', location: 'Stellenbosch', text: 'The Landscape Bundle was the perfect gift. Beautifully packaged and exceptional quality.', rating: 5, verified: true },
-    { name: 'James R.', location: 'Port Elizabeth', text: 'As a coffee snob, I\'m very impressed. The Karoo Horizon is unlike anything I\'ve tasted.', rating: 4, verified: true },
+    { name: 'Jeanne-Marie Eksteen', location: 'Google Review', text: 'Absolutely love this coffee brew!', rating: 5, verified: true },
+    { name: 'Lizelle Britz', location: 'Local Guide', text: 'We\'ve really enjoyed the Garden Route Blend from Cape Ember Beans. Full of flavour, smooth and genuinely delicious.', rating: 5, verified: true },
+    { name: 'Natalie Klerck', location: 'Google Review', text: 'Every cup of freshly brewed coffee is an experience only Cape Ember beans can provide. Beautifully packaged and options.', rating: 5, verified: true },
+    { name: 'Rovae Naidoo', location: 'Local Guide', text: 'This has become my go to blend of coffee everytime. Karoo Horizon a medium blend with bold flavour. My favourite cup anytime of the day.', rating: 5, verified: true },
   ];
 
   // Google Review Stats
   const googleReviewStats = {
-    rating: 4.9,
-    totalReviews: 127,
+    rating: 5.0,
+    totalReviews: 4,
     distribution: [
-      { stars: 5, percentage: 89 },
-      { stars: 4, percentage: 8 },
-      { stars: 3, percentage: 2 },
-      { stars: 2, percentage: 1 },
+      { stars: 5, percentage: 100 },
+      { stars: 4, percentage: 0 },
+      { stars: 3, percentage: 0 },
+      { stars: 2, percentage: 0 },
       { stars: 1, percentage: 0 },
     ]
   };
@@ -521,8 +519,8 @@ const HomePage = () => {
           </motion.div>
 
           {/* Review Carousel */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.slice(0, 3).map((testimonial, index) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {testimonials.map((testimonial, index) => (
               <motion.div 
                 key={index}
                 className="bg-white/5 backdrop-blur-sm border border-white/10 p-6"
@@ -573,20 +571,6 @@ const HomePage = () => {
               <ArrowRight size={16} />
             </Link>
           </motion.div>
-        </div>
-      </section>
-
-      {/* As Featured In */}
-      <section className="py-16 bg-[#FDFBF7] border-y border-[#E6DCD1]" data-testid="featured-in-section">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-[#6B5048] tracking-[0.2em] uppercase mb-8">
-            As Featured In
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-12 opacity-50">
-            {['Woolworths TASTE', 'House & Leisure', 'Food24', 'Good Housekeeping SA', 'Eat Out'].map((pub, i) => (
-              <span key={i} className="font-heading text-xl text-[#2C1A12] tracking-wide">{pub}</span>
-            ))}
-          </div>
         </div>
       </section>
 
