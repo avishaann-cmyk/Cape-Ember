@@ -3414,6 +3414,7 @@ async def startup_event():
     
     # Create admin user if it doesn't exist
     admin_email = "admin@capeember.co.za"
+    admin_password = "EmberAdmin2024!"
     admin_user = await db.users.find_one({"email": admin_email})
     if not admin_user:
         admin_id = str(uuid.uuid4())
@@ -3421,7 +3422,7 @@ async def startup_event():
         await db.users.insert_one({
             "_id": admin_id,
             "email": admin_email,
-            "password_hash": hash_password("CapeEmber2024!"),
+            "password_hash": hash_password(admin_password),
             "first_name": "Admin",
             "last_name": "User",
             "phone": "",
@@ -3433,11 +3434,15 @@ async def startup_event():
         })
         logger.info(f"Created admin user: {admin_email}")
     else:
-        # Ensure existing admin has is_admin flag
+        # Ensure existing admin has is_admin flag AND correct password
         await db.users.update_one(
             {"email": admin_email},
-            {"$set": {"is_admin": True}}
+            {"$set": {
+                "is_admin": True,
+                "password_hash": hash_password(admin_password)
+            }}
         )
+        logger.info(f"Updated admin user password: {admin_email}")
 
 
 @app.on_event("shutdown")
