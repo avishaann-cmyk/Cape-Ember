@@ -10,7 +10,7 @@ const AboutPage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
-            backgroundImage: `url('${process.env.REACT_APP_BACKEND_URL}/api/images/products/karoo-horizon')`
+            backgroundImage: `url('https://customer-assets.emergentagent.com/job_axis-creator/artifacts/ldc39232_IMG_6529.jpeg')`
           }}
         />
         <div className="absolute inset-0 hero-overlay" />

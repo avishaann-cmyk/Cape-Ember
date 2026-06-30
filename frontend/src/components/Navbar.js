@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import AuthModal from './AuthModal';
 
-const FLAME_LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/58knaa6d_Flame.jpeg";
+const FLAME_LOGO_URL = "https://static.prod-images.emergentagent.com/jobs/d9ff269a-5754-4fb4-87f9-d3dda0acb523/images/a3cbc12e1e10e0f2069152564a0711bf950ec108dc0fb57f6087850349d45b01.png";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -79,22 +79,13 @@ const Navbar = () => {
                   src={FLAME_LOGO_URL} 
                   alt="Cape Ember" 
                   className="w-full h-full object-contain"
-                  style={{ 
-                    filter: 'drop-shadow(0 2px 4px rgba(200, 99, 51, 0.3))',
-                    mixBlendMode: 'multiply'
-                  }}
                 />
               </div>
               <div className="flex flex-col">
                 <span className={`font-heading font-medium text-[#2C1A12] tracking-wide transition-all duration-500 ${
                   scrolled ? 'text-lg' : 'text-xl'
                 }`}>
-                  Cape Ember
-                </span>
-                <span className={`font-body text-[#6B5048] tracking-[0.15em] uppercase transition-all duration-500 ${
-                  scrolled ? 'text-[8px]' : 'text-[10px]'
-                }`}>
-                  Coffee Co.
+                  Cape Ember Coffee Co.
                 </span>
               </div>
             </Link>
