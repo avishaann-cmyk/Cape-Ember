@@ -188,13 +188,20 @@ const ShopPage = () => {
   return (
     <div className="min-h-screen bg-[#FDFBF7] pt-20 md:pt-24">
       {/* Hero Header */}
-      <div className="bg-[#F4EFE6] py-12 md:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <span className="overline block mb-3">Our Collection</span>
-          <h1 className="font-heading text-4xl md:text-5xl text-[#2C1A12] mb-4">
+      <div className="relative h-[40vh] min-h-[300px] flex items-center">
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ 
+            backgroundImage: `url('https://customer-assets.emergentagent.com/job_axis-creator/artifacts/r3up3zam_Photoroom_20260329_223614.png')`
+          }}
+        />
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full">
+          <span className="text-[#C86333] text-sm tracking-[0.3em] uppercase block mb-3">Our Collection</span>
+          <h1 className="font-heading text-4xl md:text-5xl text-white mb-4">
             Shop Coffee
           </h1>
-          <p className="text-[#6B5048] max-w-2xl mx-auto">
+          <p className="text-white/80 max-w-2xl mx-auto">
             Premium small-batch roasted coffee beans, inspired by the landscapes of South Africa. 
             Free delivery on orders over R399.
           </p>

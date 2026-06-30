@@ -6,11 +6,11 @@ const AboutPage = () => {
   return (
     <div className="min-h-screen pt-20 md:pt-24">
       {/* Hero */}
-      <section className="relative h-[60vh] flex items-center">
+      <section className="relative h-[40vh] min-h-[300px] flex items-center">
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
-            backgroundImage: `url('https://customer-assets.emergentagent.com/job_axis-creator/artifacts/ldc39232_IMG_6529.jpeg')`
+            backgroundImage: `url('https://customer-assets.emergentagent.com/job_axis-creator/artifacts/11b4v0fr_IMG_6815.jpeg')`
           }}
         />
         <div className="absolute inset-0 hero-overlay" />
@@ -121,25 +121,21 @@ const AboutPage = () => {
             {[
               {
                 name: 'Fynbos Roast',
-                region: 'Cape Peninsula',
                 desc: 'Inspired by the wild fynbos of the Cape, this medium roast offers a grounded, comforting cup with natural sweetness. Smooth, nutty, and perfectly balanced for everyday enjoyment.',
                 image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
               },
               {
                 name: 'Garden Route Blend',
-                region: 'Garden Route',
                 desc: 'A tribute to South Africa\'s iconic coast. This balanced house blend offers a smooth cup with hints of cocoa and gentle citrus notes — perfect for any time of day.',
                 image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg'
               },
               {
                 name: 'Ember Reserve',
-                region: 'Drakensberg',
                 desc: 'For those who appreciate depth and intensity. This premium dark roast delivers a bold, lingering finish with rich dark chocolate notes and a full-bodied character.',
                 image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg'
               },
               {
                 name: 'Karoo Horizon',
-                region: 'Great Karoo',
                 desc: 'From the vast, open plains of the Karoo. This expressive light roast offers delicate blueberry and wildflower notes with a relaxed honey finish — a limited release for adventurous palates.',
                 image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/7rra3n1s_38C77683-E4ED-4917-95F8-08997E2C06FE.jpeg'
               },
@@ -149,8 +145,7 @@ const AboutPage = () => {
                 className={`grid md:grid-cols-2 gap-8 items-center ${idx % 2 === 1 ? 'md:flex-row-reverse' : ''}`}
               >
                 <div className={idx % 2 === 1 ? 'md:order-2' : ''}>
-                  <span className="overline text-[#A94826] mb-2 block">{blend.region}</span>
-                  <h3 className="font-heading text-3xl text-[#2D2622] mb-4">{blend.name}</h3>
+                  <h3 className="font-heading text-3xl text-[#D05C23] mb-4">{blend.name}</h3>
                   <p className="text-[#5C534C] text-lg">{blend.desc}</p>
                 </div>
                 <div className={`aspect-video overflow-hidden ${idx % 2 === 1 ? 'md:order-1' : ''}`}>

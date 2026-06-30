@@ -215,13 +215,20 @@ const BrewGuidePage = () => {
   return (
     <div className="min-h-screen pt-20 md:pt-24">
       {/* Hero */}
-      <section className="bg-[#2D2622] text-white py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <span className="overline text-[#A94826] mb-4 block">Master Your Brew</span>
-          <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl mb-6">
+      <section className="relative h-[40vh] min-h-[300px] flex items-center">
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ 
+            backgroundImage: `url('https://customer-assets.emergentagent.com/job_axis-creator/artifacts/q3tzfpa9_IMG_6532.jpeg')`
+          }}
+        />
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full">
+          <span className="text-[#C86333] text-sm tracking-[0.3em] uppercase mb-4 block">Master Your Brew</span>
+          <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl text-white mb-6">
             Cape Ember Brewing Guide
           </h1>
-          <p className="text-white/70 text-lg max-w-2xl mx-auto">
+          <p className="text-white/80 text-lg max-w-2xl mx-auto">
             Unlock the full potential of your Cape Ember coffee with our blend-specific 
             brewing recommendations. Each roast has unique characteristics that shine with 
             the right technique.
