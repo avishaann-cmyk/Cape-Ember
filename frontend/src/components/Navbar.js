@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import AuthModal from './AuthModal';
 
-const FLAME_LOGO_URL = "https://static.prod-images.emergentagent.com/jobs/d9ff269a-5754-4fb4-87f9-d3dda0acb523/images/a3cbc12e1e10e0f2069152564a0711bf950ec108dc0fb57f6087850349d45b01.png";
+const FLAME_LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/un142drw_999F77B4-7671-405E-AF3F-CE82CEBF30BF.png";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
