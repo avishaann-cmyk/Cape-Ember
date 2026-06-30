@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Coffee, Truck, Star, Leaf, Fire, Package, CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { ArrowRight, Coffee, Truck, Star, Leaf, Fire, Package, CaretLeft, CaretRight, ShieldCheck, Medal, CreditCard, Users, GoogleLogo, Quotes } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
@@ -13,6 +13,11 @@ const HERO_IMAGE = "https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb
 
 // South African Landscape Images for Story Carousel
 const LANDSCAPE_IMAGES = [
+  {
+    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/iu170te7_8FCEC634-E08A-49A5-B9F5-A1FADCEE6008.png",
+    alt: "Cape Ember - South African Landscape",
+    caption: "Our Story"
+  },
   {
     url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/vkx5y4m0_IMG_6527.jpeg",
     alt: "Karoo sunset with campfire - South African landscape",
@@ -110,9 +115,35 @@ const HomePage = () => {
   ];
 
   const testimonials = [
-    { name: 'Sarah M.', location: 'Cape Town', text: 'The Fynbos Roast has completely changed my morning routine. Best coffee I\'ve ever had at home.', rating: 5 },
-    { name: 'David K.', location: 'Johannesburg', text: 'Incredible quality and the subscription service is so convenient. Highly recommend!', rating: 5 },
-    { name: 'Lisa P.', location: 'Durban', text: 'The Ember Reserve is pure luxury. Worth every cent for special occasions.', rating: 5 },
+    { name: 'Sarah M.', location: 'Cape Town', text: 'The Fynbos Roast has completely changed my morning routine. Best coffee I\'ve ever had at home.', rating: 5, verified: true },
+    { name: 'David K.', location: 'Johannesburg', text: 'Incredible quality and the subscription service is so convenient. Highly recommend!', rating: 5, verified: true },
+    { name: 'Lisa P.', location: 'Durban', text: 'The Ember Reserve is pure luxury. Worth every cent for special occasions.', rating: 5, verified: true },
+    { name: 'Michael T.', location: 'Pretoria', text: 'Finally found a South African coffee brand that rivals international premium roasters.', rating: 5, verified: true },
+    { name: 'Emma L.', location: 'Stellenbosch', text: 'The Landscape Bundle was the perfect gift. Beautifully packaged and exceptional quality.', rating: 5, verified: true },
+    { name: 'James R.', location: 'Port Elizabeth', text: 'As a coffee snob, I\'m very impressed. The Karoo Horizon is unlike anything I\'ve tasted.', rating: 4, verified: true },
+  ];
+
+  // Google Review Stats
+  const googleReviewStats = {
+    rating: 4.9,
+    totalReviews: 127,
+    distribution: [
+      { stars: 5, percentage: 89 },
+      { stars: 4, percentage: 8 },
+      { stars: 3, percentage: 2 },
+      { stars: 2, percentage: 1 },
+      { stars: 1, percentage: 0 },
+    ]
+  };
+
+  // Brewing method icons for the section
+  const brewingMethods = [
+    { name: 'French Press', icon: '☕', time: '4 min' },
+    { name: 'Pour Over', icon: '💧', time: '3 min' },
+    { name: 'Espresso', icon: '⚡', time: '25 sec' },
+    { name: 'Cold Brew', icon: '❄️', time: '12-24 hrs' },
+    { name: 'AeroPress', icon: '🔄', time: '1.5 min' },
+    { name: 'Moka Pot', icon: '🔥', time: '5 min' },
   ];
 
   return (
@@ -412,7 +443,7 @@ const HomePage = () => {
               <div className="space-y-4 text-[#6B5048] leading-relaxed mb-8">
                 <p>
                   Cape Ember Coffee Co. partners with experienced South African coffee roasters 
-                  to create exceptional coffees inspired by South Africa's most beautiful landscapes.
+                  to create exceptional coffees inspired by South Africa&apos;s most beautiful landscapes.
                 </p>
                 <p>
                   Every blend represents a real South African destination — from the delicate 
@@ -434,48 +465,180 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Social Proof - Google Style Reviews */}
       <section className="section-padding bg-[#2C1A12]" data-testid="testimonials-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
-            className="text-center mb-16"
+            className="text-center mb-12"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
             <span className="text-[#C86333] text-sm tracking-[0.3em] uppercase block mb-4">
-              Customer Love
+              Verified Reviews
             </span>
-            <h2 className="font-heading text-4xl sm:text-5xl text-white">
-              What Our Customers Say
+            <h2 className="font-heading text-4xl sm:text-5xl text-white mb-4">
+              Loved by Coffee Enthusiasts
             </h2>
+            <p className="text-white/60 text-lg max-w-xl mx-auto">
+              Join hundreds of satisfied customers who&apos;ve discovered their perfect cup
+            </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
+          {/* Google-Style Review Summary */}
+          <motion.div 
+            className="bg-white/5 backdrop-blur-sm border border-white/10 p-8 mb-10 max-w-lg mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="flex items-center justify-center gap-6">
+              <div className="text-center">
+                <span className="text-5xl font-heading text-white block">{googleReviewStats.rating}</span>
+                <div className="flex gap-0.5 justify-center my-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={20} weight="fill" className="text-[#FBBC04]" />
+                  ))}
+                </div>
+                <span className="text-white/60 text-sm">{googleReviewStats.totalReviews} reviews</span>
+              </div>
+              <div className="w-px h-24 bg-white/20" />
+              <div className="space-y-1">
+                {googleReviewStats.distribution.map((d) => (
+                  <div key={d.stars} className="flex items-center gap-2 text-xs">
+                    <span className="text-white/60 w-3">{d.stars}</span>
+                    <div className="w-24 h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-[#FBBC04] rounded-full" 
+                        style={{ width: `${d.percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-white/40 w-8">{d.percentage}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Review Carousel */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.slice(0, 3).map((testimonial, index) => (
               <motion.div 
                 key={index}
-                className="bg-white/5 backdrop-blur-sm border border-white/10 p-8"
+                className="bg-white/5 backdrop-blur-sm border border-white/10 p-6"
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
+                transition={{ delay: index * 0.1 }}
               >
-                <div className="flex gap-1 mb-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#D05C23] flex items-center justify-center text-white font-medium">
+                    {testimonial.name.charAt(0)}
+                  </div>
+                  <div>
+                    <span className="block text-white font-medium text-sm">{testimonial.name}</span>
+                    <span className="text-white/50 text-xs">{testimonial.location}</span>
+                  </div>
+                  {testimonial.verified && (
+                    <span className="ml-auto flex items-center gap-1 text-[#2F855A] text-xs">
+                      <ShieldCheck size={14} weight="fill" />
+                      Verified
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-0.5 mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} size={18} weight="fill" className="text-[#C86333]" />
+                    <Star key={i} size={14} weight="fill" className="text-[#FBBC04]" />
                   ))}
                 </div>
-                <p className="text-white/90 italic mb-6 leading-relaxed">
-                  "{testimonial.text}"
+                <p className="text-white/80 text-sm leading-relaxed">
+                  &ldquo;{testimonial.text}&rdquo;
                 </p>
-                <div>
-                  <span className="block text-white font-medium">{testimonial.name}</span>
-                  <span className="text-white/60 text-sm">{testimonial.location}</span>
-                </div>
               </motion.div>
             ))}
           </div>
+
+          <motion.div 
+            className="text-center mt-8"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+          >
+            <Link 
+              to="/reviews" 
+              className="inline-flex items-center gap-2 text-[#C86333] font-medium hover:text-white transition-colors"
+            >
+              Read All Reviews
+              <ArrowRight size={16} />
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* As Featured In */}
+      <section className="py-16 bg-[#FDFBF7] border-y border-[#E6DCD1]" data-testid="featured-in-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-sm text-[#6B5048] tracking-[0.2em] uppercase mb-8">
+            As Featured In
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-12 opacity-50">
+            {['Woolworths TASTE', 'House & Leisure', 'Food24', 'Good Housekeeping SA', 'Eat Out'].map((pub, i) => (
+              <span key={i} className="font-heading text-xl text-[#2C1A12] tracking-wide">{pub}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Brewing Methods Section */}
+      <section className="section-padding" data-testid="brewing-methods-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <span className="overline block mb-4">How to Brew</span>
+            <h2 className="font-heading text-4xl sm:text-5xl text-[#2C1A12] mb-4">
+              Your Perfect Cup Awaits
+            </h2>
+            <p className="text-[#6B5048] max-w-xl mx-auto">
+              Our coffees are crafted to shine with any brewing method. Here are our favorites.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {brewingMethods.map((method, index) => (
+              <motion.div
+                key={method.name}
+                className="text-center p-6 bg-[#F4EFE6] hover:bg-[#E6DCD1] transition-colors"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <span className="text-3xl mb-3 block">{method.icon}</span>
+                <span className="font-medium text-[#2C1A12] text-sm block">{method.name}</span>
+                <span className="text-xs text-[#6B5048]">{method.time}</span>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div 
+            className="text-center mt-8"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <Link 
+              to="/brew-guide" 
+              className="inline-flex items-center gap-2 text-[#D05C23] font-medium hover:gap-4 transition-all link-underline"
+            >
+              View Full Brew Guide
+              <ArrowRight size={18} />
+            </Link>
+          </motion.div>
         </div>
       </section>
 
@@ -516,20 +679,30 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Trust Badges */}
+      {/* Enhanced Trust Badges */}
       <section className="py-12 border-t border-[#E6DCD1]" data-testid="trust-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { label: 'Secure Checkout', icon: '🔒' },
-              { label: 'Small-Batch Quality', icon: '☕' },
-              { label: 'Proudly South African', icon: '🇿🇦' },
-              { label: 'Nationwide Delivery', icon: '🚚' },
+              { label: 'Secure Checkout', icon: ShieldCheck, desc: 'SSL Encrypted' },
+              { label: 'Small-Batch Quality', icon: Medal, desc: 'Artisan Crafted' },
+              { label: 'Proudly South African', icon: Fire, desc: 'Local Excellence' },
+              { label: 'Nationwide Delivery', icon: Truck, desc: 'Free Over R399' },
             ].map((badge, index) => (
-              <div key={index} className="flex flex-col items-center gap-2">
-                <span className="text-2xl">{badge.icon}</span>
-                <span className="text-[#6B5048] text-sm font-medium">{badge.label}</span>
-              </div>
+              <motion.div 
+                key={index} 
+                className="flex flex-col items-center gap-2"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <div className="w-12 h-12 rounded-full bg-[#F4EFE6] flex items-center justify-center">
+                  <badge.icon size={24} weight="light" className="text-[#D05C23]" />
+                </div>
+                <span className="text-[#2C1A12] text-sm font-medium">{badge.label}</span>
+                <span className="text-[#6B5048] text-xs">{badge.desc}</span>
+              </motion.div>
             ))}
           </div>
         </div>

@@ -1,0 +1,27 @@
+{
+  "summary": "Frontend-only CRO verification on preview URL. All 12 requested CRO features verified working: Google-style 4.9 rating + 127 reviews + distribution bars, 3 verified review cards w/ avatars+location+badges, As Featured In (TASTE/House & Leisure/Food24), 6 Brewing Methods icons w/ brew times, Trust Badges (SVG icons, no emojis), Purchase Option (One-Time vs Subscribe & Save 15%), Best Value badge, strike-through original price, frequency dropdown (Weekly/Every 2 Weeks/Monthly), Sticky Add-to-Cart (appears on scroll past main CTA, hides at top, shows thumbnail+name+variant+qty+CTA), About page hero shows new product-lineup image, HomePage story carousel first slide is the user-uploaded landscape image. 31/31 assertions passed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "[LOW – HTML validity / React hydration warning] On /product/fynbos-roast the Subscribe option is rendered as a <button> that contains nested <button> elements (the frequency dropdown trigger + weekly/fortnightly/monthly options). React logs: 'In HTML, <button> cannot be a descendant of <button>. This will cause a hydration error.' Functionally everything still works (verified the dropdown opens and selects), but the outer Subscribe card should be a <div> with role='radio' (or onClick on a non-button element) so that the inner controls remain valid focusable buttons. File: /app/frontend/src/pages/ProductDetailPage.js lines 407-475."
+  ],
+  "critical_code_review_comments": [
+    "ProductDetailPage.js: Nested <button> inside <button> for Subscribe option (lines 407 outer, 439 + 453 inner) — produces React hydration warning and is invalid a11y. Convert outer Subscribe card to a div with role='radio'+onClick (or keep buttons but lift the dropdown UI out of the outer button).",
+    "ProductDetailPage.js sticky-cart qty +/- buttons (lines 797-810) directly call setQuantity but are NOT wired into the same selectedVariant validation flow as the main qty controls. Minor — also, the inner div has both `hidden sm:flex` and `flex items-center` classes mixing 'hidden' with explicit 'flex' which is fine on Tailwind but worth reviewing.",
+    "HomePage testimonials: only 3 review cards rendered (testimonials.slice(0,3)) but data array has 4 items — consider showing a 'View all reviews' link to surface the 4th, since the Google block advertises 127 reviews.",
+    "Trust badges section uses Phosphor icons correctly (verified SVG-only, no emoji glyphs)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only request)", "frontend": "100% (31/31 assertions across Homepage, PDP, About)"},
+  "test_credentials": "Not required for these flows (public pages). Admin available at admin@capeember.co.za / EmberAdmin2024! but not exercised.",
+  "seed_data_creation": "None — no products added to cart in this run (PDP sticky CTA was only verified for visibility, no add-to-cart click).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All CRO/visual additions from this iteration are live on https://axis-creator.preview.emergentagent.com and verified. Selectors that work: [data-testid='testimonials-section'], [data-testid='featured-in-section'], [data-testid='brewing-methods-section'], [data-testid='trust-section'], [data-testid='story-section'], and on PDP: [data-testid='sticky-cart'] (only mounted after scroll). Subscribe/frequency UI has no data-testid yet — using text-based selectors works ('Subscribe & Save 15%', 'Delivery Frequency', 'Weekly', 'Every 2 Weeks', 'Monthly'). Outstanding: nested-button hydration warning on PDP Subscribe card (see action_items).",
+  "rca of the issue": "N/A — no bugs reproduced. Only one non-blocking React hydration warning was surfaced (nested <button> on PDP Subscribe option); root cause is the outer Subscribe selector rendered as <button> while embedding the frequency dropdown trigger and options which are also <button>s. Mitigation: convert outer wrapper to a non-button (div/label with role='radio') and keep inner controls as buttons."
+}

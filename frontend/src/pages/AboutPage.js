@@ -52,8 +52,8 @@ const AboutPage = () => {
             </div>
             <div className="aspect-square overflow-hidden">
               <img
-                src="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg"
-                alt="Cape Ember Coffee Fynbos Roast"
+                src="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/iu170te7_8FCEC634-E08A-49A5-B9F5-A1FADCEE6008.png"
+                alt="Cape Ember Coffee - South African Landscape"
                 className="w-full h-full object-cover"
               />
             </div>

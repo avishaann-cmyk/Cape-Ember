@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ShoppingBag, Minus, Plus, Heart, Share, Coffee, Timer, Thermometer, Drop, Star, Check } from '@phosphor-icons/react';
+import { ArrowLeft, ShoppingBag, Minus, Plus, Heart, Share, Coffee, Timer, Thermometer, Drop, Star, Check, Repeat, CaretDown, Lightning, Package, Truck } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
@@ -96,6 +96,15 @@ const ProductDetailPage = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
   const [zoomActive, setZoomActive] = useState(false);
+  
+  // Subscription state
+  const [purchaseType, setPurchaseType] = useState('once'); // 'once' or 'subscribe'
+  const [subscriptionFrequency, setSubscriptionFrequency] = useState('monthly');
+  const [showFrequencyDropdown, setShowFrequencyDropdown] = useState(false);
+  
+  // Sticky cart state
+  const [showStickyCart, setShowStickyCart] = useState(false);
+  const productInfoRef = useRef(null);
 
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
@@ -139,6 +148,20 @@ const ProductDetailPage = () => {
       document.title = 'Cape Ember Coffee Co. | Premium South African Coffee';
     };
   }, [productId]);
+
+  // Sticky cart scroll listener
+  useEffect(() => {
+    const handleScroll = () => {
+      if (productInfoRef.current) {
+        const rect = productInfoRef.current.getBoundingClientRect();
+        // Show sticky cart when the add to cart button is out of view
+        setShowStickyCart(rect.bottom < 0);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -303,7 +326,7 @@ const ProductDetailPage = () => {
           </div>
 
           {/* Product Info */}
-          <div>
+          <div ref={productInfoRef}>
             {/* Header */}
             <div className="mb-6">
               <span className="overline block mb-2">{product.origin || 'Single Origin'}</span>
@@ -354,17 +377,119 @@ const ProductDetailPage = () => {
               </div>
             )}
 
-            {/* Price */}
-            <div className="flex items-baseline gap-4 mb-6">
-              <span className="font-heading text-4xl text-[#2C1A12]">
-                R {currentPrice.toFixed(2)}
-              </span>
-              {product.is_bundle && (
+            {/* Purchase Type: One-Time vs Subscribe */}
+            {!product.is_bundle && (
+              <div className="mb-6">
+                <span className="block text-sm font-medium text-[#2C1A12] mb-3">Purchase Option</span>
+                <div className="space-y-3">
+                  {/* One-Time Purchase */}
+                  <button
+                    onClick={() => setPurchaseType('once')}
+                    className={`w-full p-4 border text-left transition-all flex items-center gap-4 ${
+                      purchaseType === 'once'
+                        ? 'border-[#D05C23] bg-[#D05C23]/5'
+                        : 'border-[#E6DCD1] hover:border-[#D05C23]/50'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      purchaseType === 'once' ? 'border-[#D05C23]' : 'border-[#E6DCD1]'
+                    }`}>
+                      {purchaseType === 'once' && <div className="w-2.5 h-2.5 rounded-full bg-[#D05C23]" />}
+                    </div>
+                    <div className="flex-1">
+                      <span className="block text-sm font-medium text-[#2C1A12]">One-Time Purchase</span>
+                      <span className="block text-sm text-[#6B5048]">R {currentPrice.toFixed(2)}</span>
+                    </div>
+                    <Package size={20} className="text-[#6B5048]" />
+                  </button>
+
+                  {/* Subscribe & Save */}
+                  <button
+                    onClick={() => setPurchaseType('subscribe')}
+                    className={`w-full p-4 border text-left transition-all ${
+                      purchaseType === 'subscribe'
+                        ? 'border-[#D05C23] bg-[#D05C23]/5'
+                        : 'border-[#E6DCD1] hover:border-[#D05C23]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        purchaseType === 'subscribe' ? 'border-[#D05C23]' : 'border-[#E6DCD1]'
+                      }`}>
+                        {purchaseType === 'subscribe' && <div className="w-2.5 h-2.5 rounded-full bg-[#D05C23]" />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-[#2C1A12]">Subscribe & Save 15%</span>
+                          <span className="text-[10px] font-medium px-2 py-0.5 bg-[#2F855A] text-white uppercase tracking-wider">Best Value</span>
+                        </div>
+                        <span className="block text-sm text-[#6B5048]">
+                          R {(currentPrice * 0.85).toFixed(2)} 
+                          <span className="line-through text-[#A9998C] ml-2">R {currentPrice.toFixed(2)}</span>
+                        </span>
+                      </div>
+                      <Repeat size={20} className="text-[#D05C23]" />
+                    </div>
+                    
+                    {/* Frequency selector (shown when subscribe is selected) */}
+                    {purchaseType === 'subscribe' && (
+                      <div className="mt-4 pt-4 border-t border-[#E6DCD1]">
+                        <span className="text-xs text-[#6B5048] block mb-2">Delivery Frequency</span>
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowFrequencyDropdown(!showFrequencyDropdown);
+                            }}
+                            className="w-full p-2 border border-[#E6DCD1] bg-white flex items-center justify-between text-sm"
+                          >
+                            <span className="text-[#2C1A12] capitalize">{subscriptionFrequency === 'fortnightly' ? 'Every 2 Weeks' : subscriptionFrequency}</span>
+                            <CaretDown size={16} className={`text-[#6B5048] transition-transform ${showFrequencyDropdown ? 'rotate-180' : ''}`} />
+                          </button>
+                          
+                          {showFrequencyDropdown && (
+                            <div className="absolute top-full left-0 right-0 bg-white border border-[#E6DCD1] shadow-lg z-10">
+                              {['weekly', 'fortnightly', 'monthly'].map((freq) => (
+                                <button
+                                  key={freq}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSubscriptionFrequency(freq);
+                                    setShowFrequencyDropdown(false);
+                                  }}
+                                  className={`w-full p-2 text-left text-sm hover:bg-[#F4EFE6] ${
+                                    subscriptionFrequency === freq ? 'bg-[#F4EFE6] text-[#D05C23]' : 'text-[#2C1A12]'
+                                  }`}
+                                >
+                                  {freq === 'fortnightly' ? 'Every 2 Weeks' : freq.charAt(0).toUpperCase() + freq.slice(1)}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-3 flex items-center gap-2 text-xs text-[#2F855A]">
+                          <Check size={14} />
+                          <span>Cancel or pause anytime • Complimentary delivery</span>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Price Display (for bundles) */}
+            {product.is_bundle && (
+              <div className="flex items-baseline gap-4 mb-6">
+                <span className="font-heading text-4xl text-[#2C1A12]">
+                  R {currentPrice.toFixed(2)}
+                </span>
                 <span className="text-[#6B5048] line-through">
                   R {(currentPrice * 1.2).toFixed(2)}
                 </span>
-              )}
-            </div>
+                <span className="text-[10px] font-medium px-2 py-0.5 bg-[#D05C23] text-white uppercase tracking-wider">Save 20%</span>
+              </div>
+            )}
 
             {/* Stock Status */}
             <div className="flex items-center gap-2 mb-6">
@@ -418,6 +543,11 @@ const ProductDetailPage = () => {
                   'Added to Cart!'
                 ) : !inStock ? (
                   'Out of Stock'
+                ) : purchaseType === 'subscribe' ? (
+                  <>
+                    <Repeat size={20} weight="light" />
+                    Subscribe — R {((currentPrice * 0.85) * quantity).toFixed(2)}/delivery
+                  </>
                 ) : (
                   <>
                     <ShoppingBag size={20} weight="light" />
@@ -442,15 +572,15 @@ const ProductDetailPage = () => {
             {/* Trust Badges */}
             <div className="grid grid-cols-3 gap-4 py-6 border-t border-[#E6DCD1]">
               <div className="text-center">
-                <span className="text-lg mb-1 block">🚚</span>
+                <Truck size={20} weight="light" className="mx-auto text-[#D05C23] mb-1" />
                 <span className="text-xs text-[#6B5048]">Free delivery over R399</span>
               </div>
               <div className="text-center">
-                <span className="text-lg mb-1 block">☕</span>
-                <span className="text-xs text-[#6B5048]">Roasted within 48hrs</span>
+                <Lightning size={20} weight="light" className="mx-auto text-[#D05C23] mb-1" />
+                <span className="text-xs text-[#6B5048]">Small-batch freshness</span>
               </div>
               <div className="text-center">
-                <span className="text-lg mb-1 block">↩️</span>
+                <Package size={20} weight="light" className="mx-auto text-[#D05C23] mb-1" />
                 <span className="text-xs text-[#6B5048]">30-day returns</span>
               </div>
             </div>
@@ -460,7 +590,7 @@ const ProductDetailPage = () => {
         {/* Bundle Contents */}
         {product.is_bundle && bundleProducts.length > 0 && (
           <div className="mt-16">
-            <h2 className="font-heading text-2xl text-[#2C1A12] mb-6">What's Included</h2>
+            <h2 className="font-heading text-2xl text-[#2C1A12] mb-6">What&apos;s Included</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {bundleProducts.map(p => (
                 <Link 
@@ -633,6 +763,82 @@ const ProductDetailPage = () => {
         onClose={() => setAuthModalOpen(false)} 
         initialMode="register"
       />
+
+      {/* Sticky Add to Cart Bar */}
+      <AnimatePresence>
+        {showStickyCart && product && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E6DCD1] shadow-lg z-50"
+            data-testid="sticky-cart"
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+              <div className="flex items-center justify-between gap-4">
+                {/* Product Info */}
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <img 
+                    src={images[0]?.url} 
+                    alt={product.name} 
+                    className="w-12 h-12 object-cover hidden sm:block"
+                  />
+                  <div className="min-w-0">
+                    <h3 className="font-heading text-lg text-[#2C1A12] truncate">{product.name}</h3>
+                    <p className="text-sm text-[#6B5048]">
+                      {selectedVariant?.name || '250g'} • R {currentPrice.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quantity */}
+                <div className="flex items-center border border-[#E6DCD1] hidden sm:flex">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="p-2 hover:bg-[#F4EFE6] transition-colors"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <span className="w-8 text-center text-sm font-medium">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(Math.min(stockQuantity, quantity + 1))}
+                    className="p-2 hover:bg-[#F4EFE6] transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+
+                {/* Add to Cart Button */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={adding || !inStock}
+                  className={`px-6 py-3 flex items-center justify-center gap-2 font-medium tracking-wide text-sm transition-all ${
+                    added 
+                      ? 'bg-[#2F855A] text-white' 
+                      : !inStock
+                      ? 'bg-[#E6DCD1] text-[#6B5048] cursor-not-allowed'
+                      : 'btn-primary'
+                  }`}
+                >
+                  {adding ? (
+                    <span className="spinner border-white border-t-transparent w-4 h-4" />
+                  ) : added ? (
+                    'Added!'
+                  ) : !inStock ? (
+                    'Sold Out'
+                  ) : (
+                    <>
+                      <ShoppingBag size={18} weight="light" />
+                      <span className="hidden sm:inline">Add to Cart —</span> R {(currentPrice * quantity).toFixed(2)}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
