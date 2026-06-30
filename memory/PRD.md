@@ -140,6 +140,19 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 - [ ] Newsletter integration
 - [ ] Abandoned cart recovery
 
+### ✅ Phase 6: CRO Improvements (June 30, 2026)
+- [x] Google-style review summary with 4.9 rating, 127 reviews, star distribution
+- [x] Verified review cards with avatars, location badges, and star ratings
+- [x] "As Featured In" section with publication names (Woolworths TASTE, House & Leisure, Food24, etc.)
+- [x] Brewing Methods icons section with 6 methods and brew times
+- [x] Enhanced Trust Badges with Phosphor icons (no emojis)
+- [x] Product page subscription options (Buy Once vs Subscribe & Save 15%)
+- [x] Subscribe option with "Best Value" badge and 15% discount display
+- [x] Frequency dropdown (Weekly, Every 2 Weeks, Monthly)
+- [x] Sticky Add to Cart bar appears when scrolling past main CTA
+- [x] Updated About page image (product lineup with all 4 coffee bags)
+- [x] Homepage story carousel updated with new user-uploaded image as first slide
+
 ---
 
 ## Copywriting Audit (COMPLETE - June 27, 2026)
@@ -211,7 +224,11 @@ Transform Cape Ember Coffee Co. into a premium, production-ready eCommerce exper
 ---
 
 ## Next Tasks
-1. **P2**: Add RESEND_API_KEY to backend/.env to enable email sending
-2. **P3**: Stitch Payments Integration (pending valid credentials)
-3. **P3**: Customer order history page enhancement
-4. **Refactor**: Split server.py into modular routers (auth, cart, checkout, products, admin)
+1. **P1**: Coffee Journal / Education Hub pages (brew guides, roast levels)
+2. **P1**: Exit-intent popup and Newsletter popup
+3. **P2**: Free Shipping progress bar in cart
+4. **P2**: Expanded navigation (Shop dropdown, Coffee Journal, Wholesale)
+5. **P2**: Expanded footer with more links
+6. **P3**: Performance optimizations (code splitting, lazy loading)
+7. **P3**: Advanced features (Loyalty program, Wishlist, Compare products)
+8. **Refactor**: Split server.py into modular routers (auth, cart, checkout, products, admin)

@@ -379,13 +379,17 @@ const ProductDetailPage = () => {
 
             {/* Purchase Type: One-Time vs Subscribe */}
             {!product.is_bundle && (
-              <div className="mb-6">
+              <div className="mb-6" role="radiogroup" aria-label="Purchase Option">
                 <span className="block text-sm font-medium text-[#2C1A12] mb-3">Purchase Option</span>
                 <div className="space-y-3">
                   {/* One-Time Purchase */}
-                  <button
+                  <div
+                    role="radio"
+                    aria-checked={purchaseType === 'once'}
+                    tabIndex={0}
                     onClick={() => setPurchaseType('once')}
-                    className={`w-full p-4 border text-left transition-all flex items-center gap-4 ${
+                    onKeyDown={(e) => e.key === 'Enter' && setPurchaseType('once')}
+                    className={`w-full p-4 border text-left transition-all flex items-center gap-4 cursor-pointer ${
                       purchaseType === 'once'
                         ? 'border-[#D05C23] bg-[#D05C23]/5'
                         : 'border-[#E6DCD1] hover:border-[#D05C23]/50'
@@ -401,12 +405,16 @@ const ProductDetailPage = () => {
                       <span className="block text-sm text-[#6B5048]">R {currentPrice.toFixed(2)}</span>
                     </div>
                     <Package size={20} className="text-[#6B5048]" />
-                  </button>
+                  </div>
 
                   {/* Subscribe & Save */}
-                  <button
+                  <div
+                    role="radio"
+                    aria-checked={purchaseType === 'subscribe'}
+                    tabIndex={0}
                     onClick={() => setPurchaseType('subscribe')}
-                    className={`w-full p-4 border text-left transition-all ${
+                    onKeyDown={(e) => e.key === 'Enter' && setPurchaseType('subscribe')}
+                    className={`w-full p-4 border text-left transition-all cursor-pointer ${
                       purchaseType === 'subscribe'
                         ? 'border-[#D05C23] bg-[#D05C23]/5'
                         : 'border-[#E6DCD1] hover:border-[#D05C23]/50'
@@ -473,7 +481,7 @@ const ProductDetailPage = () => {
                         </div>
                       </div>
                     )}
-                  </button>
+                  </div>
                 </div>
               </div>
             )}
