@@ -24,6 +24,7 @@ import AdminOrderDetail from './pages/admin/AdminOrderDetail';
 import AdminCustomers from './pages/admin/AdminCustomers';
 import AdminInventory from './pages/admin/AdminInventory';
 import AdminCoupons from './pages/admin/AdminCoupons';
+import ExitIntentPopup from './components/ExitIntentPopup';
 import './index.css';
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
               </Routes>
             </main>
             <Footer />
+            <ExitIntentPopup />
           </div>
         </BrowserRouter>
       </CartProvider>

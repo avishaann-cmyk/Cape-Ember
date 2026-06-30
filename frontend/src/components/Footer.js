@@ -4,7 +4,7 @@ import { WhatsappLogo, Envelope, MapPin, Phone, InstagramLogo, FacebookLogo } fr
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const FLAME_LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/58knaa6d_Flame.jpeg";
+const FLAME_LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/un142drw_999F77B4-7671-405E-AF3F-CE82CEBF30BF.png";
 
 const Footer = () => {
   const [email, setEmail] = useState('');
@@ -39,12 +39,8 @@ const Footer = () => {
                 src={FLAME_LOGO_URL} 
                 alt="Cape Ember" 
                 className="h-10 w-10 object-contain"
-                style={{ filter: 'brightness(1.2)' }}
               />
-              <div className="flex flex-col">
-                <span className="font-heading text-xl text-white">Cape Ember</span>
-                <span className="text-[10px] text-white/60 tracking-[0.15em] uppercase">Coffee Co.</span>
-              </div>
+              <span className="font-heading text-xl text-white">Cape Ember Coffee Co.</span>
             </Link>
             <p className="text-white/60 text-sm leading-relaxed mb-6">
               Premium coffee inspired by South African landscapes. 
