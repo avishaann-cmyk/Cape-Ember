@@ -352,6 +352,7 @@ class CheckoutCreate(BaseModel):
     coupon_code: Optional[str] = None
     is_guest: bool = False
     guest_email: Optional[EmailStr] = None
+    is_subscription: bool = False
 
 # Simple order creation for legacy frontend
 class SimpleOrderCreate(BaseModel):
@@ -473,32 +474,15 @@ def generate_sku(category: str, name: str) -> str:
     random_part = secrets.token_hex(2).upper()
     return f"{cat_code}-{name_code}-{random_part}"
 
-def calculate_shipping(subtotal: float, method: ShippingMethod, province: str) -> float:
-    """Calculate shipping cost based on method and location"""
+def calculate_shipping(subtotal: float, method: ShippingMethod, province: str, is_subscription: bool = False) -> float:
+    """Calculate shipping cost - flat rate of R75 (free for subscriptions or over R399)"""
     if method == ShippingMethod.COLLECTION:
         return 0.0
+    if is_subscription:
+        return 0.0  # Free shipping for subscriptions
     if subtotal >= 399:  # Free shipping threshold
         return 0.0
-    
-    rates = {
-        ShippingMethod.STANDARD: {
-            "Western Cape": 50.0,
-            "Gauteng": 65.0,
-            "default": 75.0
-        },
-        ShippingMethod.EXPRESS: {
-            "Western Cape": 95.0,
-            "Gauteng": 120.0,
-            "default": 150.0
-        },
-        ShippingMethod.LOCAL_DELIVERY: {
-            "Western Cape": 35.0,
-            "default": 0.0  # Not available outside WC
-        }
-    }
-    
-    method_rates = rates.get(method, rates[ShippingMethod.STANDARD])
-    return method_rates.get(province, method_rates.get("default", 75.0))
+    return 75.0  # Flat rate for all shipping methods
 
 def calculate_vat(amount: float) -> float:
     """Calculate VAT (included in price for SA)"""
@@ -2223,7 +2207,8 @@ async def create_checkout(
     shipping_cost = calculate_shipping(
         subtotal - discount,
         checkout.shipping.method,
-        checkout.shipping.address.province
+        checkout.shipping.address.province,
+        checkout.is_subscription
     )
     
     vat = calculate_vat(subtotal - discount + shipping_cost)
@@ -2371,9 +2356,15 @@ async def create_simple_order(
         })
     
     # Calculate totals
-    shipping_cost = 0.0 if subtotal >= 399 else 65.0
-    vat = (subtotal + shipping_cost) * VAT_RATE
-    total = subtotal + shipping_cost + vat
+    # In South Africa, product prices are inclusive of VAT
+    # Shipping is a flat rate that accounts for VAT
+    # Free shipping for subscriptions or orders over R399
+    if order_data.is_subscription:
+        shipping_cost = 0.0
+    else:
+        shipping_cost = 0.0 if subtotal >= 399 else 75.0
+    vat = calculate_vat(subtotal)  # Extract VAT for record-keeping (not added to total)
+    total = subtotal + shipping_cost
     
     # Generate order number and ID
     order_id = str(uuid.uuid4())
