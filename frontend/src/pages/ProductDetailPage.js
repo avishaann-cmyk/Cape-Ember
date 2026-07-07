@@ -192,11 +192,6 @@ const ProductDetailPage = () => {
   }, []);
 
   const handleAddToCart = async () => {
-    if (!isAuthenticated) {
-      setAuthModalOpen(true);
-      return;
-    }
-
     setAdding(true);
     try {
       await addToCart(product.id, quantity, selectedVariant?.id);

@@ -28,11 +28,6 @@ const ProductCard = ({ product, onAuthRequired }) => {
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (!isAuthenticated) {
-      onAuthRequired?.();
-      return;
-    }
 
     setAdding(true);
     try {
