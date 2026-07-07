@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const TermsPage = () => {
+  useEffect(() => {
+    document.title = 'Terms & Conditions | Cape Ember Coffee Co.';
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.content = 'Terms and conditions for shopping at Cape Ember Coffee Co. Learn about our policies and guidelines.';
+    }
+  }, []);
+
   return (
     <div className="min-h-screen pt-20 md:pt-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

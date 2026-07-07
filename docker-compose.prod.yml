@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: cape-ember-mongodb-prod
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: cape_ember_coffee
+    volumes:
+      - mongodb_data_prod:/data/db
+      - mongodb_config_prod:/data/configdb
+      - ./backup:/backup
+    networks:
+      - cape-ember-prod
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test -u admin -p ${MONGO_PASSWORD} --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:27017:27017"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    image: cape-ember-backend:latest
+    container_name: cape-ember-backend-prod
+    restart: always
+    env_file:
+      - .env.production
+    environment:
+      MONGO_URL: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD}@mongodb:27017/cape_ember_coffee?authSource=admin
+      FRONTEND_URL: https://capeembercoffee.co.za
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - cape-ember-prod
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    image: cape-ember-frontend:latest
+    container_name: cape-ember-frontend-prod
+    restart: always
+    environment:
+      REACT_APP_BACKEND_URL: https://capeembercoffee.co.za
+      CI: "false"
+    depends_on:
+      - backend
+    networks:
+      - cape-ember-prod
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx:
+    image: nginx:alpine
+    container_name: cape-ember-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl/certs:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - cape-ember-prod
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  mongodb_data_prod:
+    driver: local
+  mongodb_config_prod:
+    driver: local
+  nginx_cache:
+    driver: local
+
+networks:
+  cape-ember-prod:
+    driver: bridge

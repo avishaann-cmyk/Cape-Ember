@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: cape-ember-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: cape_ember_coffee
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - cape-ember-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cape-ember-backend
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URL: mongodb://mongodb:27017
+      DB_NAME: cape_ember_coffee
+      CORS_ORIGINS: "http://localhost:3000,http://localhost,https://capeembercoffee.co.za,https://www.capeembercoffee.co.za"
+      JWT_SECRET: ${JWT_SECRET:-cape-ember-secret-2024-south-africa}
+      PAYFAST_MERCHANT_ID: ${PAYFAST_MERCHANT_ID}
+      PAYFAST_MERCHANT_KEY: ${PAYFAST_MERCHANT_KEY}
+      PAYFAST_PASSPHRASE: ${PAYFAST_PASSPHRASE}
+      PAYFAST_SANDBOX: ${PAYFAST_SANDBOX:-false}
+      STITCH_CLIENT_ID: ${STITCH_CLIENT_ID}
+      STITCH_CLIENT_SECRET: ${STITCH_CLIENT_SECRET}
+      STITCH_WEBHOOK_URL: ${STITCH_WEBHOOK_URL}
+      STITCH_SANDBOX: ${STITCH_SANDBOX:-false}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      SENDER_EMAIL: ${SENDER_EMAIL:-Cape Ember Coffee <noreply@capeembercoffee.co.za>}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - cape-ember-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cape-ember-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-http://localhost:8000}
+      CI: "false"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+    networks:
+      - cape-ember-network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: cape-ember-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - cape-ember-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+  mongodb_config:
+
+networks:
+  cape-ember-network:
+    driver: bridge

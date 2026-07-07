@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 
 const ReturnsPage = () => {
+  useEffect(() => {
+    document.title = 'Returns & Refunds Policy | Cape Ember Coffee Co.';
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.content = 'Learn about our returns, refunds, and shipping policies at Cape Ember Coffee Co.';
+    }
+  }, []);
+
   return (
     <div className="min-h-screen pt-20 md:pt-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

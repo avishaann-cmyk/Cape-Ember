@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const PrivacyPage = () => {
+  useEffect(() => {
+    document.title = 'Privacy Policy | Cape Ember Coffee Co.';
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.content = 'Learn how Cape Ember Coffee Co. protects your privacy and personal information.';
+    }
+  }, []);
+
   return (
     <div className="min-h-screen pt-20 md:pt-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

@@ -21,7 +21,7 @@ const AboutPage = () => {
             From Landscape to Cup
           </h1>
           <p className="text-white/80 text-lg max-w-2xl mx-auto">
-            Cape Ember Coffee Co. partners with experienced South African coffee roasters to create exceptional coffees inspired by South Africa's landscapes.
+            We collaborate with experienced South African roasting partners to create exceptional coffees inspired by South Africa's most beautiful landscapes.
           </p>
         </div>
       </section>
@@ -41,9 +41,9 @@ const AboutPage = () => {
                 coffee experiences.
               </p>
               <p className="text-[#5C534C] text-lg mb-4">
-                Cape Ember Coffee Co. partners with experienced South African coffee roasters 
-                who share our commitment to quality. Together, we create small-batch coffees 
-                that capture the character of each landscape they represent.
+                Cape Ember Coffee Co. works with carefully selected South African roasting partners 
+                who share our unwavering commitment to quality. Together, we create small-batch coffees 
+                that authentically capture the character and spirit of each landscape they represent.
               </p>
               <p className="text-[#5C534C] text-lg">
                 Our mission is simple: to bring the beauty of South Africa into your 

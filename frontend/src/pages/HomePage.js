@@ -62,6 +62,13 @@ const HomePage = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // SEO metadata
+  useEffect(() => {
+    document.title = 'Cape Ember Coffee Co. | Premium South African Coffee';
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.content = 'Premium small-batch coffee inspired by South African landscapes. Experience handcrafted blends from partners we trust. Nationwide delivery.';
+  }, []);
+
   // Auto-rotate carousel every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {

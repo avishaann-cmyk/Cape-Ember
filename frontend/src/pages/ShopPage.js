@@ -51,8 +51,12 @@ const ShopPage = () => {
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'featured');
 
   useEffect(() => {
-    // Set page title
+    // Set page title and meta description
     document.title = 'Shop Premium South African Coffee | Cape Ember Coffee Co.';
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.content = 'Discover our collection of premium single-origin and blended coffees inspired by South African landscapes. Direct trade, ethically sourced.';
+    }
     
     const fetchProducts = async () => {
       try {

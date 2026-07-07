@@ -60,6 +60,7 @@ const ProductCard = ({ product, onAuthRequired }) => {
             alt={product.name}
             className="w-full h-full object-cover"
             loading="lazy"
+            decoding="async"
           />
           
           {/* Overlay Actions */}

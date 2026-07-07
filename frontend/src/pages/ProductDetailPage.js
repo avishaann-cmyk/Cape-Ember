@@ -134,6 +134,34 @@ const ProductDetailPage = () => {
           metaDesc.setAttribute('content', productRes.data.short_description || productRes.data.description?.substring(0, 160));
         }
         
+        // Add product JSON-LD schema for rich snippets
+        const productSchema = {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": productRes.data.name,
+          "description": productRes.data.description || productRes.data.short_description,
+          "image": productRes.data.images?.[0]?.url,
+          "brand": {
+            "@type": "Brand",
+            "name": "Cape Ember Coffee Co."
+          },
+          "offers": {
+            "@type": "Offer",
+            "price": productRes.data.price,
+            "priceCurrency": "ZAR",
+            "availability": productRes.data.stock_status === "in_stock" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+          }
+        };
+        
+        let schemaScript = document.querySelector('script[type="application/ld+json"][data-product-schema]');
+        if (!schemaScript) {
+          schemaScript = document.createElement('script');
+          schemaScript.type = 'application/ld+json';
+          schemaScript.setAttribute('data-product-schema', 'true');
+          document.head.appendChild(schemaScript);
+        }
+        schemaScript.textContent = JSON.stringify(productSchema);
+        
       } catch (error) {
         console.error('Failed to fetch product:', error);
       } finally {

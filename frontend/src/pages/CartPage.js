@@ -12,7 +12,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Shipping threshold for free shipping
 const FREE_SHIPPING_THRESHOLD = 399;
-const SHIPPING_COST = 65;
+const SHIPPING_COST = 75;
 
 const CartPage = () => {
   const { cart, updateQuantity, removeFromCart, loading, refreshCart, applyCoupon, removeCoupon } = useCart();
@@ -25,6 +25,13 @@ const CartPage = () => {
 
   // Fetch upsell products
   useEffect(() => {
+    // Set page SEO
+    document.title = 'Shopping Cart | Cape Ember Coffee Co.';
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.content = 'Review your shopping cart and proceed to checkout.';
+    }
+
     const fetchUpsells = async () => {
       try {
         const response = await axios.get(`${API}/products`);

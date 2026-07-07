@@ -11,7 +11,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Constants
 const FREE_SHIPPING_THRESHOLD = 399;
-const SHIPPING_COST = 65;
+const SHIPPING_COST = 75;
 const VAT_RATE = 0.15;
 
 // Province options
@@ -173,7 +173,7 @@ const CheckoutPage = () => {
   // Calculate totals
   const subtotal = cart.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
   const discount = cart.discount || 0;
-  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const shippingCost = cart.shipping !== undefined ? cart.shipping : (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST);
   const total = subtotal - discount + shippingCost;
   const vatAmount = total * VAT_RATE / (1 + VAT_RATE);
 

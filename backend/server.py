@@ -1824,8 +1824,8 @@ async def get_or_create_cart(user_id: Optional[str], session_id: Optional[str]) 
     raise HTTPException(status_code=400, detail="Authentication or session required")
 
 
-def calculate_cart_totals(items: list, coupon: Optional[dict] = None) -> dict:
-    """Calculate cart totals with optional coupon"""
+def calculate_cart_totals(items: list, coupon: Optional[dict] = None, shipping_cost: float = 0.0) -> dict:
+    """Calculate cart totals with optional coupon and shipping."""
     subtotal = sum(item["price"] * item["quantity"] for item in items)
     discount = 0.0
     
@@ -1836,12 +1836,14 @@ def calculate_cart_totals(items: list, coupon: Optional[dict] = None) -> dict:
             discount = min(coupon["discount_value"], subtotal)
     
     discounted_subtotal = subtotal - discount
-    vat = calculate_vat(discounted_subtotal)
+    total = discounted_subtotal + shipping_cost
+    vat = calculate_vat(total)
     
     return {
         "subtotal": round(subtotal, 2),
         "discount": round(discount, 2),
         "vat": round(vat, 2),
+        "total": round(total, 2),
         "item_count": sum(item["quantity"] for item in items)
     }
 
@@ -1876,11 +1878,8 @@ async def get_cart(
                 stock_available=variant["stock_quantity"]
             ))
     
-    totals = calculate_cart_totals([{"price": i.price, "quantity": i.quantity} for i in items], coupon)
-    
-    # Calculate shipping (default to standard, Western Cape)
-    shipping = 0.0 if totals["subtotal"] >= 399 else 65.0
-    total = totals["subtotal"] - totals["discount"] + shipping
+    shipping = 0.0 if totals["subtotal"] >= 399 else 75.0
+    totals = calculate_cart_totals([{"price": i.price, "quantity": i.quantity} for i in items], coupon, shipping)
     
     return CartResponse(
         items=items,
@@ -1888,7 +1887,7 @@ async def get_cart(
         discount=totals["discount"],
         shipping=shipping,
         vat=totals["vat"],
-        total=round(total, 2),
+        total=totals["total"],
         coupon_code=cart.get("coupon_code"),
         item_count=totals["item_count"]
     )
@@ -2363,8 +2362,8 @@ async def create_simple_order(
         shipping_cost = 0.0
     else:
         shipping_cost = 0.0 if subtotal >= 399 else 75.0
-    vat = calculate_vat(subtotal)  # Extract VAT for record-keeping (not added to total)
     total = subtotal + shipping_cost
+    vat = calculate_vat(total)  # Extract VAT for record-keeping (included in total)
     
     # Generate order number and ID
     order_id = str(uuid.uuid4())

@@ -52,12 +52,15 @@ const Navbar = () => {
   const navLinks = [
     { to: '/shop', label: 'Shop' },
     { to: '/about', label: 'Our Story' },
-    { to: '/subscriptions', label: 'Subscribe' },
     { to: '/brew-guide', label: 'Brew Guide' },
+    { to: '/contact', label: 'Contact' },
   ];
 
   return (
     <>
+      <a href="#main-content" className="skip-to-main sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:bg-[#D05C23] focus:text-white focus:px-4 focus:py-2">
+        Skip to main content
+      </a>
       <nav 
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled 

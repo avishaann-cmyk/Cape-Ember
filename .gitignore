@@ -1,4 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+/app/backend/requirements.txt# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # IDE and editors
 .idea/
@@ -48,6 +48,33 @@ dump.rdb
 
 # Python
 __pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# Deployment & Environment
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+ssl/
+ssl/certs/*
+backups/
+logs/
+nginx_cache/
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# IDE and system
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
 *pyc*
 venv/
 .venv/
@@ -83,3 +110,4 @@ android-sdk/frontend/node_modules/.cache/default-development/14.pack_
 frontend/node_modules/.cache/default-development/13.pack
 frontend/node_modules/.cache/default-development/0.pack
 frontend/node_modules/.cache/default-development/14.pack_
+frontend/node_modules/.cache/default-development/20.pack

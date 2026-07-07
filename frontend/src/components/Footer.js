@@ -108,6 +108,7 @@ const Footer = () => {
               {[
                 { to: '/brew-guide', label: 'Brew Guide' },
                 { to: '/about', label: 'Our Story' },
+                { to: '/contact', label: 'Contact Us' },
                 { to: '/account', label: 'My Account' },
                 { to: '/returns', label: 'Shipping & Returns' },
                 { to: '/privacy', label: 'Privacy Policy' },

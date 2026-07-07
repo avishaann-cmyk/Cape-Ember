@@ -12,6 +12,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import { PaymentSuccessPage, PaymentCancelPage } from './pages/PaymentPages';
 import AccountPage from './pages/AccountPage';
 import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
 import SubscriptionsPage from './pages/SubscriptionsPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -34,7 +35,7 @@ function App() {
         <BrowserRouter>
           <div className="min-h-screen bg-[#FAFAF7] flex flex-col">
             <Navbar />
-            <main className="flex-1">
+            <main className="flex-1" id="main-content">
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/shop" element={<ShopPage />} />
@@ -45,6 +46,7 @@ function App() {
                 <Route path="/payment/cancel" element={<PaymentCancelPage />} />
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
                 <Route path="/subscriptions" element={<SubscriptionsPage />} />
                 <Route path="/brew-guide" element={<BrewGuidePage />} />
                 <Route path="/terms" element={<TermsPage />} />
