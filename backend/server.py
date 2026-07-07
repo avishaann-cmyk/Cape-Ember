@@ -1878,7 +1878,8 @@ async def get_cart(
                 stock_available=variant["stock_quantity"]
             ))
     
-    shipping = 0.0 if totals["subtotal"] >= 399 else 75.0
+    raw_subtotal = sum(i.price * i.quantity for i in items)
+    shipping = 0.0 if raw_subtotal >= 399 else 75.0
     totals = calculate_cart_totals([{"price": i.price, "quantity": i.quantity} for i in items], coupon, shipping)
     
     return CartResponse(
