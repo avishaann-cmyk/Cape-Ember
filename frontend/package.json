@@ -59,7 +59,8 @@
   },
   "scripts": {
     "start": "craco start",
-    "build": "craco build && react-snap",
+    "build": "craco build",
+    "build:prerender": "craco build && react-snap",
     "test": "craco test"
   },
   "reactSnap": {
