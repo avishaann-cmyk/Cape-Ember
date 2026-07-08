@@ -41,6 +41,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
   letter-spacing: 0.01em;
+  overflow-x: hidden;
 }
 
 /* Premium Typography */
@@ -143,11 +144,11 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Premium Section Padding */
 .section-padding {
-  padding: 6rem 0;
+  padding: 7.5rem 0;
 }
 
 .section-padding-lg {
-  padding: 8rem 0;
+  padding: 10rem 0;
 }
 
 /* Premium Button Styles */
@@ -156,7 +157,7 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   padding: 1rem 2.5rem;
-  background-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent-copper) 100%);
   color: white;
   font-family: 'Outfit', sans-serif;
   font-weight: 500;
@@ -182,9 +183,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px -10px rgba(208, 92, 35, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 36px -16px rgba(208, 92, 35, 0.58);
 }
 
 .btn-primary:hover::before {
@@ -273,12 +273,14 @@ h1, h2, h3, h4, h5, h6 {
 .premium-card {
   background: white;
   border: 1px solid var(--border);
+  border-radius: 1rem;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 
 .premium-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px -20px rgba(44, 26, 18, 0.15);
+  transform: translateY(-6px);
+  box-shadow: 0 24px 50px -24px rgba(44, 26, 18, 0.18);
 }
 
 /* Product Image Container */
@@ -289,11 +291,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .product-image-container img {
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.75s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .product-image-container:hover img {
-  transform: scale(1.05);
+  transform: scale(1.07);
 }
 
 /* Premium Divider */
@@ -349,11 +351,11 @@ h1, h2, h3, h4, h5, h6 {
 /* Responsive Typography */
 @media (max-width: 768px) {
   .section-padding {
-    padding: 4rem 0;
+    padding: 4.5rem 0;
   }
   
   .section-padding-lg {
-    padding: 5rem 0;
+    padding: 6rem 0;
   }
 }
 

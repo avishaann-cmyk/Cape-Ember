@@ -60,12 +60,17 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "build:prerender": "craco build && react-snap",
+    "build:spa": "craco build",
+    "build:prerender": "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium craco build && react-snap",
     "test": "craco test"
   },
   "reactSnap": {
+    "puppeteerExecutablePath": "/usr/bin/chromium",
     "puppeteerArgs": [
-      "--no-sandbox"
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu"
     ],
     "inlineCss": true,
     "crawl": true,

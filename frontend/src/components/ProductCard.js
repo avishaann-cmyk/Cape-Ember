@@ -1,12 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
-import { useAuth } from '../contexts/AuthContext';
 import { ShoppingBag, Heart } from '@phosphor-icons/react';
 
 const ProductCard = ({ product, onAuthRequired }) => {
   const { addToCart } = useCart();
-  const { isAuthenticated } = useAuth();
   const [adding, setAdding] = React.useState(false);
   const [added, setAdded] = React.useState(false);
 
@@ -44,10 +42,10 @@ const ProductCard = ({ product, onAuthRequired }) => {
   return (
     <Link 
       to={`/products/${product.slug || product.id}`} 
-      className="group block"
+      className="group block h-full"
       data-testid={`product-card-${product.id}`}
     >
-      <div className="premium-card overflow-hidden bg-white">
+      <div className="premium-card overflow-hidden bg-white h-full flex flex-col">
         {/* Image Container */}
         <div className="product-image-container aspect-[4/5] bg-[#F4EFE6] relative">
           <img
@@ -90,7 +88,7 @@ const ProductCard = ({ product, onAuthRequired }) => {
         </div>
 
         {/* Content */}
-        <div className="p-5">
+        <div className="p-5 flex-1 flex flex-col">
           {/* Roast Level Tag */}
           <span className="text-[10px] text-[#C86333] tracking-[0.2em] uppercase mb-2 block">
             {roastLevel} Roast
@@ -100,11 +98,11 @@ const ProductCard = ({ product, onAuthRequired }) => {
             {product.name}
           </h3>
           
-          <p className="text-[#6B5048] text-sm mb-4 line-clamp-1">
+          <p className="text-[#6B5048] text-sm mb-4 line-clamp-2 min-h-[2.5rem]">
             {product.flavor_notes || product.short_description || 'Rich, aromatic coffee'}
           </p>
           
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-5">
             <span className="font-heading text-xl text-[#2C1A12]">
               R {product.price?.toFixed(2)}
             </span>
@@ -115,7 +113,7 @@ const ProductCard = ({ product, onAuthRequired }) => {
           <button
             onClick={handleAddToCart}
             disabled={adding}
-            className={`w-full py-3 flex items-center justify-center gap-2 font-medium tracking-wide text-xs uppercase transition-all duration-300 ${
+            className={`w-full py-3 mt-auto flex items-center justify-center gap-2 font-medium tracking-wide text-xs uppercase transition-all duration-300 ${
               added 
                 ? 'bg-[#2F855A] text-white' 
                 : 'bg-[#2C1A12] text-white hover:bg-[#D05C23]'

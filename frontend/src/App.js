@@ -34,7 +34,6 @@ import AdminContent from './pages/admin/AdminContent';
 import AdminSubscribers from './pages/admin/AdminSubscribers';
 import AdminSubscriptions from './pages/admin/AdminSubscriptions';
 import AdminRoute from './components/admin/AdminRoute';
-import ExitIntentPopup from './components/ExitIntentPopup';
 import './index.css';
 
 function App() {
@@ -80,7 +79,6 @@ function App() {
               </Routes>
             </main>
             <Footer />
-            {process.env.REACT_APP_ENABLE_EXIT_POPUP === 'true' && <ExitIntentPopup />}
           </div>
         </BrowserRouter>
       </CartProvider>

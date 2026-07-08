@@ -774,6 +774,35 @@ const ProductDetailPage = () => {
           </AnimatePresence>
         </div>
 
+        <div className="mt-14 grid lg:grid-cols-2 gap-6">
+          <div className="bg-white border border-[#E6DCD1] p-6">
+            <h3 className="font-heading text-2xl text-[#2C1A12] mb-4">Shipping Information</h3>
+            <ul className="space-y-2 text-[#6B5048]">
+              <li>Orders above R399 qualify for free shipping.</li>
+              <li>Standard delivery is typically 3-5 business days nationwide.</li>
+              <li>Freshly packed and dispatched quickly from Cape Town.</li>
+              <li>Tracking details are shared once your order is on the way.</li>
+            </ul>
+          </div>
+          <div className="bg-white border border-[#E6DCD1] p-6">
+            <h3 className="font-heading text-2xl text-[#2C1A12] mb-4">FAQ</h3>
+            <div className="space-y-4 text-[#6B5048]">
+              <div>
+                <p className="text-[#2C1A12] font-medium">Which grind should I choose?</p>
+                <p>Choose whole bean for maximum freshness, or select the grind that matches your brew method.</p>
+              </div>
+              <div>
+                <p className="text-[#2C1A12] font-medium">How fresh is the coffee?</p>
+                <p>We keep roast cycles small and dispatch quickly for a fresh, aromatic cup.</p>
+              </div>
+              <div>
+                <p className="text-[#2C1A12] font-medium">Can I pause or cancel subscriptions?</p>
+                <p>Yes. Subscription plans are flexible and can be paused or cancelled from your account.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <div className="mt-16 pt-16 border-t border-[#E6DCD1]">

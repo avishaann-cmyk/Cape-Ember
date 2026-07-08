@@ -287,7 +287,7 @@ const CartPage = () => {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-[#E6DCD1] p-6 sticky top-28">
+            <div className="bg-white border border-[#E6DCD1] p-7 sticky top-28 shadow-[0_14px_40px_-34px_rgba(44,26,18,0.45)]">
               <h2 className="font-heading text-2xl text-[#2C1A12] mb-6">Order Summary</h2>
               
               <div className="space-y-3 mb-6">
@@ -316,14 +316,14 @@ const CartPage = () => {
                 </div>
                 
                 <div className="border-t border-[#E6DCD1] pt-4 flex justify-between font-heading text-2xl text-[#2C1A12]">
-                  <span>Total</span>
+                  <span>Final Total</span>
                   <span>R {total.toFixed(2)}</span>
                 </div>
               </div>
 
               <Link 
                 to="/checkout" 
-                className="btn-primary w-full flex items-center justify-center gap-2"
+                className="btn-primary w-full flex items-center justify-center gap-2 py-4"
                 data-testid="proceed-to-checkout"
               >
                 Proceed to Checkout

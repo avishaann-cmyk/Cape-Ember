@@ -606,7 +606,7 @@ const CheckoutPage = () => {
 
           {/* Order Summary Sidebar */}
           <div className="lg:col-span-2">
-            <div className="bg-white border border-[#E6DCD1] p-6 sticky top-28">
+            <div className="bg-white border border-[#E6DCD1] p-7 sticky top-28 shadow-[0_14px_40px_-34px_rgba(44,26,18,0.45)]">
               <h2 className="font-heading text-xl text-[#2C1A12] mb-6 flex items-center gap-2">
                 <Receipt size={20} className="text-[#D05C23]" />
                 Order Summary
@@ -662,7 +662,7 @@ const CheckoutPage = () => {
               </div>
               
               <div className="flex justify-between py-4 border-t border-[#E6DCD1]">
-                <span className="font-heading text-xl text-[#2C1A12]">Total</span>
+                <span className="font-heading text-xl text-[#2C1A12]">Final Total</span>
                 <span className="font-heading text-xl text-[#2C1A12]">R {total.toFixed(2)}</span>
               </div>
 

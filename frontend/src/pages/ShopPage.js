@@ -182,12 +182,6 @@ const ShopPage = () => {
     activeFilters.strength || 
     activeFilters.priceRange;
 
-  // Get unique origins from products
-  const origins = useMemo(() => {
-    const originSet = new Set(products.map(p => p.origin).filter(Boolean));
-    return Array.from(originSet);
-  }, [products]);
-
   return (
     <div className="min-h-screen bg-[#FDFBF7] pt-20 md:pt-24">
       {/* Hero Header */}
@@ -446,7 +440,7 @@ const ShopPage = () => {
                   viewMode === 'grid' 
                     ? 'sm:grid-cols-2 lg:grid-cols-3' 
                     : 'grid-cols-1'
-                }`}
+                } items-stretch`}
                 layout
               >
                 <AnimatePresence>

@@ -178,14 +178,14 @@ const AboutPage = () => {
             Begin Your South African Coffee Journey
           </h2>
           <p className="text-white/70 text-lg mb-8">
-            Start with our Landscape Range Bundle and discover all four signature blends — each inspired by a distinct South African landscape.
+            Explore the four signature coffees in a calm, premium collection inspired by South African landscapes.
           </p>
           <Link 
-            to="/products/landscape-bundle" 
+            to="/shop" 
             className="btn-primary inline-block"
             data-testid="about-cta"
           >
-            Discover the Landscape Bundle
+            Shop the Collection
           </Link>
         </div>
       </section>
