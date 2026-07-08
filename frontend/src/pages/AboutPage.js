@@ -1,8 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Coffee, Leaf, MapPin, Heart } from 'lucide-react';
+import { setPageSEO } from '../lib/seo';
 
 const AboutPage = () => {
+  React.useEffect(() => {
+    setPageSEO({
+      title: 'About Cape Ember Coffee Co. | South African Landscapes in Every Cup',
+      description: 'Discover the Cape Ember story: premium coffee inspired by South African landscapes and crafted with trusted roasting partners.',
+      canonicalPath: '/about',
+      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/11b4v0fr_IMG_6815.jpeg'
+    });
+  }, []);
+
   return (
     <div className="min-h-screen pt-20 md:pt-24">
       {/* Hero */}
@@ -171,7 +181,7 @@ const AboutPage = () => {
             Start with our Landscape Range Bundle and discover all four signature blends — each inspired by a distinct South African landscape.
           </p>
           <Link 
-            to="/product/landscape-bundle" 
+            to="/products/landscape-bundle" 
             className="btn-primary inline-block"
             data-testid="about-cta"
           >

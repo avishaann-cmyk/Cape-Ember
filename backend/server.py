@@ -2,7 +2,7 @@
 Cape Ember Coffee Co. - Production E-commerce Backend
 Enterprise-grade e-commerce platform with PayFast & Stitch Payments
 """
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, BackgroundTasks, Header
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, Body, BackgroundTasks, Header
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from dotenv import load_dotenv
@@ -59,6 +59,7 @@ STITCH_SANDBOX = os.environ.get('STITCH_SANDBOX', 'true').lower() == 'true'
 # Email (placeholder for SendGrid/Resend)
 EMAIL_API_KEY = os.environ.get('EMAIL_API_KEY', '')
 EMAIL_FROM = os.environ.get('EMAIL_FROM', 'orders@capeembercoffee.co.za')
+ADMIN_NOTIFICATION_EMAIL = os.environ.get('ADMIN_NOTIFICATION_EMAIL', 'hello@capeembercoffee.co.za')
 
 # URLs
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://axis-creator.preview.emergentagent.com')
@@ -409,6 +410,44 @@ class ReviewResponse(BaseModel):
     created_at: str
 
 
+class NewsletterSubscribeRequest(BaseModel):
+    email: EmailStr
+    first_name: Optional[str] = None
+    marketing_consent: bool = False
+    source: Optional[str] = "unknown"
+
+
+class NewsletterUpdateRequest(BaseModel):
+    is_active: Optional[bool] = None
+
+
+class ContactSubmissionRequest(BaseModel):
+    name: str
+    email: EmailStr
+    subject: str
+    message: str
+
+
+class SubscriptionRequestCreate(BaseModel):
+    plan_name: str
+    blend: Optional[str] = None
+    grind: str
+    frequency: str
+    quantity: int = 1
+    customer_name: Optional[str] = None
+    customer_email: Optional[EmailStr] = None
+    delivery_address: dict
+    preferred_delivery_day: Optional[str] = None
+    delivery_notes: Optional[str] = None
+
+
+class SubscriptionStatusUpdate(BaseModel):
+    status: str
+    next_delivery_date: Optional[str] = None
+    payment_status: Optional[str] = None
+    admin_notes: Optional[str] = None
+
+
 # Wishlist Models
 class WishlistItemAdd(BaseModel):
     product_id: str
@@ -722,7 +761,7 @@ async def send_order_confirmation(order: dict, email: str):
         import asyncio
         
         resend_key = os.environ.get("RESEND_API_KEY")
-        sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+        sender_email = os.environ.get("SENDER_EMAIL", "Cape Ember Coffee Co. <hello@capeembercoffee.co.za>")
         
         if not resend_key:
             logger.warning("RESEND_API_KEY not configured - skipping email")
@@ -897,7 +936,7 @@ async def send_shipping_notification(order: dict, tracking_number: str):
         import asyncio
         
         resend_key = os.environ.get("RESEND_API_KEY")
-        sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+        sender_email = os.environ.get("SENDER_EMAIL", "Cape Ember Coffee Co. <hello@capeembercoffee.co.za>")
         
         if not resend_key:
             logger.warning("RESEND_API_KEY not configured - skipping email")
@@ -1233,6 +1272,122 @@ async def send_welcome_email(email: str, first_name: str):
         logger.error(f"Failed to send welcome email: {str(e)}")
 
 
+def resend_is_configured() -> bool:
+        return bool(os.environ.get("RESEND_API_KEY"))
+
+
+async def send_resend_email(to_email: str, subject: str, html: str):
+        """Send an email via Resend with safe fallback logging when not configured."""
+        try:
+                import resend
+                import asyncio
+
+                resend_key = os.environ.get("RESEND_API_KEY")
+                sender_email = os.environ.get("SENDER_EMAIL", "Cape Ember Coffee Co. <hello@capeembercoffee.co.za>")
+
+                if not resend_key:
+                        logger.warning(f"RESEND_API_KEY not configured - email not sent: subject={subject}, to={to_email}")
+                        return False
+
+                resend.api_key = resend_key
+                params = {
+                        "from": sender_email,
+                        "to": [to_email],
+                        "subject": subject,
+                        "html": html
+                }
+                await asyncio.to_thread(resend.Emails.send, params)
+                return True
+        except Exception as e:
+                logger.error(f"Failed to send email via Resend: {str(e)}")
+                return False
+
+
+async def send_newsletter_welcome_email(email: str, first_name: Optional[str] = None):
+        display_name = first_name or "there"
+        html = f"""
+        <div style=\"font-family: Arial, sans-serif; color: #2C1A12;\">
+            <h2 style=\"color: #B56A35;\">Welcome to Cape Ember Coffee Co.</h2>
+            <p>Hi {display_name},</p>
+            <p>Thank you for joining Cape Ember. We'll share new roasts, special offers, and stories inspired by South African landscapes.</p>
+            <p style=\"margin-top: 20px;\">South African landscapes in every cup.</p>
+        </div>
+        """
+        await send_resend_email(email, "Welcome to Cape Ember Coffee Co.", html)
+
+
+async def send_contact_emails(name: str, email: str, subject: str, message: str):
+        owner_html = f"""
+        <div style=\"font-family: Arial, sans-serif; color: #15110E;\">
+            <h2>New Contact Submission</h2>
+            <p><strong>Name:</strong> {name}</p>
+            <p><strong>Email:</strong> {email}</p>
+            <p><strong>Subject:</strong> {subject}</p>
+            <p><strong>Message:</strong><br>{message}</p>
+        </div>
+        """
+        await send_resend_email(ADMIN_NOTIFICATION_EMAIL, f"Contact Form: {subject}", owner_html)
+
+        customer_html = f"""
+        <div style=\"font-family: Arial, sans-serif; color: #15110E;\">
+            <h2 style=\"color: #B56A35;\">Thanks for contacting Cape Ember</h2>
+            <p>Hi {name},</p>
+            <p>We've received your message and will get back to you shortly.</p>
+            <p><strong>Your subject:</strong> {subject}</p>
+            <p style=\"margin-top: 20px;\">If urgent, please WhatsApp us on +27 81 026 1618.</p>
+        </div>
+        """
+        await send_resend_email(email, "We received your message | Cape Ember Coffee Co.", customer_html)
+
+
+async def send_subscription_request_emails(subscription: dict):
+        email = subscription.get("customer_email")
+        plan = subscription.get("plan_name", "Ember Circle")
+        blend = subscription.get("blend", "Not specified")
+
+        owner_html = f"""
+        <div style=\"font-family: Arial, sans-serif; color: #15110E;\">
+            <h2>New Ember Circle Subscription Request</h2>
+            <p><strong>Customer:</strong> {subscription.get('customer_name', '')}</p>
+            <p><strong>Email:</strong> {email}</p>
+            <p><strong>Plan:</strong> {plan}</p>
+            <p><strong>Blend:</strong> {blend}</p>
+            <p><strong>Grind:</strong> {subscription.get('grind', '')}</p>
+            <p><strong>Frequency:</strong> {subscription.get('frequency', '')}</p>
+            <p><strong>Quantity:</strong> {subscription.get('quantity', 1)}</p>
+            <p><strong>Status:</strong> {subscription.get('status', '')}</p>
+        </div>
+        """
+        await send_resend_email(ADMIN_NOTIFICATION_EMAIL, "New Subscription Request | Cape Ember", owner_html)
+
+        if email:
+                customer_html = f"""
+                <div style=\"font-family: Arial, sans-serif; color: #15110E;\">
+                    <h2 style=\"color: #B56A35;\">Your Ember Circle request is in</h2>
+                    <p>Thanks for your subscription request for <strong>{plan}</strong>.</p>
+                    <p>We'll review and confirm your delivery schedule shortly.</p>
+                    <p>Selected blend: <strong>{blend}</strong></p>
+                </div>
+                """
+                await send_resend_email(email, "Subscription request received | Cape Ember", customer_html)
+
+
+async def send_admin_order_notification(order: dict):
+        order_number = order.get("order_number", "N/A")
+        total = order.get("total", 0)
+        customer_email = order.get("guest_email") or "Registered user"
+        html = f"""
+        <div style=\"font-family: Arial, sans-serif; color: #15110E;\">
+            <h2>New Paid Order Received</h2>
+            <p><strong>Order:</strong> #{order_number}</p>
+            <p><strong>Total:</strong> R {total:.2f}</p>
+            <p><strong>Customer:</strong> {customer_email}</p>
+            <p>Please log into admin to fulfil this order.</p>
+        </div>
+        """
+        await send_resend_email(ADMIN_NOTIFICATION_EMAIL, f"New Paid Order #{order_number}", html)
+
+
 # ============ PRODUCT DATA ============
 
 # Extended product catalog
@@ -1245,7 +1400,7 @@ PRODUCTS = [
         "short_description": "Smooth medium roast with nutty sweetness",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.MEDIUM,
-        "origin": "South African Roasted",
+        "origin": "Brazil Medium Roast",
         "strength": 3,
         "flavor_notes": "Smooth · Nutty · Balanced",
         "tasting_notes": [
@@ -1263,8 +1418,7 @@ PRODUCTS = [
         ],
         "variants": [
             {"id": "fynbos-250g-whole", "name": "250g Whole Bean", "sku": "CB-FYNB-250W", "price": 149.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 50},
-            {"id": "fynbos-250g-ground", "name": "250g Ground", "sku": "CB-FYNB-250G", "price": 149.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 30},
-            {"id": "fynbos-1kg-whole", "name": "1kg Whole Bean", "sku": "CB-FYNB-1KW", "price": 499.00, "grind": GrindType.WHOLE_BEAN, "weight": "1kg", "stock_quantity": 20}
+            {"id": "fynbos-250g-ground", "name": "250g Ground", "sku": "CB-FYNB-250G", "price": 149.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 30}
         ],
         "tags": ["bestseller", "everyday", "brazilian"],
         "is_active": True,
@@ -1279,7 +1433,7 @@ PRODUCTS = [
         "short_description": "Smooth house blend with cocoa notes",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.MEDIUM,
-        "origin": "South African Roasted",
+        "origin": "Medium Roast",
         "strength": 3,
         "flavor_notes": "Smooth · Cocoa · Gentle Citrus",
         "tasting_notes": [
@@ -1297,8 +1451,7 @@ PRODUCTS = [
         ],
         "variants": [
             {"id": "garden-250g-whole", "name": "250g Whole Bean", "sku": "CB-GARD-250W", "price": 149.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 45},
-            {"id": "garden-250g-ground", "name": "250g Ground", "sku": "CB-GARD-250G", "price": 149.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 35},
-            {"id": "garden-1kg-whole", "name": "1kg Whole Bean", "sku": "CB-GARD-1KW", "price": 499.00, "grind": GrindType.WHOLE_BEAN, "weight": "1kg", "stock_quantity": 15}
+            {"id": "garden-250g-ground", "name": "250g Ground", "sku": "CB-GARD-250G", "price": 149.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 35}
         ],
         "tags": ["house-blend", "everyday", "cold-brew-friendly"],
         "is_active": True,
@@ -1313,7 +1466,7 @@ PRODUCTS = [
         "short_description": "Bold dark roast with chocolate intensity",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.DARK,
-        "origin": "South African Roasted",
+        "origin": "Colombia Dark Roast",
         "strength": 5,
         "flavor_notes": "Rich · Dark Chocolate · Intense",
         "tasting_notes": [
@@ -1330,9 +1483,8 @@ PRODUCTS = [
             {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg", "alt": "Ember Reserve", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
-            {"id": "ember-250g-whole", "name": "250g Whole Bean", "sku": "CB-EMBR-250W", "price": 159.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 40},
-            {"id": "ember-250g-ground", "name": "250g Ground", "sku": "CB-EMBR-250G", "price": 159.00, "grind": GrindType.FINE, "weight": "250g", "stock_quantity": 25},
-            {"id": "ember-1kg-whole", "name": "1kg Whole Bean", "sku": "CB-EMBR-1KW", "price": 549.00, "grind": GrindType.WHOLE_BEAN, "weight": "1kg", "stock_quantity": 10}
+            {"id": "ember-250g-whole", "name": "250g Whole Bean", "sku": "CB-EMBR-250W", "price": 169.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 40},
+            {"id": "ember-250g-ground", "name": "250g Ground", "sku": "CB-EMBR-250G", "price": 169.00, "grind": GrindType.FINE, "weight": "250g", "stock_quantity": 25}
         ],
         "tags": ["bold", "espresso", "colombian", "premium"],
         "is_active": True,
@@ -1347,7 +1499,7 @@ PRODUCTS = [
         "short_description": "Delicate light roast with fruity florals",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.LIGHT,
-        "origin": "South African Roasted",
+        "origin": "Light Roast",
         "strength": 2,
         "flavor_notes": "Floral · Blueberry · Bright",
         "tasting_notes": [
@@ -1779,14 +1931,18 @@ async def get_categories():
 async def get_product(product_id: str):
     product = PRODUCTS_MAP.get(product_id)
     if not product:
+        product = next((p for p in PRODUCTS if p.get("slug") == product_id), None)
+    if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+
+    canonical_product_id = product["id"]
     
     # Get reviews
-    reviews = await db.reviews.find({"product_id": product_id, "is_approved": True}).to_list(10)
+    reviews = await db.reviews.find({"product_id": canonical_product_id, "is_approved": True}).to_list(10)
     avg_rating = sum(r["rating"] for r in reviews) / len(reviews) if reviews else 0
     
     # Get related products (same category, different product)
-    related = [p for p in PRODUCTS if p["id"] != product_id and p.get("category") == product.get("category")][:4]
+    related = [p for p in PRODUCTS if p["id"] != canonical_product_id and p.get("category") == product.get("category")][:4]
     
     base_variant = product["variants"][0]
     
@@ -2667,6 +2823,7 @@ async def payfast_webhook(request: Request, background_tasks: BackgroundTasks):
         
         if email:
             background_tasks.add_task(send_order_confirmation, order, email)
+        background_tasks.add_task(send_admin_order_notification, order)
     
     elif payment_status == "CANCELLED":
         await db.orders.update_one(
@@ -2739,6 +2896,7 @@ async def stitch_webhook(request: Request, background_tasks: BackgroundTasks):
                 background_tasks.add_task(send_order_confirmation, order, user["email"])
         elif order.get("guest_email"):
             background_tasks.add_task(send_order_confirmation, order, order["guest_email"])
+        background_tasks.add_task(send_admin_order_notification, order)
     
     elif status in ["PaymentCancelled", "PaymentFailed"]:
         await db.orders.update_one(
@@ -2881,19 +3039,50 @@ async def create_review(product_id: str, review: ReviewCreate, user: dict = Depe
 # ============ NEWSLETTER ROUTES ============
 
 @api_router.post("/newsletter/subscribe")
-async def subscribe_newsletter(email: EmailStr):
-    existing = await db.newsletter.find_one({"email": email.lower()})
+async def subscribe_newsletter(
+    background_tasks: BackgroundTasks,
+    payload: Optional[NewsletterSubscribeRequest] = Body(default=None),
+    email: Optional[EmailStr] = Query(default=None),
+    first_name: Optional[str] = Query(default=None),
+    marketing_consent: Optional[bool] = Query(default=None),
+    source: Optional[str] = Query(default=None)
+):
+    # Backward compatible with existing query-param clients.
+    final_email = (payload.email if payload else email)
+    if not final_email:
+        raise HTTPException(status_code=400, detail="Email is required")
+
+    final_first_name = payload.first_name if payload else first_name
+    final_consent = payload.marketing_consent if payload else (marketing_consent if marketing_consent is not None else False)
+    final_source = payload.source if payload else (source or "unknown")
+
+    existing = await db.newsletter.find_one({"email": final_email.lower()})
     if existing:
-        return {"message": "Already subscribed"}
+        await db.newsletter.update_one(
+            {"email": final_email.lower()},
+            {"$set": {
+                "is_active": True,
+                "marketing_consent": final_consent,
+                "source": final_source,
+                "first_name": final_first_name,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        return {"message": "Already subscribed", "email": final_email.lower()}
     
     await db.newsletter.insert_one({
         "_id": str(uuid.uuid4()),
-        "email": email.lower(),
+        "email": final_email.lower(),
+        "first_name": final_first_name,
+        "marketing_consent": final_consent,
+        "source": final_source,
         "subscribed_at": datetime.now(timezone.utc).isoformat(),
         "is_active": True
     })
+
+    background_tasks.add_task(send_newsletter_welcome_email, final_email.lower(), final_first_name)
     
-    return {"message": "Successfully subscribed to newsletter"}
+    return {"message": "Successfully subscribed to newsletter", "email": final_email.lower()}
 
 
 @api_router.post("/newsletter/unsubscribe")
@@ -2905,29 +3094,237 @@ async def unsubscribe_newsletter(email: EmailStr):
     return {"message": "Unsubscribed from newsletter"}
 
 
+@api_router.get("/admin/newsletter")
+async def get_newsletter_subscribers(
+    admin: dict = Depends(get_admin_user),
+    search: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    page: int = 1,
+    limit: int = 50
+):
+    query: Dict[str, Any] = {}
+    if is_active is not None:
+        query["is_active"] = is_active
+    if search:
+        query["$or"] = [
+            {"email": {"$regex": search, "$options": "i"}},
+            {"first_name": {"$regex": search, "$options": "i"}},
+            {"source": {"$regex": search, "$options": "i"}}
+        ]
+
+    skip = max(0, (page - 1) * limit)
+    total = await db.newsletter.count_documents(query)
+    subscribers = await db.newsletter.find(query).sort("subscribed_at", -1).skip(skip).limit(limit).to_list(limit)
+
+    return {
+        "subscribers": [{
+            "id": s.get("_id"),
+            "email": s.get("email"),
+            "first_name": s.get("first_name"),
+            "marketing_consent": s.get("marketing_consent", False),
+            "source": s.get("source", "unknown"),
+            "is_active": s.get("is_active", True),
+            "subscribed_at": s.get("subscribed_at"),
+            "unsubscribed_at": s.get("unsubscribed_at")
+        } for s in subscribers],
+        "page": page,
+        "total": total,
+        "total_pages": (total + limit - 1) // limit
+    }
+
+
+@api_router.get("/admin/newsletter/export")
+async def export_newsletter_csv(admin: dict = Depends(get_admin_user)):
+    subscribers = await db.newsletter.find().sort("subscribed_at", -1).to_list(None)
+    lines = ["id,email,first_name,marketing_consent,source,is_active,subscribed_at,unsubscribed_at"]
+    for s in subscribers:
+        lines.append(
+            f"{s.get('_id','')},{s.get('email','')},{(s.get('first_name') or '').replace(',', ' ')},{s.get('marketing_consent',False)},{s.get('source','')},{s.get('is_active',True)},{s.get('subscribed_at','')},{s.get('unsubscribed_at','')}"
+        )
+    return PlainTextResponse("\n".join(lines), media_type="text/csv")
+
+
+@api_router.put("/admin/newsletter/{subscriber_id}")
+async def update_newsletter_subscriber(
+    subscriber_id: str,
+    update: NewsletterUpdateRequest,
+    admin: dict = Depends(get_admin_user)
+):
+    payload = {k: v for k, v in update.dict().items() if v is not None}
+    if not payload:
+        raise HTTPException(status_code=400, detail="No changes supplied")
+    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.newsletter.update_one({"_id": subscriber_id}, {"$set": payload})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Subscriber not found")
+    return {"message": "Subscriber updated", "id": subscriber_id}
+
+
 # ============ CONTACT ROUTES ============
 
 @api_router.post("/contact")
 async def submit_contact(
-    name: str,
-    email: EmailStr,
-    subject: str,
-    message: str,
+    payload: ContactSubmissionRequest,
     background_tasks: BackgroundTasks
 ):
     await db.contact_submissions.insert_one({
         "_id": str(uuid.uuid4()),
-        "name": name,
-        "email": email,
-        "subject": subject,
-        "message": message,
+        "name": payload.name,
+        "email": payload.email,
+        "subject": payload.subject,
+        "message": payload.message,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "is_read": False
     })
-    
-    # TODO: Send email notification to admin
-    
+
+    background_tasks.add_task(send_contact_emails, payload.name, str(payload.email), payload.subject, payload.message)
     return {"message": "Message sent successfully"}
+
+
+# ============ SUBSCRIPTION ROUTES ============
+
+@api_router.post("/subscriptions/request")
+async def create_subscription_request(
+    request_data: SubscriptionRequestCreate,
+    background_tasks: BackgroundTasks,
+    user: Optional[dict] = Depends(get_current_user_optional)
+):
+    now = datetime.now(timezone.utc)
+    subscription_id = str(uuid.uuid4())
+    customer_email = user.get("email") if user else (str(request_data.customer_email).lower() if request_data.customer_email else None)
+    customer_name = (
+        f"{user.get('first_name','')} {user.get('last_name','')}".strip()
+        if user
+        else (request_data.customer_name or "Guest")
+    )
+
+    if not customer_email:
+        raise HTTPException(status_code=400, detail="Customer email is required for subscription requests")
+
+    doc = {
+        "_id": subscription_id,
+        "user_id": user.get("_id") if user else None,
+        "customer_email": customer_email,
+        "customer_name": customer_name,
+        "plan_name": request_data.plan_name,
+        "blend": request_data.blend,
+        "grind": request_data.grind,
+        "frequency": request_data.frequency,
+        "quantity": request_data.quantity,
+        "delivery_address": request_data.delivery_address,
+        "preferred_delivery_day": request_data.preferred_delivery_day,
+        "delivery_notes": request_data.delivery_notes,
+        "status": "requested",
+        "payment_status": "pending_manual",
+        "next_delivery_date": None,
+        "order_history": [],
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat()
+    }
+    await db.subscriptions.insert_one(doc)
+    background_tasks.add_task(send_subscription_request_emails, doc)
+
+    return {"message": "Subscription request submitted", "id": subscription_id}
+
+
+@api_router.get("/subscriptions")
+async def list_my_subscriptions(user: dict = Depends(get_current_user)):
+    subscriptions = await db.subscriptions.find({"user_id": user["_id"]}).sort("created_at", -1).to_list(None)
+    return [{
+        "id": s.get("_id"),
+        "plan_name": s.get("plan_name"),
+        "blend": s.get("blend"),
+        "grind": s.get("grind"),
+        "frequency": s.get("frequency"),
+        "quantity": s.get("quantity", 1),
+        "status": s.get("status", "requested"),
+        "payment_status": s.get("payment_status", "pending_manual"),
+        "next_delivery_date": s.get("next_delivery_date")
+    } for s in subscriptions]
+
+
+@api_router.put("/subscriptions/{subscription_id}/pause")
+async def pause_subscription(subscription_id: str, user: dict = Depends(get_current_user)):
+    result = await db.subscriptions.update_one(
+        {"_id": subscription_id, "user_id": user["_id"]},
+        {"$set": {"status": "paused", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    return {"message": "Subscription paused"}
+
+
+@api_router.put("/subscriptions/{subscription_id}/resume")
+async def resume_subscription(subscription_id: str, user: dict = Depends(get_current_user)):
+    result = await db.subscriptions.update_one(
+        {"_id": subscription_id, "user_id": user["_id"]},
+        {"$set": {"status": "active", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    return {"message": "Subscription resumed"}
+
+
+@api_router.delete("/subscriptions/{subscription_id}")
+async def cancel_subscription(subscription_id: str, user: dict = Depends(get_current_user)):
+    result = await db.subscriptions.update_one(
+        {"_id": subscription_id, "user_id": user["_id"]},
+        {"$set": {"status": "cancelled", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    return {"message": "Subscription cancelled"}
+
+
+@api_router.get("/admin/subscriptions")
+async def get_admin_subscriptions(
+    admin: dict = Depends(get_admin_user),
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 30
+):
+    query: Dict[str, Any] = {}
+    if status:
+        query["status"] = status
+    skip = max(0, (page - 1) * limit)
+    total = await db.subscriptions.count_documents(query)
+    subscriptions = await db.subscriptions.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    return {
+        "subscriptions": [{
+            "id": s.get("_id"),
+            "customer_name": s.get("customer_name", ""),
+            "customer_email": s.get("customer_email", ""),
+            "plan_name": s.get("plan_name"),
+            "blend": s.get("blend"),
+            "grind": s.get("grind"),
+            "frequency": s.get("frequency"),
+            "quantity": s.get("quantity", 1),
+            "status": s.get("status"),
+            "payment_status": s.get("payment_status"),
+            "next_delivery_date": s.get("next_delivery_date"),
+            "delivery_notes": s.get("delivery_notes"),
+            "created_at": s.get("created_at")
+        } for s in subscriptions],
+        "total": total,
+        "page": page,
+        "total_pages": (total + limit - 1) // limit
+    }
+
+
+@api_router.put("/admin/subscriptions/{subscription_id}")
+async def update_admin_subscription(
+    subscription_id: str,
+    update: SubscriptionStatusUpdate,
+    admin: dict = Depends(get_admin_user)
+):
+    payload = {k: v for k, v in update.dict().items() if v is not None}
+    if not payload:
+        raise HTTPException(status_code=400, detail="No update fields supplied")
+    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.subscriptions.update_one({"_id": subscription_id}, {"$set": payload})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    return {"message": "Subscription updated", "id": subscription_id}
 
 
 # ============ ADMIN DASHBOARD ROUTES ============
@@ -2977,6 +3374,10 @@ async def get_admin_dashboard(admin: dict = Depends(get_admin_user)):
     
     # Total customers
     total_customers = await db.users.count_documents({})
+
+    # Subscriber and subscription stats
+    active_subscriptions = await db.subscriptions.count_documents({"status": {"$in": ["active", "requested"]}})
+    newsletter_signups = await db.newsletter.count_documents({"is_active": True})
     
     # Recent orders
     recent_orders = await db.orders.find().sort("created_at", -1).limit(5).to_list(5)
@@ -3023,7 +3424,9 @@ async def get_admin_dashboard(admin: dict = Depends(get_admin_user)):
             "pending_orders": pending_orders,
             "low_stock_products": low_stock_count,
             "new_customers": new_customers,
-            "total_customers": total_customers
+            "total_customers": total_customers,
+            "active_subscriptions": active_subscriptions,
+            "newsletter_signups": newsletter_signups
         },
         "recent_orders": recent_orders_formatted,
         "top_products": top_products_formatted
@@ -3806,6 +4209,7 @@ async def get_admin_settings(admin: dict = Depends(get_admin_user)):
         }
     }
     settings.pop("_id", None)
+    settings["resend_configured"] = resend_is_configured()
     return settings
 
 
@@ -4058,14 +4462,17 @@ async def sitemap_xml():
         {"loc": f"{base_url}/", "changefreq": "weekly", "priority": "1.0"},
         {"loc": f"{base_url}/shop", "changefreq": "daily", "priority": "0.9"},
         {"loc": f"{base_url}/about", "changefreq": "monthly", "priority": "0.7"},
+        {"loc": f"{base_url}/contact", "changefreq": "monthly", "priority": "0.7"},
         {"loc": f"{base_url}/subscriptions", "changefreq": "weekly", "priority": "0.8"},
+        {"loc": f"{base_url}/cart", "changefreq": "weekly", "priority": "0.5"},
+        {"loc": f"{base_url}/checkout", "changefreq": "weekly", "priority": "0.5"},
         {"loc": f"{base_url}/brew-guide", "changefreq": "monthly", "priority": "0.6"},
     ]
     
     # Add product pages
     for product in PRODUCTS:
         urls.append({
-            "loc": f"{base_url}/product/{product['slug']}",
+            "loc": f"{base_url}/products/{product['slug']}",
             "changefreq": "weekly",
             "priority": "0.8"
         })

@@ -8,7 +8,10 @@ const FLAME_LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creat
 
 const Footer = () => {
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [consent, setConsent] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubscribe = async (e) => {
@@ -16,12 +19,20 @@ const Footer = () => {
     if (!email) return;
     
     setLoading(true);
+    setError('');
     try {
-      await axios.post(`${API}/newsletter/subscribe?email=${encodeURIComponent(email)}`);
+      await axios.post(`${API}/newsletter/subscribe`, {
+        email,
+        first_name: firstName || null,
+        marketing_consent: consent,
+        source: 'footer'
+      });
       setSubscribed(true);
       setEmail('');
+      setFirstName('');
+      setConsent(false);
     } catch (error) {
-      console.error('Newsletter subscription failed:', error);
+      setError(error.response?.data?.detail || 'Something went wrong. Please try again or WhatsApp us.');
     } finally {
       setLoading(false);
     }
@@ -165,6 +176,43 @@ const Footer = () => {
               <WhatsappLogo size={18} weight="fill" />
               Chat with us
             </a>
+
+            <form onSubmit={handleSubscribe} className="mt-6 space-y-2">
+              <p className="text-white text-sm font-medium">Newsletter</p>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First name (optional)"
+                className="w-full px-3 py-2 text-sm bg-white/10 border border-white/20 text-white placeholder:text-white/50"
+              />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email address"
+                className="w-full px-3 py-2 text-sm bg-white/10 border border-white/20 text-white placeholder:text-white/50"
+              />
+              <label className="flex items-start gap-2 text-xs text-white/70">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-0.5"
+                />
+                I consent to receive occasional roast updates and offers.
+              </label>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#B56A35] hover:bg-[#D08345] text-white text-sm py-2 disabled:opacity-60"
+              >
+                {loading ? 'Subscribing...' : 'Join Newsletter'}
+              </button>
+              {subscribed && <p className="text-[#D7B98C] text-xs">Welcome to Cape Ember. You are subscribed.</p>}
+              {error && <p className="text-red-300 text-xs">{error}</p>}
+            </form>
           </div>
         </div>
       </div>

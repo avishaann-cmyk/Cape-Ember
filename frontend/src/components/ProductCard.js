@@ -43,7 +43,7 @@ const ProductCard = ({ product, onAuthRequired }) => {
 
   return (
     <Link 
-      to={`/product/${product.slug || product.id}`} 
+      to={`/products/${product.slug || product.id}`} 
       className="group block"
       data-testid={`product-card-${product.id}`}
     >

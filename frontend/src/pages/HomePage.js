@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
+import { setPageSEO } from '../lib/seo';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -62,12 +63,21 @@ const HomePage = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [testimonials, setTestimonials] = useState([]);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterName, setNewsletterName] = useState('');
+  const [newsletterConsent, setNewsletterConsent] = useState(false);
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
+  const [newsletterMessage, setNewsletterMessage] = useState('');
+  const [newsletterError, setNewsletterError] = useState('');
 
   // SEO metadata
   useEffect(() => {
-    document.title = 'Cape Ember Coffee Co. | Premium South African Coffee';
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.content = 'Premium small-batch coffee inspired by South African landscapes. Experience handcrafted blends from partners we trust. Nationwide delivery.';
+    setPageSEO({
+      title: 'Cape Ember Coffee Co. | Premium South African Coffee',
+      description: 'Premium coffee inspired by the places we love. Crafted with trusted roasting partners and delivered nationwide in South Africa.',
+      canonicalPath: '/',
+      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
+    });
   }, []);
 
   // Auto-rotate carousel every 5 seconds
@@ -114,7 +124,10 @@ const HomePage = () => {
     fetchReviews();
   }, []);
 
-  const individualProducts = products.filter(p => !p.is_bundle);
+  const coreIds = ['fynbos-roast', 'garden-route', 'karoo-horizon', 'ember-reserve'];
+  const individualProducts = products
+    .filter((p) => coreIds.includes(p.id))
+    .sort((a, b) => coreIds.indexOf(a.id) - coreIds.indexOf(b.id));
   const bundle = products.find(p => p.is_bundle);
 
   const getImageUrl = (product) => {
@@ -163,6 +176,29 @@ const HomePage = () => {
     { name: 'AeroPress', icon: '🔄', time: '1.5 min' },
     { name: 'Moka Pot', icon: '🔥', time: '5 min' },
   ];
+
+  const handleNewsletterSubmit = async (e) => {
+    e.preventDefault();
+    setNewsletterError('');
+    setNewsletterMessage('');
+    setNewsletterLoading(true);
+    try {
+      await axios.post(`${API}/newsletter/subscribe`, {
+        email: newsletterEmail,
+        first_name: newsletterName || null,
+        marketing_consent: newsletterConsent,
+        source: 'homepage'
+      });
+      setNewsletterMessage('Thank you, your message has been sent. You are subscribed to Cape Ember updates.');
+      setNewsletterEmail('');
+      setNewsletterName('');
+      setNewsletterConsent(false);
+    } catch (error) {
+      setNewsletterError(error.response?.data?.detail || 'Something went wrong. Please try again or WhatsApp us.');
+    } finally {
+      setNewsletterLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
@@ -362,7 +398,7 @@ const HomePage = () => {
                   <span className="luxury-badge">Save 20%</span>
                 </div>
                 <Link 
-                  to={`/product/${bundle.slug || bundle.id}`}
+                  to={`/products/${bundle.slug || bundle.id}`}
                   className="btn-primary inline-flex items-center gap-3"
                   data-testid="bundle-cta"
                 >
@@ -447,12 +483,6 @@ const HomePage = () => {
                     ))}
                   </div>
                   
-                  {/* Caption */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-12">
-                    <span className="text-white text-sm tracking-wide uppercase">
-                      {LANDSCAPE_IMAGES[currentImageIndex].caption}
-                    </span>
-                  </div>
                 </div>
                 
                 {/* Floating Badge */}
@@ -660,20 +690,42 @@ const HomePage = () => {
             <p className="text-[#6B5048] mb-8">
               Be the first to hear about new blends, limited releases, and refined coffee updates from Cape Ember Coffee Co.
             </p>
-            <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <form onSubmit={handleNewsletterSubmit} className="space-y-3 max-w-md mx-auto text-left">
+              <input
+                type="text"
+                value={newsletterName}
+                onChange={(e) => setNewsletterName(e.target.value)}
+                placeholder="First name (optional)"
+                className="input-field w-full"
+              />
               <input
                 type="email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="input-field flex-1"
+                className="input-field w-full"
                 data-testid="newsletter-email"
+                required
               />
+              <label className="flex items-start gap-2 text-[#6B5048]/80 text-sm">
+                <input
+                  type="checkbox"
+                  checked={newsletterConsent}
+                  onChange={(e) => setNewsletterConsent(e.target.checked)}
+                  className="mt-1"
+                />
+                I agree to receive updates on new roasts and offers.
+              </label>
               <button 
                 type="submit" 
-                className="btn-primary whitespace-nowrap"
+                disabled={newsletterLoading}
+                className="btn-primary whitespace-nowrap w-full disabled:opacity-60"
                 data-testid="newsletter-submit"
               >
-                Subscribe
+                {newsletterLoading ? 'Subscribing...' : 'Subscribe'}
               </button>
+              {newsletterMessage && <p className="text-[#2F855A] text-sm text-center">{newsletterMessage}</p>}
+              {newsletterError && <p className="text-[#C53030] text-sm text-center">{newsletterError}</p>}
             </form>
             <p className="text-[#6B5048]/60 text-sm mt-4">
               No spam, ever. Unsubscribe anytime.

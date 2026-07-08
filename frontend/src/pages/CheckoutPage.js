@@ -7,6 +7,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from '../components/AuthModal';
 import { computeCartTotals } from '../lib/cartTotals';
+import { setPageSEO } from '../lib/seo';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -58,6 +59,15 @@ const CheckoutPage = () => {
   const [subscriptionFrequency, setSubscriptionFrequency] = useState('monthly');
 
   // Load saved address if available
+  useEffect(() => {
+    setPageSEO({
+      title: 'Checkout | Cape Ember Coffee Co.',
+      description: 'Secure checkout for Cape Ember Coffee Co. Review shipping, VAT, and payment before placing your order.',
+      canonicalPath: '/checkout',
+      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
+    });
+  }, []);
+
   useEffect(() => {
     if (user?.saved_addresses?.length > 0) {
       const defaultAddr = user.saved_addresses.find(a => a.is_default) || user.saved_addresses[0];

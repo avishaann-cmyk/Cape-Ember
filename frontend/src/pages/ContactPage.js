@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, WhatsappLogo, InstagramLogo, FacebookLogo } from '@phosphor-icons/react';
+import { Envelope, Phone, MapPin, WhatsappLogo, InstagramLogo, FacebookLogo } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
+import { setPageSEO } from '../lib/seo';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +15,16 @@ const ContactPage = () => {
   });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+
+  React.useEffect(() => {
+    setPageSEO({
+      title: 'Contact Cape Ember Coffee Co. | Premium South African Coffee',
+      description: 'Get in touch with Cape Ember Coffee Co. for coffee questions, wholesale enquiries, and support.',
+      canonicalPath: '/contact',
+      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
+    });
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,18 +41,26 @@ const ContactPage = () => {
       return;
     }
 
-    // TODO: Implement email sending via backend
-    console.log('Form data:', formData);
-    setSubmitted(true);
-    setTimeout(() => {
+    setSending(true);
+    try {
+      await axios.post(`${API}/contact`, {
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject || 'General Enquiry',
+        message: formData.message
+      });
+      setSubmitted(true);
       setFormData({ name: '', email: '', subject: '', message: '' });
-      setSubmitted(false);
-    }, 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Something went wrong. Please try again or WhatsApp us.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const contactInfo = [
     {
-      icon: Mail,
+      icon: Envelope,
       label: 'Email',
       value: 'hello@capeembercoffee.co.za',
       href: 'mailto:hello@capeembercoffee.co.za'
@@ -94,7 +116,7 @@ const ContactPage = () => {
             
             {submitted ? (
               <div className="bg-[#2F855A]/10 border border-[#2F855A] text-[#2F855A] p-4 text-center">
-                <p className="font-medium">Thank you for reaching out!</p>
+                <p className="font-medium">Thank you, your message has been sent.</p>
                 <p className="text-sm mt-1">We'll get back to you within 24 hours.</p>
               </div>
             ) : (
@@ -155,9 +177,10 @@ const ContactPage = () => {
 
                 <button
                   type="submit"
-                  className="btn-primary w-full"
+                  disabled={sending}
+                  className="btn-primary w-full disabled:opacity-60"
                 >
-                  Send Message
+                  {sending ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
             )}

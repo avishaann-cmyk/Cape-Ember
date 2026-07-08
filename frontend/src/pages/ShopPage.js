@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
+import { setPageSEO } from '../lib/seo';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -51,12 +52,12 @@ const ShopPage = () => {
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'featured');
 
   useEffect(() => {
-    // Set page title and meta description
-    document.title = 'Shop Premium South African Coffee | Cape Ember Coffee Co.';
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) {
-      metaDesc.content = 'Discover our collection of premium single-origin and blended coffees inspired by South African landscapes. Direct trade, ethically sourced.';
-    }
+    setPageSEO({
+      title: 'Shop Premium South African Coffee | Cape Ember Coffee Co.',
+      description: 'Shop Fynbos Roast, Garden Route Blend, Karoo Horizon, and Ember Reserve. Premium coffee inspired by South African landscapes.',
+      canonicalPath: '/shop',
+      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg'
+    });
     
     const fetchProducts = async () => {
       try {
@@ -72,9 +73,7 @@ const ShopPage = () => {
     };
     fetchProducts();
     
-    return () => {
-      document.title = 'Cape Ember Coffee Co. | Premium South African Coffee';
-    };
+    return () => {};
   }, []);
 
   // Apply filters and sorting

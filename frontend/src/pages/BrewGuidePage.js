@@ -329,7 +329,7 @@ const BrewGuidePage = () => {
                 </div>
 
                 <Link
-                  to={`/product/${selectedBlendData.id}`}
+                  to={`/products/${selectedBlendData.id}`}
                   className="btn-primary inline-block mt-6"
                   data-testid={`shop-${selectedBlendData.id}`}
                 >

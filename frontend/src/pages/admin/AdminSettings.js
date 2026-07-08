@@ -57,6 +57,9 @@ const AdminSettings = () => {
           <input type="number" className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Shipping fee" value={form.shipping_fee || ''} onChange={(e) => setForm({ ...form, shipping_fee: e.target.value })} />
           <input type="number" className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Free shipping threshold" value={form.free_shipping_threshold || ''} onChange={(e) => setForm({ ...form, free_shipping_threshold: e.target.value })} />
           <input type="number" step="0.01" className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="VAT rate" value={form.vat_rate || ''} onChange={(e) => setForm({ ...form, vat_rate: e.target.value })} />
+          <div className="text-sm text-[#3A2418] bg-[#F3E4CC] border border-[#D7B98C] rounded px-3 py-2">
+            Resend status: {form.resend_configured ? 'Configured' : 'Not configured'}
+          </div>
           <button className="bg-[#B56A35] text-white px-4 py-2 rounded">Save Settings</button>
           {message && <p className="text-green-700 text-sm">{message}</p>}
         </form>

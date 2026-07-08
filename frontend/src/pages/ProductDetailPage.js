@@ -7,6 +7,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from '../components/AuthModal';
 import ProductCard from '../components/ProductCard';
+import { setPageSEO } from '../lib/seo';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -125,14 +126,14 @@ const ProductDetailPage = () => {
           setSelectedVariant(productRes.data.variants[0]);
         }
         
-        // Update document title for SEO
-        document.title = `${productRes.data.name} | Cape Ember Coffee Co.`;
-        
-        // Update meta description
-        const metaDesc = document.querySelector('meta[name="description"]');
-        if (metaDesc) {
-          metaDesc.setAttribute('content', productRes.data.short_description || productRes.data.description?.substring(0, 160));
-        }
+        const seoSlug = productRes.data.slug || productRes.data.id;
+        setPageSEO({
+          title: `${productRes.data.name} | Cape Ember Coffee Co.`,
+          description: productRes.data.meta_description || productRes.data.short_description || productRes.data.description?.substring(0, 160),
+          canonicalPath: `/products/${seoSlug}`,
+          image: productRes.data.images?.[0]?.url,
+          type: 'product'
+        });
         
         // Add product JSON-LD schema for rich snippets
         const productSchema = {
@@ -254,7 +255,7 @@ const ProductDetailPage = () => {
     },
     "offers": {
       "@type": "Offer",
-      "url": `https://capeembercoffee.co.za/product/${product.slug}`,
+      "url": `https://capeembercoffee.co.za/products/${product.slug || product.id}`,
       "priceCurrency": "ZAR",
       "price": currentPrice,
       "availability": inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
@@ -626,7 +627,7 @@ const ProductDetailPage = () => {
               {bundleProducts.map(p => (
                 <Link 
                   key={p.id} 
-                  to={`/product/${p.slug || p.id}`}
+                  to={`/products/${p.slug || p.id}`}
                   className="flex items-center gap-4 p-4 bg-[#F4EFE6] hover:bg-[#E6DCD1] transition-colors"
                 >
                   <img 

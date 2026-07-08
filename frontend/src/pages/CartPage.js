@@ -7,6 +7,7 @@ import { useCart } from '../contexts/CartContext';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
 import { computeCartTotals } from '../lib/cartTotals';
+import { setPageSEO } from '../lib/seo';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -23,12 +24,12 @@ const CartPage = () => {
 
   // Fetch upsell products
   useEffect(() => {
-    // Set page SEO
-    document.title = 'Shopping Cart | Cape Ember Coffee Co.';
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) {
-      metaDesc.content = 'Review your shopping cart and proceed to checkout.';
-    }
+    setPageSEO({
+      title: 'Shopping Cart | Cape Ember Coffee Co.',
+      description: 'Review your Cape Ember coffee cart, shipping, VAT, and total before checkout.',
+      canonicalPath: '/cart',
+      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
+    });
 
     const fetchUpsells = async () => {
       try {
@@ -166,7 +167,7 @@ const CartPage = () => {
                 >
                   {/* Image */}
                   <Link 
-                    to={`/product/${item.product_id}`}
+                    to={`/products/${item.product_id}`}
                     className="w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0 bg-[#F4EFE6] overflow-hidden"
                   >
                     <img
@@ -181,7 +182,7 @@ const CartPage = () => {
                     <div className="flex justify-between gap-2">
                       <div>
                         <Link 
-                          to={`/product/${item.product_id}`}
+                          to={`/products/${item.product_id}`}
                           className="font-heading text-lg sm:text-xl text-[#2C1A12] hover:text-[#D05C23] transition-colors line-clamp-1"
                         >
                           {item.product_name}

@@ -31,6 +31,8 @@ import AdminReviews from './pages/admin/AdminReviews';
 import AdminReports from './pages/admin/AdminReports';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminContent from './pages/admin/AdminContent';
+import AdminSubscribers from './pages/admin/AdminSubscribers';
+import AdminSubscriptions from './pages/admin/AdminSubscriptions';
 import AdminRoute from './components/admin/AdminRoute';
 import ExitIntentPopup from './components/ExitIntentPopup';
 import './index.css';
@@ -47,6 +49,7 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/shop" element={<ShopPage />} />
                 <Route path="/product/:productId" element={<ProductDetailPage />} />
+                <Route path="/products/:productId" element={<ProductDetailPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/payment/success" element={<PaymentSuccessPage />} />
@@ -72,10 +75,12 @@ function App() {
                 <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
                 <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
                 <Route path="/admin/content" element={<AdminRoute><AdminContent /></AdminRoute>} />
+                <Route path="/admin/subscribers" element={<AdminRoute><AdminSubscribers /></AdminRoute>} />
+                <Route path="/admin/subscriptions" element={<AdminRoute><AdminSubscriptions /></AdminRoute>} />
               </Routes>
             </main>
             <Footer />
-            <ExitIntentPopup />
+            {process.env.REACT_APP_ENABLE_EXIT_POPUP === 'true' && <ExitIntentPopup />}
           </div>
         </BrowserRouter>
       </CartProvider>

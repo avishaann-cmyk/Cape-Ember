@@ -69,7 +69,20 @@
     ],
     "inlineCss": true,
     "crawl": true,
-    "skipThirdPartyRequests": true
+    "skipThirdPartyRequests": true,
+    "include": [
+      "/",
+      "/shop",
+      "/about",
+      "/contact",
+      "/products/fynbos-roast",
+      "/products/garden-route-blend",
+      "/products/karoo-horizon",
+      "/products/ember-reserve",
+      "/cart",
+      "/checkout",
+      "/subscriptions"
+    ]
   },
   "browserslist": {
     "production": [
