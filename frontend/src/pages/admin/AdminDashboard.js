@@ -8,7 +8,10 @@ import {
   ChartLineUp,
   Warning,
   CaretRight,
-  Ticket
+  Ticket,
+  Truck,
+  Star,
+  Gear
 } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -104,10 +107,15 @@ const AdminDashboard = () => {
         {/* Quick Navigation */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
+            { icon: Package, label: 'Products', href: '/admin/products', color: 'bg-[#3A2418]' },
             { icon: ShoppingBag, label: 'Orders', href: '/admin/orders', color: 'bg-blue-500' },
             { icon: Users, label: 'Customers', href: '/admin/customers', color: 'bg-green-500' },
             { icon: Package, label: 'Inventory', href: '/admin/inventory', color: 'bg-purple-500' },
             { icon: Ticket, label: 'Coupons', href: '/admin/coupons', color: 'bg-orange-500' },
+            { icon: Truck, label: 'Deliveries', href: '/admin/deliveries', color: 'bg-cyan-600' },
+            { icon: Star, label: 'Reviews', href: '/admin/reviews', color: 'bg-amber-500' },
+            { icon: ChartLineUp, label: 'Reports', href: '/admin/reports', color: 'bg-emerald-600' },
+            { icon: Gear, label: 'Settings', href: '/admin/settings', color: 'bg-gray-700' },
           ].map((item, idx) => (
             <Link
               key={idx}

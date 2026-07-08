@@ -6,13 +6,9 @@ import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from '../components/AuthModal';
+import { computeCartTotals } from '../lib/cartTotals';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-
-// Constants
-const FREE_SHIPPING_THRESHOLD = 399;
-const SHIPPING_COST = 75;
-const VAT_RATE = 0.15;
 
 // Province options
 const PROVINCES = [
@@ -170,12 +166,8 @@ const CheckoutPage = () => {
     }
   };
 
-  // Calculate totals
-  const subtotal = cart.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
-  const discount = cart.discount || 0;
-  const shippingCost = cart.shipping !== undefined ? cart.shipping : (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST);
-  const total = subtotal - discount + shippingCost;
-  const vatAmount = total * VAT_RATE / (1 + VAT_RATE);
+  // Calculate totals from one shared helper to keep checkout/cart consistent
+  const { subtotal, discount, shipping: shippingCost, total, vat: vatAmount } = computeCartTotals(cart);
 
   const getImageUrl = (item) => item.image_url || '/placeholder-coffee.jpg';
 

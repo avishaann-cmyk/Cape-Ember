@@ -4,19 +4,17 @@ import { Minus, Plus, Trash, ShoppingBag, ArrowRight, Tag, Truck, Gift, X } from
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
-import { useAuth } from '../contexts/AuthContext';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
+import { computeCartTotals } from '../lib/cartTotals';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Shipping threshold for free shipping
 const FREE_SHIPPING_THRESHOLD = 399;
-const SHIPPING_COST = 75;
 
 const CartPage = () => {
   const { cart, updateQuantity, removeFromCart, loading, refreshCart, applyCoupon, removeCoupon } = useCart();
-  const { isAuthenticated } = useAuth();
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
@@ -78,40 +76,10 @@ const CartPage = () => {
     return '/placeholder-coffee.jpg';
   };
 
-  // Use backend-computed values from cart
-  const subtotal = cart.subtotal || cart.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
-  const discount = cart.discount || 0;
-  const shippingCost = cart.shipping !== undefined ? cart.shipping : (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST);
+  // Use centralized totals computation so cart + checkout cannot diverge
+  const { subtotal, discount, shipping: shippingCost, vat: vatAmount, total } = computeCartTotals(cart);
   const amountToFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
   const progressToFreeShipping = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
-  
-  // Use backend VAT and total if available
-  const vatAmount = cart.vat || (subtotal - discount + shippingCost) * 0.15 / 1.15;
-  const total = cart.total || (subtotal - discount + shippingCost);
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen pt-20 md:pt-24 flex flex-col items-center justify-center bg-[#FDFBF7]">
-        <ShoppingBag size={56} weight="light" className="text-[#E6DCD1] mb-6" />
-        <h1 className="font-heading text-4xl text-[#2C1A12] mb-3">Your Cart</h1>
-        <p className="text-[#6B5048] mb-8 text-center max-w-md">
-          Sign in to view your cart and checkout, or continue shopping as a guest.
-        </p>
-        <div className="flex gap-4">
-          <button 
-            onClick={() => setAuthModalOpen(true)}
-            className="btn-primary"
-          >
-            Sign In
-          </button>
-          <Link to="/shop" className="btn-secondary">
-            Continue Shopping
-          </Link>
-        </div>
-        <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} initialMode="login" />
-      </div>
-    );
-  }
 
   if (loading) {
     return (

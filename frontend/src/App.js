@@ -25,6 +25,12 @@ import AdminOrderDetail from './pages/admin/AdminOrderDetail';
 import AdminCustomers from './pages/admin/AdminCustomers';
 import AdminInventory from './pages/admin/AdminInventory';
 import AdminCoupons from './pages/admin/AdminCoupons';
+import AdminProducts from './pages/admin/AdminProducts';
+import AdminDeliveries from './pages/admin/AdminDeliveries';
+import AdminReviews from './pages/admin/AdminReviews';
+import AdminReports from './pages/admin/AdminReports';
+import AdminSettings from './pages/admin/AdminSettings';
+import AdminRoute from './components/admin/AdminRoute';
 import ExitIntentPopup from './components/ExitIntentPopup';
 import './index.css';
 
@@ -53,12 +59,17 @@ function App() {
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/returns" element={<ReturnsPage />} />
                 {/* Admin Routes */}
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/orders" element={<AdminOrders />} />
-                <Route path="/admin/orders/:orderId" element={<AdminOrderDetail />} />
-                <Route path="/admin/customers" element={<AdminCustomers />} />
-                <Route path="/admin/inventory" element={<AdminInventory />} />
-                <Route path="/admin/coupons" element={<AdminCoupons />} />
+                <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
+                <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
+                <Route path="/admin/orders/:orderId" element={<AdminRoute><AdminOrderDetail /></AdminRoute>} />
+                <Route path="/admin/customers" element={<AdminRoute><AdminCustomers /></AdminRoute>} />
+                <Route path="/admin/inventory" element={<AdminRoute><AdminInventory /></AdminRoute>} />
+                <Route path="/admin/coupons" element={<AdminRoute><AdminCoupons /></AdminRoute>} />
+                <Route path="/admin/deliveries" element={<AdminRoute><AdminDeliveries /></AdminRoute>} />
+                <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
+                <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
+                <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
               </Routes>
             </main>
             <Footer />

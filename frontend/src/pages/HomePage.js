@@ -61,6 +61,7 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [testimonials, setTestimonials] = useState([]);
 
   // SEO metadata
   useEffect(() => {
@@ -101,6 +102,18 @@ const HomePage = () => {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const response = await axios.get(`${API}/reviews/public?limit=6`);
+        setTestimonials(Array.isArray(response.data?.reviews) ? response.data.reviews : []);
+      } catch (error) {
+        setTestimonials([]);
+      }
+    };
+    fetchReviews();
+  }, []);
+
   const individualProducts = products.filter(p => !p.is_bundle);
   const bundle = products.find(p => p.is_bundle);
 
@@ -115,29 +128,29 @@ const HomePage = () => {
   };
 
   const features = [
-    { icon: Fire, title: 'Small-Batch Freshness', desc: 'Roasted in small batches for quality' },
-    { icon: Truck, title: 'Complimentary Delivery', desc: 'On orders over R399' },
-    { icon: Leaf, title: 'Landscape Inspired', desc: 'Every blend tells a South African story' },
-    { icon: Package, title: 'Proudly South African', desc: 'Supporting local roasters' },
+    { icon: Truck, title: 'Nationwide Delivery', desc: 'Reliable courier delivery across South Africa' },
+    { icon: ShieldCheck, title: 'Secure Checkout', desc: 'Safe encrypted payments with trusted gateways' },
+    { icon: Fire, title: 'Small-Batch Roasted', desc: 'Crafted with trusted roasting partners' },
+    { icon: Coffee, title: 'Whole Bean or Ground', desc: 'Choose your grind option at checkout' },
+    { icon: Package, title: 'Freshly Packed', desc: 'Packed for freshness and shipped quickly' },
   ];
 
-  const testimonials = [
-    { name: 'Jeanne-Marie Eksteen', location: 'Google Review', text: 'Absolutely love this coffee brew!', rating: 5, verified: true },
-    { name: 'Lizelle Britz', location: 'Local Guide', text: 'We\'ve really enjoyed the Garden Route Blend from Cape Ember Beans. Full of flavour, smooth and genuinely delicious.', rating: 5, verified: true },
-    { name: 'Natalie Klerck', location: 'Google Review', text: 'Every cup of freshly brewed coffee is an experience only Cape Ember beans can provide. Beautifully packaged and options.', rating: 5, verified: true },
-    { name: 'Rovae Naidoo', location: 'Local Guide', text: 'This has become my go to blend of coffee everytime. Karoo Horizon a medium blend with bold flavour. My favourite cup anytime of the day.', rating: 5, verified: true },
+  const landscapeProfiles = [
+    { name: 'Fynbos Roast', profile: 'Smooth • Nutty • Balanced' },
+    { name: 'Garden Route Blend', profile: 'Smooth • Cocoa • Gentle Citrus' },
+    { name: 'Karoo Horizon', profile: 'Floral • Blueberry • Bright' },
+    { name: 'Ember Reserve', profile: 'Rich • Dark Chocolate • Intense' },
   ];
 
-  // Google Review Stats
   const googleReviewStats = {
-    rating: 5.0,
-    totalReviews: 4,
+    rating: testimonials.length ? (testimonials.reduce((sum, t) => sum + Number(t.rating || 0), 0) / testimonials.length) : 0,
+    totalReviews: testimonials.length,
     distribution: [
-      { stars: 5, percentage: 100 },
-      { stars: 4, percentage: 0 },
-      { stars: 3, percentage: 0 },
-      { stars: 2, percentage: 0 },
-      { stars: 1, percentage: 0 },
+      { stars: 5, percentage: testimonials.length ? Math.round((testimonials.filter(t => Number(t.rating) === 5).length / testimonials.length) * 100) : 0 },
+      { stars: 4, percentage: testimonials.length ? Math.round((testimonials.filter(t => Number(t.rating) === 4).length / testimonials.length) * 100) : 0 },
+      { stars: 3, percentage: testimonials.length ? Math.round((testimonials.filter(t => Number(t.rating) === 3).length / testimonials.length) * 100) : 0 },
+      { stars: 2, percentage: testimonials.length ? Math.round((testimonials.filter(t => Number(t.rating) === 2).length / testimonials.length) * 100) : 0 },
+      { stars: 1, percentage: testimonials.length ? Math.round((testimonials.filter(t => Number(t.rating) === 1).length / testimonials.length) * 100) : 0 },
     ]
   };
 
@@ -182,7 +195,7 @@ const HomePage = () => {
               className="font-heading text-5xl sm:text-6xl lg:text-7xl text-white leading-none mb-8"
               variants={fadeInUp}
             >
-              Experience South Africa
+              South African Landscapes
               <br />
               <span className="text-gradient bg-gradient-to-r from-[#D05C23] to-[#C86333] bg-clip-text text-transparent">
                 in Every Cup
@@ -193,8 +206,7 @@ const HomePage = () => {
               className="text-white/90 text-lg sm:text-xl max-w-lg mb-10 leading-relaxed font-light"
               variants={fadeInUp}
             >
-              From the wild fynbos coast to the vast Karoo plains — Cape Ember Coffee Co. 
-              brings together coffee, landscape, and ritual in one refined collection.
+              Premium coffee crafted with trusted roasting partners and inspired by the landscapes we love — from fynbos-covered mountains to coastal roads, Karoo horizons, and ember-lit evenings.
             </motion.p>
             
             <motion.div 
@@ -202,19 +214,19 @@ const HomePage = () => {
               variants={fadeInUp}
             >
               <Link 
-                to="/product/landscape-bundle" 
+                to="/shop" 
                 className="btn-primary inline-flex items-center gap-3 group"
                 data-testid="hero-shop-btn"
               >
-                Discover the Landscape Bundle
+                Shop Coffee
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link 
-                to="/shop" 
+                to="/brew-guide" 
                 className="btn-secondary-light"
                 data-testid="hero-story-btn"
               >
-                Explore Individual Blends
+                Find Your Roast
               </Link>
             </motion.div>
           </motion.div>
@@ -228,9 +240,9 @@ const HomePage = () => {
       </section>
 
       {/* Features Strip */}
-      <section className="bg-[#2C1A12] py-6" data-testid="features-strip">
+      <section className="bg-[#0B0705] py-6" data-testid="features-strip">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-8">
             {features.map((feature, index) => (
               <div 
                 key={index}
@@ -241,6 +253,24 @@ const HomePage = () => {
                   <span className="block text-sm font-medium">{feature.title}</span>
                   <span className="block text-xs text-white/60">{feature.desc}</span>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Choose Your Landscape */}
+      <section className="py-14 bg-[#F3E4CC]" data-testid="landscape-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <span className="overline block mb-3">Choose Your Landscape</span>
+            <h2 className="font-heading text-4xl sm:text-5xl text-[#15110E]">Find Your Signature Roast</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {landscapeProfiles.map((item) => (
+              <div key={item.name} className="bg-white border border-[#D7B98C] p-5">
+                <p className="font-heading text-2xl text-[#3A2418] mb-2">{item.name}</p>
+                <p className="text-[#6F7A52] text-sm tracking-wide">{item.profile}</p>
               </div>
             ))}
           </div>
@@ -447,14 +477,10 @@ const HomePage = () => {
               </h2>
               <div className="space-y-4 text-[#6B5048] leading-relaxed mb-8">
                 <p>
-                  Cape Ember Coffee Co. partners with experienced South African coffee roasters 
-                  to create exceptional coffees inspired by South Africa&apos;s most beautiful landscapes.
+                  Cape Ember Coffee Co. was created to bring the feeling of South Africa&apos;s landscapes into the everyday coffee ritual.
                 </p>
                 <p>
-                  Every blend represents a real South African destination — from the delicate 
-                  fynbos of the Cape Peninsula to the vast, open horizons of the Karoo. 
-                  Our focus is creating memorable coffee experiences that allow you to explore 
-                  South Africa from home, one cup at a time.
+                  We work with trusted roasting partners to craft premium coffee experiences inspired by the places we love.
                 </p>
               </div>
               <Link 
@@ -471,6 +497,7 @@ const HomePage = () => {
       </section>
 
       {/* Social Proof - Google Style Reviews */}
+      {testimonials.length > 0 && (
       <section className="section-padding bg-[#2C1A12]" data-testid="testimonials-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
@@ -499,7 +526,7 @@ const HomePage = () => {
           >
             <div className="flex items-center justify-center gap-6">
               <div className="text-center">
-                <span className="text-5xl font-heading text-white block">{googleReviewStats.rating}</span>
+                <span className="text-5xl font-heading text-white block">{googleReviewStats.rating.toFixed(1)}</span>
                 <div className="flex gap-0.5 justify-center my-2">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} size={20} weight="fill" className="text-[#FBBC04]" />
@@ -538,13 +565,13 @@ const HomePage = () => {
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-[#D05C23] flex items-center justify-center text-white font-medium">
-                    {testimonial.name.charAt(0)}
+                    {(testimonial.user_name || 'C').charAt(0)}
                   </div>
                   <div>
-                    <span className="block text-white font-medium text-sm">{testimonial.name}</span>
-                    <span className="text-white/50 text-xs">{testimonial.location}</span>
+                    <span className="block text-white font-medium text-sm">{testimonial.user_name}</span>
+                    <span className="text-white/50 text-xs">Customer Review</span>
                   </div>
-                  {testimonial.verified && (
+                  {testimonial.is_verified_purchase && (
                     <span className="ml-auto flex items-center gap-1 text-[#2F855A] text-xs">
                       <ShieldCheck size={14} weight="fill" />
                       Verified
@@ -552,34 +579,19 @@ const HomePage = () => {
                   )}
                 </div>
                 <div className="flex gap-0.5 mb-3">
-                  {[...Array(testimonial.rating)].map((_, i) => (
+                  {[...Array(Number(testimonial.rating || 0))].map((_, i) => (
                     <Star key={i} size={14} weight="fill" className="text-[#FBBC04]" />
                   ))}
                 </div>
                 <p className="text-white/80 text-sm leading-relaxed">
-                  &ldquo;{testimonial.text}&rdquo;
+                  &ldquo;{testimonial.content}&rdquo;
                 </p>
               </motion.div>
             ))}
           </div>
-
-          <motion.div 
-            className="text-center mt-8"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
-          >
-            <Link 
-              to="/reviews" 
-              className="inline-flex items-center gap-2 text-[#C86333] font-medium hover:text-white transition-colors"
-            >
-              Read All Reviews
-              <ArrowRight size={16} />
-            </Link>
-          </motion.div>
         </div>
       </section>
+      )}
 
       {/* Brewing Methods Section */}
       <section className="section-padding" data-testid="brewing-methods-section">

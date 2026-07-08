@@ -26,6 +26,7 @@ import jwt
 import bcrypt
 from enum import Enum
 from decimal import Decimal
+from bson import ObjectId
 
 ROOT_DIR = Path(__file__).parent
 APP_DIR = ROOT_DIR.parent
@@ -3236,6 +3237,89 @@ async def get_admin_inventory(admin: dict = Depends(get_admin_user)):
 class InventoryUpdate(BaseModel):
     stock_quantity: int
 
+
+class AdminProductUpsert(BaseModel):
+    name: str
+    slug: str
+    description: str
+    short_description: Optional[str] = None
+    category: str = "coffee_beans"
+    roast_level: Optional[str] = None
+    origin: Optional[str] = None
+    flavor_notes: str = ""
+    weight: str = "250g"
+    grind_options: List[str] = ["Whole Bean", "Ground"]
+    price: float
+    sale_price: Optional[float] = None
+    stock_quantity: int = 0
+    low_stock_alert: int = 10
+    image_url: Optional[str] = None
+    gallery_images: List[str] = []
+    is_active: bool = True
+    is_featured: bool = False
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+
+
+class DeliveryCreate(BaseModel):
+    order_id: str
+    delivery_date: str
+    delivery_method: str  # local_delivery, pickup, nationwide_courier
+    courier: Optional[str] = None
+    tracking_number: Optional[str] = None
+    status: str = "scheduled"
+    notes: Optional[str] = None
+    customer_name: str
+    customer_phone: Optional[str] = None
+    customer_email: Optional[str] = None
+    address: Optional[dict] = None
+
+
+class DeliveryUpdate(BaseModel):
+    delivery_date: Optional[str] = None
+    delivery_method: Optional[str] = None
+    courier: Optional[str] = None
+    tracking_number: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class AdminReviewUpdate(BaseModel):
+    is_approved: Optional[bool] = None
+    is_visible: Optional[bool] = None
+
+
+class AdminReviewCreate(BaseModel):
+    product_id: str
+    user_name: str
+    rating: int
+    title: str
+    content: str
+    is_approved: bool = True
+    is_visible: bool = True
+
+
+class StoreSettingsUpdate(BaseModel):
+    store_name: Optional[str] = None
+    contact_email: Optional[str] = None
+    whatsapp_number: Optional[str] = None
+    shipping_fee: Optional[float] = None
+    free_shipping_threshold: Optional[float] = None
+    vat_rate: Optional[float] = None
+    social_links: Optional[dict] = None
+    seo_defaults: Optional[dict] = None
+
+
+class ContentUpdate(BaseModel):
+    hero_title: Optional[str] = None
+    hero_subtitle: Optional[str] = None
+    brand_story: Optional[str] = None
+    shipping_policy: Optional[str] = None
+    returns_policy: Optional[str] = None
+    contact_details: Optional[dict] = None
+    footer_links: Optional[dict] = None
+    announcement_bar: Optional[str] = None
+
 @api_router.put("/admin/inventory/{product_id}/{variant_id}")
 async def update_inventory(
     product_id: str,
@@ -3262,6 +3346,418 @@ async def update_inventory(
         "variant_id": variant_id,
         "new_stock": update.stock_quantity
     }
+
+
+@api_router.get("/admin/inventory/export")
+async def export_inventory_csv(admin: dict = Depends(get_admin_user)):
+    """Export inventory as CSV."""
+    lines = ["product_id,product_name,variant_id,variant_name,sku,price,stock_quantity,stock_status"]
+    for product in PRODUCTS:
+        for variant in product.get("variants", []):
+            stock = variant.get("stock_quantity", 0)
+            status = "out_of_stock" if stock == 0 else "low_stock" if stock < 10 else "in_stock"
+            lines.append(
+                f"{product['id']},{product['name']},{variant.get('id','')},{variant.get('name','')},{variant.get('sku','')},{variant.get('price',0)},{stock},{status}"
+            )
+    return PlainTextResponse("\n".join(lines), media_type="text/csv")
+
+
+@api_router.get("/admin/customers/export")
+async def export_customers_csv(admin: dict = Depends(get_admin_user)):
+    """Export customers as CSV."""
+    users = await db.users.find({}, {"password_hash": 0}).to_list(None)
+    lines = ["id,email,first_name,last_name,phone,accepts_marketing,created_at"]
+    for user in users:
+        lines.append(
+            f"{user.get('_id','')},{user.get('email','')},{user.get('first_name','')},{user.get('last_name','')},{user.get('phone','')},{user.get('accepts_marketing',False)},{user.get('created_at','')}"
+        )
+    return PlainTextResponse("\n".join(lines), media_type="text/csv")
+
+
+@api_router.get("/admin/products")
+async def get_admin_products(admin: dict = Depends(get_admin_user)):
+    """Get products for admin management."""
+    products = []
+    for p in PRODUCTS:
+        first_variant = p.get("variants", [{}])[0]
+        stock_quantity = sum(v.get("stock_quantity", 0) for v in p.get("variants", []))
+        products.append({
+            "id": p.get("id"),
+            "name": p.get("name"),
+            "slug": p.get("slug"),
+            "description": p.get("description"),
+            "short_description": p.get("short_description"),
+            "category": p.get("category"),
+            "roast_level": p.get("roast_level"),
+            "origin": p.get("origin"),
+            "flavor_notes": p.get("flavor_notes", ""),
+            "weight": first_variant.get("weight", "250g"),
+            "grind_options": [v.get("grind", "Whole Bean") for v in p.get("variants", [])],
+            "price": first_variant.get("price", 0),
+            "sale_price": first_variant.get("compare_at_price"),
+            "stock_quantity": stock_quantity,
+            "low_stock_alert": p.get("low_stock_alert", 10),
+            "image_url": p.get("images", [{}])[0].get("url", "") if p.get("images") else "",
+            "gallery_images": [img.get("url") for img in p.get("images", [])],
+            "is_active": p.get("is_active", True),
+            "is_featured": p.get("is_featured", False),
+            "meta_title": p.get("meta_title"),
+            "meta_description": p.get("meta_description")
+        })
+    return {"products": products}
+
+
+@api_router.post("/admin/products")
+async def create_admin_product(product: AdminProductUpsert, admin: dict = Depends(get_admin_user)):
+    """Create product (in-memory for this deployment target)."""
+    product_id = product.slug
+    if product_id in PRODUCTS_MAP:
+        raise HTTPException(status_code=400, detail="Product slug already exists")
+
+    now = datetime.now(timezone.utc).isoformat()
+    variants = []
+    for grind in product.grind_options:
+        grind_slug = grind.lower().replace(" ", "_")
+        variants.append({
+            "id": f"{product_id}_{grind_slug}",
+            "name": f"{product.weight} - {grind}",
+            "sku": f"CE-{product_id.upper()}-{grind_slug.upper()}",
+            "price": product.price,
+            "compare_at_price": product.sale_price,
+            "grind": grind,
+            "weight": product.weight,
+            "stock_quantity": max(0, int(product.stock_quantity / max(1, len(product.grind_options))))
+        })
+
+    new_product = {
+        "id": product_id,
+        "name": product.name,
+        "slug": product.slug,
+        "description": product.description,
+        "short_description": product.short_description,
+        "category": product.category,
+        "roast_level": product.roast_level,
+        "origin": product.origin,
+        "strength": 3,
+        "flavor_notes": product.flavor_notes,
+        "images": [{"url": url, "alt": product.name, "is_primary": idx == 0, "sort_order": idx} for idx, url in enumerate(product.gallery_images or ([product.image_url] if product.image_url else []))],
+        "variants": variants,
+        "is_active": product.is_active,
+        "is_featured": product.is_featured,
+        "meta_title": product.meta_title,
+        "meta_description": product.meta_description,
+        "low_stock_alert": product.low_stock_alert,
+        "created_at": now,
+        "updated_at": now
+    }
+
+    PRODUCTS.append(new_product)
+    PRODUCTS_MAP[new_product["id"]] = new_product
+    return {"message": "Product created", "product_id": product_id}
+
+
+@api_router.put("/admin/products/{product_id}")
+async def update_admin_product(product_id: str, product: AdminProductUpsert, admin: dict = Depends(get_admin_user)):
+    """Update product details."""
+    existing = PRODUCTS_MAP.get(product_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    existing["name"] = product.name
+    existing["slug"] = product.slug
+    existing["description"] = product.description
+    existing["short_description"] = product.short_description
+    existing["category"] = product.category
+    existing["roast_level"] = product.roast_level
+    existing["origin"] = product.origin
+    existing["flavor_notes"] = product.flavor_notes
+    existing["is_active"] = product.is_active
+    existing["is_featured"] = product.is_featured
+    existing["meta_title"] = product.meta_title
+    existing["meta_description"] = product.meta_description
+    existing["low_stock_alert"] = product.low_stock_alert
+    existing["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    if existing.get("variants"):
+        price_per_variant_stock = max(0, int(product.stock_quantity / max(1, len(existing["variants"]))))
+        for v in existing["variants"]:
+            v["price"] = product.price
+            v["compare_at_price"] = product.sale_price
+            v["stock_quantity"] = price_per_variant_stock
+            v["weight"] = product.weight
+
+    if product.gallery_images or product.image_url:
+        image_urls = product.gallery_images or ([product.image_url] if product.image_url else [])
+        existing["images"] = [
+            {"url": url, "alt": product.name, "is_primary": idx == 0, "sort_order": idx}
+            for idx, url in enumerate(image_urls)
+        ]
+
+    return {"message": "Product updated", "product_id": product_id}
+
+
+@api_router.delete("/admin/products/{product_id}")
+async def archive_admin_product(product_id: str, admin: dict = Depends(get_admin_user)):
+    """Archive product (soft delete)."""
+    existing = PRODUCTS_MAP.get(product_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Product not found")
+    existing["is_active"] = False
+    existing["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return {"message": "Product archived", "product_id": product_id}
+
+
+@api_router.get("/admin/deliveries")
+async def get_admin_deliveries(
+    admin: dict = Depends(get_admin_user),
+    status: Optional[str] = None,
+    date: Optional[str] = None
+):
+    """Get delivery schedule list."""
+    query: Dict[str, Any] = {}
+    if status:
+        query["status"] = status
+    if date:
+        query["delivery_date"] = date
+
+    deliveries = await db.deliveries.find(query).sort("delivery_date", 1).to_list(None)
+    return {"deliveries": deliveries}
+
+
+@api_router.post("/admin/deliveries")
+async def create_admin_delivery(delivery: DeliveryCreate, admin: dict = Depends(get_admin_user)):
+    """Schedule delivery record."""
+    delivery_doc = delivery.dict()
+    delivery_doc["_id"] = str(uuid.uuid4())
+    delivery_doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    delivery_doc["updated_at"] = delivery_doc["created_at"]
+    await db.deliveries.insert_one(delivery_doc)
+    return {"message": "Delivery scheduled", "id": delivery_doc["_id"]}
+
+
+@api_router.put("/admin/deliveries/{delivery_id}")
+async def update_admin_delivery(delivery_id: str, update: DeliveryUpdate, admin: dict = Depends(get_admin_user)):
+    """Update delivery status/details."""
+    payload = {k: v for k, v in update.dict().items() if v is not None}
+    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.deliveries.update_one({"_id": delivery_id}, {"$set": payload})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    return {"message": "Delivery updated", "id": delivery_id}
+
+
+@api_router.get("/admin/deliveries/export")
+async def export_deliveries_csv(admin: dict = Depends(get_admin_user)):
+    """Export deliveries as CSV."""
+    deliveries = await db.deliveries.find().sort("delivery_date", 1).to_list(None)
+    lines = ["id,order_id,delivery_date,delivery_method,courier,tracking_number,status,customer_name,customer_phone,customer_email"]
+    for d in deliveries:
+        lines.append(
+            f"{d.get('_id','')},{d.get('order_id','')},{d.get('delivery_date','')},{d.get('delivery_method','')},{d.get('courier','')},{d.get('tracking_number','')},{d.get('status','')},{d.get('customer_name','')},{d.get('customer_phone','')},{d.get('customer_email','')}"
+        )
+    return PlainTextResponse("\n".join(lines), media_type="text/csv")
+
+
+@api_router.get("/admin/reviews")
+async def get_admin_reviews(admin: dict = Depends(get_admin_user), status: Optional[str] = None):
+    """Review moderation list."""
+    query: Dict[str, Any] = {}
+    if status == "approved":
+        query["is_approved"] = True
+    elif status == "pending":
+        query["is_approved"] = False
+
+    reviews = await db.reviews.find(query).sort("created_at", -1).to_list(None)
+    return {
+        "reviews": [{
+            "id": str(r.get("_id")),
+            "product_id": r.get("product_id"),
+            "user_name": r.get("user_name"),
+            "rating": r.get("rating"),
+            "title": r.get("title"),
+            "content": r.get("content"),
+            "is_approved": r.get("is_approved", False),
+            "is_visible": r.get("is_visible", True),
+            "created_at": r.get("created_at")
+        } for r in reviews]
+    }
+
+
+@api_router.post("/admin/reviews")
+async def create_admin_review(review: AdminReviewCreate, admin: dict = Depends(get_admin_user)):
+    """Create review manually from admin."""
+    if review.product_id not in PRODUCTS_MAP:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    review_doc = {
+        "_id": str(uuid.uuid4()),
+        "product_id": review.product_id,
+        "user_id": "admin_manual",
+        "user_name": review.user_name,
+        "rating": review.rating,
+        "title": review.title,
+        "content": review.content,
+        "is_verified_purchase": False,
+        "is_approved": review.is_approved,
+        "is_visible": review.is_visible,
+        "helpful_votes": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.reviews.insert_one(review_doc)
+    return {"message": "Review added", "id": review_doc["_id"]}
+
+
+@api_router.put("/admin/reviews/{review_id}")
+async def update_admin_review(review_id: str, update: AdminReviewUpdate, admin: dict = Depends(get_admin_user)):
+    """Approve/reject/show/hide review."""
+    payload = {k: v for k, v in update.dict().items() if v is not None}
+    query: Dict[str, Any] = {"_id": review_id}
+    if ObjectId.is_valid(review_id):
+        query = {"$or": [{"_id": review_id}, {"_id": ObjectId(review_id)}]}
+
+    result = await db.reviews.update_one(query, {"$set": payload})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return {"message": "Review updated", "id": review_id}
+
+
+@api_router.get("/reviews/public")
+async def get_public_reviews(limit: int = 6):
+    """Public approved+visible reviews for homepage/testimonials."""
+    reviews = await db.reviews.find({"is_approved": True, "is_visible": {"$ne": False}}).sort("created_at", -1).limit(limit).to_list(limit)
+    return {
+        "reviews": [{
+            "id": str(r.get("_id")),
+            "product_id": r.get("product_id"),
+            "user_name": r.get("user_name"),
+            "rating": r.get("rating"),
+            "title": r.get("title"),
+            "content": r.get("content"),
+            "is_verified_purchase": r.get("is_verified_purchase", False),
+            "created_at": r.get("created_at")
+        } for r in reviews]
+    }
+
+
+@api_router.get("/admin/reports")
+async def get_admin_reports(
+    admin: dict = Depends(get_admin_user),
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None
+):
+    """Aggregate sales, products, and stock report data."""
+    order_query: Dict[str, Any] = {"payment_status": PaymentStatus.COMPLETE}
+    if date_from or date_to:
+        order_query["created_at"] = {}
+        if date_from:
+            order_query["created_at"]["$gte"] = date_from
+        if date_to:
+            order_query["created_at"]["$lte"] = date_to
+
+    orders = await db.orders.find(order_query).to_list(None)
+    total_sales = round(sum(o.get("total", 0) for o in orders), 2)
+    total_orders = len(orders)
+
+    product_sales: Dict[str, Dict[str, Any]] = {}
+    for order in orders:
+        for item in order.get("items", []):
+            pid = item.get("product_id")
+            if not pid:
+                continue
+            if pid not in product_sales:
+                product_sales[pid] = {
+                    "product_id": pid,
+                    "product_name": item.get("product_name", pid),
+                    "units_sold": 0,
+                    "revenue": 0.0
+                }
+            qty = item.get("quantity", 0)
+            product_sales[pid]["units_sold"] += qty
+            product_sales[pid]["revenue"] += item.get("total", item.get("price", 0) * qty)
+
+    low_stock = []
+    for p in PRODUCTS:
+        threshold = p.get("low_stock_alert", 10)
+        stock = sum(v.get("stock_quantity", 0) for v in p.get("variants", []))
+        if stock <= threshold:
+            low_stock.append({"product_id": p["id"], "product_name": p["name"], "stock": stock, "threshold": threshold})
+
+    return {
+        "sales": {
+            "total_sales": total_sales,
+            "total_orders": total_orders,
+            "average_order_value": round(total_sales / total_orders, 2) if total_orders else 0
+        },
+        "sales_by_product": sorted(product_sales.values(), key=lambda x: x["revenue"], reverse=True),
+        "low_stock": low_stock,
+        "customers_total": await db.users.count_documents({})
+    }
+
+
+@api_router.get("/admin/settings")
+async def get_admin_settings(admin: dict = Depends(get_admin_user)):
+    """Get store settings."""
+    settings = await db.settings.find_one({"_id": "store"}) or {
+        "_id": "store",
+        "store_name": "Cape Ember Coffee Co.",
+        "contact_email": "hello@capeembercoffee.co.za",
+        "whatsapp_number": "+27810261618",
+        "shipping_fee": 75,
+        "free_shipping_threshold": 399,
+        "vat_rate": 0.15,
+        "social_links": {
+            "instagram": "https://instagram.com/capeembercoffee",
+            "facebook": "https://facebook.com/capeembercoffee"
+        },
+        "seo_defaults": {
+            "title": "Cape Ember Coffee Co. | South African Landscapes in Every Cup",
+            "description": "Premium coffee crafted with trusted roasting partners, inspired by South African landscapes."
+        }
+    }
+    settings.pop("_id", None)
+    return settings
+
+
+@api_router.put("/admin/settings")
+async def update_admin_settings(update: StoreSettingsUpdate, admin: dict = Depends(get_admin_user)):
+    """Update store settings."""
+    payload = {k: v for k, v in update.dict().items() if v is not None}
+    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.settings.update_one({"_id": "store"}, {"$set": payload}, upsert=True)
+    return {"message": "Settings updated"}
+
+
+@api_router.get("/admin/content")
+async def get_admin_content(admin: dict = Depends(get_admin_user)):
+    """Get editable marketing/content blocks."""
+    content = await db.content.find_one({"_id": "site_content"}) or {
+        "_id": "site_content",
+        "hero_title": "South African Landscapes in Every Cup",
+        "hero_subtitle": "Premium coffee crafted with trusted roasting partners and inspired by the landscapes we love.",
+        "brand_story": "Cape Ember Coffee Co. was created to bring the feeling of South Africa's landscapes into the everyday coffee ritual.",
+        "shipping_policy": "Nationwide shipping available.",
+        "returns_policy": "Returns accepted on damaged goods.",
+        "contact_details": {
+            "email": "hello@capeembercoffee.co.za",
+            "whatsapp": "+27810261618"
+        },
+        "footer_links": {
+            "shop": "/shop",
+            "story": "/about"
+        },
+        "announcement_bar": "Free nationwide shipping over R399"
+    }
+    content.pop("_id", None)
+    return content
+
+
+@api_router.put("/admin/content")
+async def update_admin_content(update: ContentUpdate, admin: dict = Depends(get_admin_user)):
+    """Update editable content blocks."""
+    payload = {k: v for k, v in update.dict().items() if v is not None}
+    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.content.update_one({"_id": "site_content"}, {"$set": payload}, upsert=True)
+    return {"message": "Content updated"}
 
 
 @api_router.get("/admin/coupons")
