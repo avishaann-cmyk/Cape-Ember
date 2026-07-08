@@ -194,6 +194,7 @@ class UserResponse(BaseModel):
     addresses: List[AddressModel] = []
     accepts_marketing: bool = False
     is_admin: bool = False
+    admin_role: Optional[str] = None
     created_at: Optional[str] = None
 
 class TokenResponse(BaseModel):
@@ -444,11 +445,12 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-def create_access_token(user_id: str, email: str, is_admin: bool = False) -> str:
+def create_access_token(user_id: str, email: str, is_admin: bool = False, admin_role: Optional[str] = None) -> str:
     payload = {
         "sub": user_id,
         "email": email,
         "is_admin": is_admin,
+        "admin_role": admin_role,
         "type": "access",
         "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
     }
@@ -527,6 +529,16 @@ async def get_admin_user(request: Request) -> dict:
     if not user.get("is_admin", False):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
+
+
+def require_admin_roles(allowed_roles: List[str]):
+    async def _role_dependency(request: Request) -> dict:
+        user = await get_admin_user(request)
+        user_role = user.get("admin_role", "staff")
+        if user_role not in allowed_roles:
+            raise HTTPException(status_code=403, detail=f"Admin role required: {', '.join(allowed_roles)}")
+        return user
+    return _role_dependency
 
 
 # ============ PAYFAST FUNCTIONS ============
@@ -1426,6 +1438,7 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks):
         "addresses": [],
         "accepts_marketing": user_data.accepts_marketing,
         "is_admin": False,
+        "admin_role": None,
         "created_at": now,
         "updated_at": now
     }
@@ -1440,7 +1453,7 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks):
     # Send welcome email
     background_tasks.add_task(send_welcome_email, user_data.email.lower(), user_data.first_name)
     
-    access_token = create_access_token(user_id, user_data.email)
+    access_token = create_access_token(user_id, user_data.email, False, None)
     refresh_token = create_refresh_token(user_id)
     
     return TokenResponse(
@@ -1455,6 +1468,7 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks):
             addresses=[],
             accepts_marketing=user_data.accepts_marketing,
             is_admin=False,
+            admin_role=None,
             created_at=now
         )
     )
@@ -1466,7 +1480,7 @@ async def login(credentials: UserLogin):
     if not user or not verify_password(credentials.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    access_token = create_access_token(user["_id"], user["email"], user.get("is_admin", False))
+    access_token = create_access_token(user["_id"], user["email"], user.get("is_admin", False), user.get("admin_role"))
     refresh_token = create_refresh_token(user["_id"])
     
     return TokenResponse(
@@ -1481,6 +1495,7 @@ async def login(credentials: UserLogin):
             addresses=[AddressModel(**a) for a in user.get("addresses", [])],
             accepts_marketing=user.get("accepts_marketing", False),
             is_admin=user.get("is_admin", False),
+            admin_role=user.get("admin_role"),
             created_at=user.get("created_at")
         )
     )
@@ -1497,7 +1512,7 @@ async def refresh_token(refresh_token: str = Header(...)):
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         
-        new_access_token = create_access_token(user["_id"], user["email"], user.get("is_admin", False))
+        new_access_token = create_access_token(user["_id"], user["email"], user.get("is_admin", False), user.get("admin_role"))
         
         return {"access_token": new_access_token, "token_type": "bearer"}
     except jwt.ExpiredSignatureError:
@@ -1533,6 +1548,7 @@ async def get_me(user: dict = Depends(get_current_user)):
         addresses=[AddressModel(**a) for a in user.get("addresses", [])],
         accepts_marketing=user.get("accepts_marketing", False),
         is_admin=user.get("is_admin", False),
+        admin_role=user.get("admin_role"),
         created_at=user.get("created_at")
     )
 
@@ -1552,7 +1568,10 @@ async def update_me(data: UserUpdate, user: dict = Depends(get_current_user)):
         last_name=updated_user["last_name"],
         phone=updated_user.get("phone"),
         addresses=[AddressModel(**a) for a in updated_user.get("addresses", [])],
-        accepts_marketing=updated_user.get("accepts_marketing", False)
+        accepts_marketing=updated_user.get("accepts_marketing", False),
+        is_admin=updated_user.get("is_admin", False),
+        admin_role=updated_user.get("admin_role"),
+        created_at=updated_user.get("created_at")
     )
 
 
@@ -3148,6 +3167,73 @@ async def update_order_status(
     return {"message": "Order status updated", "status": update.status}
 
 
+@api_router.get("/admin/orders/{order_id}/packing-slip")
+async def get_order_packing_slip(order_id: str, admin: dict = Depends(get_admin_user)):
+    """Generate printable packing slip text for fulfillment workflow."""
+    order = await db.orders.find_one({"_id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    shipping = order.get("shipping", {}) if isinstance(order.get("shipping"), dict) else {}
+    address = shipping.get("address", {}) if isinstance(shipping.get("address"), dict) else {}
+    items = order.get("items", [])
+
+    lines = [
+        "Cape Ember Coffee Co. - Packing Slip",
+        f"Order Number: {order.get('order_number', order_id)}",
+        f"Order ID: {order_id}",
+        f"Created At: {order.get('created_at', '')}",
+        "",
+        "Ship To:",
+        f"{address.get('first_name', '')} {address.get('last_name', '')}".strip(),
+        address.get("street", ""),
+        address.get("apartment", ""),
+        f"{address.get('city', '')}, {address.get('province', '')} {address.get('postal_code', '')}".strip(),
+        address.get("country", "South Africa"),
+        f"Phone: {address.get('phone', '')}",
+        "",
+        "Items:"
+    ]
+
+    for idx, item in enumerate(items, start=1):
+        lines.append(
+            f"{idx}. {item.get('product_name', 'Product')} | Variant: {item.get('variant_name', '')} | Qty: {item.get('quantity', 0)}"
+        )
+
+    lines.extend([
+        "",
+        f"Subtotal: R{order.get('subtotal', 0):.2f}",
+        f"Discount: R{order.get('discount', 0):.2f}",
+        f"Shipping: R{order.get('shipping_cost', 0):.2f}",
+        f"VAT: R{order.get('vat', 0):.2f}",
+        f"Total: R{order.get('total', 0):.2f}",
+        "",
+        "South African landscapes in every cup"
+    ])
+
+    return PlainTextResponse("\n".join(lines), media_type="text/plain")
+
+
+@api_router.post("/admin/orders/{order_id}/resend-confirmation")
+async def resend_order_confirmation(order_id: str, background_tasks: BackgroundTasks, admin: dict = Depends(get_admin_user)):
+    """Resend order confirmation email to customer/guest."""
+    order = await db.orders.find_one({"_id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    email = order.get("guest_email", "")
+    if order.get("user_id"):
+        user = await db.users.find_one({"_id": order["user_id"]})
+        if user:
+            email = user.get("email", email)
+
+    if not email:
+        raise HTTPException(status_code=400, detail="No customer email found for this order")
+
+    background_tasks.add_task(send_order_confirmation, order, email)
+    return {"message": "Order confirmation resent", "email": email}
+
+
 @api_router.get("/admin/customers")
 async def get_admin_customers(
     admin: dict = Depends(get_admin_user),
@@ -3408,7 +3494,7 @@ async def get_admin_products(admin: dict = Depends(get_admin_user)):
 
 
 @api_router.post("/admin/products")
-async def create_admin_product(product: AdminProductUpsert, admin: dict = Depends(get_admin_user)):
+async def create_admin_product(product: AdminProductUpsert, admin: dict = Depends(require_admin_roles(["owner", "staff"]))):
     """Create product (in-memory for this deployment target)."""
     product_id = product.slug
     if product_id in PRODUCTS_MAP:
@@ -3457,7 +3543,7 @@ async def create_admin_product(product: AdminProductUpsert, admin: dict = Depend
 
 
 @api_router.put("/admin/products/{product_id}")
-async def update_admin_product(product_id: str, product: AdminProductUpsert, admin: dict = Depends(get_admin_user)):
+async def update_admin_product(product_id: str, product: AdminProductUpsert, admin: dict = Depends(require_admin_roles(["owner", "staff"]))):
     """Update product details."""
     existing = PRODUCTS_MAP.get(product_id)
     if not existing:
@@ -3497,7 +3583,7 @@ async def update_admin_product(product_id: str, product: AdminProductUpsert, adm
 
 
 @api_router.delete("/admin/products/{product_id}")
-async def archive_admin_product(product_id: str, admin: dict = Depends(get_admin_user)):
+async def archive_admin_product(product_id: str, admin: dict = Depends(require_admin_roles(["owner"]))):
     """Archive product (soft delete)."""
     existing = PRODUCTS_MAP.get(product_id)
     if not existing:
@@ -3719,7 +3805,7 @@ async def get_admin_settings(admin: dict = Depends(get_admin_user)):
 
 
 @api_router.put("/admin/settings")
-async def update_admin_settings(update: StoreSettingsUpdate, admin: dict = Depends(get_admin_user)):
+async def update_admin_settings(update: StoreSettingsUpdate, admin: dict = Depends(require_admin_roles(["owner"]))):
     """Update store settings."""
     payload = {k: v for k, v in update.dict().items() if v is not None}
     payload["updated_at"] = datetime.now(timezone.utc).isoformat()
@@ -3752,7 +3838,7 @@ async def get_admin_content(admin: dict = Depends(get_admin_user)):
 
 
 @api_router.put("/admin/content")
-async def update_admin_content(update: ContentUpdate, admin: dict = Depends(get_admin_user)):
+async def update_admin_content(update: ContentUpdate, admin: dict = Depends(require_admin_roles(["owner", "staff"]))):
     """Update editable content blocks."""
     payload = {k: v for k, v in update.dict().items() if v is not None}
     payload["updated_at"] = datetime.now(timezone.utc).isoformat()
@@ -3794,7 +3880,7 @@ class CouponCreate(BaseModel):
     is_active: bool = True
 
 @api_router.post("/admin/coupons")
-async def create_coupon(coupon: CouponCreate, admin: dict = Depends(get_admin_user)):
+async def create_coupon(coupon: CouponCreate, admin: dict = Depends(require_admin_roles(["owner", "staff"]))):
     """Create a new coupon"""
     # Check if code already exists
     existing = await db.coupons.find_one({"code": coupon.code.upper()})
@@ -3820,7 +3906,7 @@ async def create_coupon(coupon: CouponCreate, admin: dict = Depends(get_admin_us
 
 
 @api_router.delete("/admin/coupons/{coupon_code}")
-async def delete_coupon(coupon_code: str, admin: dict = Depends(get_admin_user)):
+async def delete_coupon(coupon_code: str, admin: dict = Depends(require_admin_roles(["owner"]))):
     """Delete a coupon"""
     result = await db.coupons.delete_one({"code": coupon_code.upper()})
     if result.deleted_count == 0:
@@ -3916,6 +4002,7 @@ async def startup_event():
             "addresses": [],
             "accepts_marketing": False,
             "is_admin": True,
+            "admin_role": "owner",
             "created_at": now,
             "updated_at": now
         })
@@ -3926,6 +4013,7 @@ async def startup_event():
             {"email": admin_email},
             {"$set": {
                 "is_admin": True,
+                "admin_role": "owner",
                 "password_hash": hash_password(admin_password)
             }}
         )

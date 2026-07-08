@@ -25,6 +25,7 @@ const AdminOrderDetail = () => {
   const [newStatus, setNewStatus] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [notes, setNotes] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -71,6 +72,45 @@ const AdminOrderDetail = () => {
       alert(err.response?.data?.detail || 'Failed to update order');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handlePrintPackingSlip = async () => {
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/admin/orders/${orderId}/packing-slip`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'text'
+      });
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`<pre style="font-family: monospace; padding: 16px;">${response.data.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to generate packing slip');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API}/admin/orders/${orderId}/resend-confirmation`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert(`Confirmation resent to ${response.data.email}`);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to resend confirmation');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -327,7 +367,7 @@ const AdminOrderDetail = () => {
                 </div>
                 <button
                   onClick={handleUpdateStatus}
-                  disabled={updating}
+                  disabled={updating || actionLoading}
                   className="w-full btn-primary flex items-center justify-center gap-2"
                 >
                   {updating ? (
@@ -338,6 +378,20 @@ const AdminOrderDetail = () => {
                       Update Order
                     </>
                   )}
+                </button>
+                <button
+                  onClick={handlePrintPackingSlip}
+                  disabled={actionLoading}
+                  className="w-full bg-[#15110E] text-white px-4 py-2 rounded-lg"
+                >
+                  Print Packing Slip
+                </button>
+                <button
+                  onClick={handleResendConfirmation}
+                  disabled={actionLoading}
+                  className="w-full bg-[#B56A35] text-white px-4 py-2 rounded-lg"
+                >
+                  Resend Confirmation
                 </button>
               </div>
             </div>

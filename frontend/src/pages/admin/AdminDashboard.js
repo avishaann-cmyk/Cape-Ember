@@ -11,7 +11,8 @@ import {
   Ticket,
   Truck,
   Star,
-  Gear
+  Gear,
+  NotePencil
 } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -116,6 +117,7 @@ const AdminDashboard = () => {
             { icon: Star, label: 'Reviews', href: '/admin/reviews', color: 'bg-amber-500' },
             { icon: ChartLineUp, label: 'Reports', href: '/admin/reports', color: 'bg-emerald-600' },
             { icon: Gear, label: 'Settings', href: '/admin/settings', color: 'bg-gray-700' },
+            { icon: NotePencil, label: 'Content', href: '/admin/content', color: 'bg-[#6F7A52]' },
           ].map((item, idx) => (
             <Link
               key={idx}

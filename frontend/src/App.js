@@ -30,6 +30,7 @@ import AdminDeliveries from './pages/admin/AdminDeliveries';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminReports from './pages/admin/AdminReports';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminContent from './pages/admin/AdminContent';
 import AdminRoute from './components/admin/AdminRoute';
 import ExitIntentPopup from './components/ExitIntentPopup';
 import './index.css';
@@ -70,6 +71,7 @@ function App() {
                 <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
                 <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
                 <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+                <Route path="/admin/content" element={<AdminRoute><AdminContent /></AdminRoute>} />
               </Routes>
             </main>
             <Footer />
