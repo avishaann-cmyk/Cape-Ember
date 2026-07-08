@@ -2375,16 +2375,20 @@ async def create_simple_order(
             "image_url": product["images"][0]["url"] if product["images"] else ""
         })
     
-    # Calculate totals
-    # In South Africa, product prices are inclusive of VAT
-    # Shipping is a flat rate that accounts for VAT
-    # Free shipping for subscriptions or orders over R399
-    if order_data.is_subscription:
-        shipping_cost = 0.0
-    else:
-        shipping_cost = 0.0 if subtotal >= 399 else 75.0
-    total = subtotal + shipping_cost
-    vat = calculate_vat(total)  # Extract VAT for record-keeping (included in total)
+    # Calculate totals using the same coupon/shipping/VAT rules as cart.
+    coupon = None
+    if cart.get("coupon_code"):
+        coupon = await db.coupons.find_one({"code": cart["coupon_code"], "is_active": True})
+
+    shipping_cost = 0.0 if order_data.is_subscription else (0.0 if subtotal >= 399 else 75.0)
+    totals = calculate_cart_totals(
+        [{"price": item["price"], "quantity": item["quantity"]} for item in order_items],
+        coupon,
+        shipping_cost
+    )
+    total = totals["total"]
+    vat = totals["vat"]
+    discount = totals["discount"]
     
     # Generate order number and ID
     order_id = str(uuid.uuid4())
@@ -2398,9 +2402,9 @@ async def create_simple_order(
         "order_number": order_number,
         "user_id": user_id,
         "items": order_items,
-        "subtotal": subtotal,
-        "discount": 0.0,
-        "shipping_cost": shipping_cost,
+        "subtotal": totals["subtotal"],
+        "discount": discount,
+        "shipping_cost": round(shipping_cost, 2),
         "vat": vat,
         "total": total,
         "status": OrderStatus.PENDING.value,
@@ -2417,6 +2421,7 @@ async def create_simple_order(
         },
         "is_subscription": order_data.is_subscription,
         "subscription_frequency": order_data.subscription_frequency,
+        "coupon_code": cart.get("coupon_code"),
         "created_at": now,
         "updated_at": now
     }
