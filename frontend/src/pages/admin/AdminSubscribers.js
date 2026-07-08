@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, DownloadSimple } from '@phosphor-icons/react';
@@ -13,16 +13,7 @@ const AdminSubscribers = () => {
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user?.is_admin) {
-      navigate('/');
-      return;
-    }
-    fetchSubscribers();
-  }, [authLoading, user, navigate]);
-
-  const fetchSubscribers = async () => {
+  const fetchSubscribers = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.get(`${API}/admin/newsletter`, {
@@ -33,7 +24,16 @@ const AdminSubscribers = () => {
     } catch (e) {
       setError(e.response?.data?.detail || 'Failed to load subscribers');
     }
-  };
+  }, [search]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user?.is_admin) {
+      navigate('/');
+      return;
+    }
+    fetchSubscribers();
+  }, [authLoading, user, navigate, fetchSubscribers]);
 
   const toggleSubscriber = async (subscriber) => {
     try {

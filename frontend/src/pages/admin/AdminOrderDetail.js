@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -27,16 +27,7 @@ const AdminOrderDetail = () => {
   const [notes, setNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user?.is_admin) {
-      navigate('/');
-      return;
-    }
-    fetchOrder();
-  }, [user, authLoading, navigate, orderId]);
-
-  const fetchOrder = async () => {
+  const fetchOrder = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API}/admin/orders/${orderId}`, {
@@ -51,7 +42,16 @@ const AdminOrderDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderId]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user?.is_admin) {
+      navigate('/');
+      return;
+    }
+    fetchOrder();
+  }, [user, authLoading, navigate, fetchOrder]);
 
   const handleUpdateStatus = async () => {
     setUpdating(true);

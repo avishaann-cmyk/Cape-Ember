@@ -65,7 +65,6 @@ const ProductCard = ({ product, onAuthRequired }) => {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              // TODO: Add to wishlist
             }}
             aria-label="Add to wishlist"
           >

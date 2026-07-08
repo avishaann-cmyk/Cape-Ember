@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -22,16 +22,7 @@ const AdminCustomers = () => {
   const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 1 });
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user?.is_admin) {
-      navigate('/');
-      return;
-    }
-    fetchCustomers();
-  }, [user, authLoading, navigate, pagination.page]);
-
-  const fetchCustomers = async (searchTerm = '') => {
+  const fetchCustomers = useCallback(async (searchTerm = '') => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -54,7 +45,16 @@ const AdminCustomers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user?.is_admin) {
+      navigate('/');
+      return;
+    }
+    fetchCustomers();
+  }, [user, authLoading, navigate, fetchCustomers]);
 
   const handleSearch = (e) => {
     e.preventDefault();

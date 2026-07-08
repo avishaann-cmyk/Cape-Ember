@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft } from '@phosphor-icons/react';
@@ -15,16 +15,7 @@ const AdminSubscriptions = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user?.is_admin) {
-      navigate('/');
-      return;
-    }
-    fetchSubscriptions();
-  }, [authLoading, user, navigate]);
-
-  const fetchSubscriptions = async () => {
+  const fetchSubscriptions = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.get(`${API}/admin/subscriptions`, {
@@ -35,7 +26,16 @@ const AdminSubscriptions = () => {
     } catch (e) {
       setError(e.response?.data?.detail || 'Failed to load subscriptions');
     }
-  };
+  }, [statusFilter]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user?.is_admin) {
+      navigate('/');
+      return;
+    }
+    fetchSubscriptions();
+  }, [authLoading, user, navigate, fetchSubscriptions]);
 
   const updateSubscription = async (id, status) => {
     try {

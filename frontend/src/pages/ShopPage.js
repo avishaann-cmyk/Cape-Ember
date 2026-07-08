@@ -33,6 +33,13 @@ const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
 ];
 
+const normalizeCategory = (rawCategory) => {
+  if (!rawCategory) return 'all';
+  if (rawCategory === 'single-origin' || rawCategory === 'blends') return 'single';
+  if (rawCategory === 'single' || rawCategory === 'bundle' || rawCategory === 'all') return rawCategory;
+  return 'all';
+};
+
 const ShopPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
@@ -44,7 +51,7 @@ const ShopPage = () => {
   // Filter states
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [activeFilters, setActiveFilters] = useState({
-    category: searchParams.get('category') || 'all',
+    category: normalizeCategory(searchParams.get('category')),
     roast: searchParams.get('roast') || '',
     strength: searchParams.get('strength') || '',
     priceRange: searchParams.get('price') || '',

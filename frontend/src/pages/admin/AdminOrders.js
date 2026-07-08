@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -24,16 +24,7 @@ const AdminOrders = () => {
   const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 1 });
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user?.is_admin) {
-      navigate('/');
-      return;
-    }
-    fetchOrders();
-  }, [user, authLoading, navigate, statusFilter, pagination.page]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -58,7 +49,16 @@ const AdminOrders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, statusFilter]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user?.is_admin) {
+      navigate('/');
+      return;
+    }
+    fetchOrders();
+  }, [user, authLoading, navigate, fetchOrders]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-ZA', {
