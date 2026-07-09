@@ -4483,7 +4483,7 @@ async def get_admin_traffic_insights(
 @api_router.get("/admin/settings")
 async def get_admin_settings(admin: dict = Depends(get_admin_user)):
     """Get store settings."""
-    settings = await db.settings.find_one({"_id": "store"}) or {
+    default_settings = {
         "_id": "store",
         "store_name": "Cape Ember Coffee Co.",
         "contact_email": "hello@capeembercoffee.co.za",
@@ -4500,6 +4500,11 @@ async def get_admin_settings(admin: dict = Depends(get_admin_user)):
             "description": "Premium coffee crafted with trusted roasting partners, inspired by South African landscapes."
         }
     }
+    settings = await db.settings.find_one({"_id": "store"}) or default_settings
+    # Backfill missing fields so partial updates never expose nulls in admin.
+    settings = {**default_settings, **settings}
+    settings["social_links"] = {**default_settings.get("social_links", {}), **(settings.get("social_links") or {})}
+    settings["seo_defaults"] = {**default_settings.get("seo_defaults", {}), **(settings.get("seo_defaults") or {})}
     settings.pop("_id", None)
     settings["resend_configured"] = resend_is_configured()
     settings["payfast_configured"] = bool(
@@ -4517,7 +4522,7 @@ async def get_admin_settings(admin: dict = Depends(get_admin_user)):
 @api_router.get("/settings/public")
 async def get_public_settings():
     """Get public-safe store settings for storefront contact/social links."""
-    settings = await db.settings.find_one({"_id": "store"}) or {
+    default_public = {
         "store_name": "Cape Ember Coffee Co.",
         "contact_email": "hello@capeembercoffee.co.za",
         "whatsapp_number": "+27810261618",
@@ -4526,15 +4531,14 @@ async def get_public_settings():
             "facebook": "https://facebook.com/capeembercoffee"
         }
     }
+    settings = await db.settings.find_one({"_id": "store"}) or default_public
+    social_links = {**default_public.get("social_links", {}), **(settings.get("social_links") or {})}
 
     return {
-        "store_name": settings.get("store_name", "Cape Ember Coffee Co."),
-        "contact_email": settings.get("contact_email", "hello@capeembercoffee.co.za"),
-        "whatsapp_number": settings.get("whatsapp_number", "+27810261618"),
-        "social_links": settings.get("social_links", {
-            "instagram": "https://instagram.com/capeembercoffee",
-            "facebook": "https://facebook.com/capeembercoffee"
-        })
+        "store_name": settings.get("store_name") or default_public["store_name"],
+        "contact_email": settings.get("contact_email") or default_public["contact_email"],
+        "whatsapp_number": settings.get("whatsapp_number") or default_public["whatsapp_number"],
+        "social_links": social_links
     }
 
 
