@@ -4502,6 +4502,15 @@ async def get_admin_settings(admin: dict = Depends(get_admin_user)):
     }
     settings.pop("_id", None)
     settings["resend_configured"] = resend_is_configured()
+    settings["payfast_configured"] = bool(
+        os.environ.get("PAYFAST_MERCHANT_ID") and
+        os.environ.get("PAYFAST_MERCHANT_ID") != "10000100" and
+        os.environ.get("PAYFAST_MERCHANT_KEY")
+    )
+    settings["jwt_custom"] = bool(
+        os.environ.get("JWT_SECRET") and
+        os.environ.get("JWT_SECRET") != "cape-ember-secret-2024-south-africa"
+    )
     return settings
 
 

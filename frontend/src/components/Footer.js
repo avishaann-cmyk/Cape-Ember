@@ -20,6 +20,10 @@ const Footer = () => {
       try {
         const res = await axios.get(`${API}/settings/public`);
         setPublicSettings((prev) => ({ ...prev, ...(res.data || {}) }));
+        // Cache WhatsApp number for other pages that don't fetch settings themselves
+        if (res.data?.whatsapp_number) {
+          localStorage.setItem('public_whatsapp', res.data.whatsapp_number);
+        }
       } catch (e) {
         // Keep defaults if settings are not available.
       }

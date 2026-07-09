@@ -119,7 +119,7 @@ const PaymentCancelPage = () => {
         <p className="text-[#5C534C] mt-8">
           Need help?{' '}
           <a
-            href="https://wa.me/27810261618"
+            href={(() => { const n = (localStorage.getItem('public_whatsapp') || '27810261618').replace(/\D/g,''); return `https://wa.me/${n}`; })()}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[#A94826] hover:underline"

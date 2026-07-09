@@ -716,7 +716,7 @@ const CheckoutPage = () => {
               {/* WhatsApp Help */}
               <div className="mt-6 pt-4 border-t border-[#E6DCD1]">
                 <a
-                  href="https://wa.me/27810261618"
+                  href={(() => { const n = (localStorage.getItem('public_whatsapp') || '27810261618').replace(/\D/g,''); return `https://wa.me/${n}`; })()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 text-[#6B5048] hover:text-[#25D366] transition-colors text-sm"

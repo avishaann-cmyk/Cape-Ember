@@ -1,10 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft } from '@phosphor-icons/react';
+import { ArrowLeft, Warning, CheckCircle } from '@phosphor-icons/react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const PROD_CHECKLIST = [
+  { key: 'payfast', label: 'PayFast merchant credentials', ok: (f) => f.payfast_configured },
+  { key: 'resend', label: 'Resend email (RESEND_API_KEY)', ok: (f) => f.resend_configured },
+  { key: 'jwt', label: 'Custom JWT secret set', ok: (f) => f.jwt_custom },
+  { key: 'wa', label: 'WhatsApp number set', ok: (f) => !!f.whatsapp_number },
+  { key: 'email', label: 'Contact email set', ok: (f) => !!f.contact_email },
+  { key: 'social', label: 'At least one social link', ok: (f) => !!(f.social_links?.instagram || f.social_links?.facebook) }
+];
 
 const AdminSettings = () => {
   const navigate = useNavigate();
@@ -56,6 +65,28 @@ const AdminSettings = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Production readiness checklist */}
+        {Object.keys(form).length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+            <h2 className="font-heading text-lg text-[#15110E] mb-3">Production Readiness</h2>
+            <div className="space-y-2">
+              {PROD_CHECKLIST.map(item => {
+                const pass = item.ok(form);
+                return (
+                  <div key={item.key} className="flex items-center gap-2 text-sm">
+                    {pass
+                      ? <CheckCircle size={16} weight="fill" className="text-green-500 flex-shrink-0" />
+                      : <Warning size={16} weight="fill" className="text-yellow-500 flex-shrink-0" />}
+                    <span className={pass ? 'text-[#2C1A12]' : 'text-yellow-700 font-medium'}>{item.label}</span>
+                    {!pass && <span className="ml-auto text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">Set in .env.production</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <form onSubmit={save} className="bg-white rounded-lg shadow-sm p-5 space-y-3">
           <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Store name" value={form.store_name || ''} onChange={(e) => setForm({ ...form, store_name: e.target.value })} />
           <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Contact email" value={form.contact_email || ''} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} />
