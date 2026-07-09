@@ -19,6 +19,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://capeembercoffee.co.za/contact</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://capeembercoffee.co.za/subscriptions</loc>
     <lastmod>2026-06-29</lastmod>
     <changefreq>weekly</changefreq>
@@ -31,31 +37,25 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://capeembercoffee.co.za/product/fynbos-roast</loc>
+    <loc>https://capeembercoffee.co.za/products/fynbos-roast</loc>
     <lastmod>2026-06-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://capeembercoffee.co.za/product/garden-route-blend</loc>
+    <loc>https://capeembercoffee.co.za/products/garden-route-blend</loc>
     <lastmod>2026-06-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://capeembercoffee.co.za/product/ember-reserve</loc>
+    <loc>https://capeembercoffee.co.za/products/ember-reserve</loc>
     <lastmod>2026-06-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://capeembercoffee.co.za/product/karoo-horizon</loc>
-    <lastmod>2026-06-29</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://capeembercoffee.co.za/product/landscape-bundle</loc>
+    <loc>https://capeembercoffee.co.za/products/karoo-horizon</loc>
     <lastmod>2026-06-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>

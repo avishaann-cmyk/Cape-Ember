@@ -9,8 +9,33 @@ import { setPageSEO } from '../lib/seo';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Premium hero images
-const HERO_IMAGE = "https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?auto=format&fit=crop&w=2000&q=80";
+// Hero slideshow — dark Cape Ember lifestyle & landscape images
+const HERO_IMAGES = [
+  {
+    url: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2000&q=80",
+    alt: "Espresso being crafted in a moody coffee bar"
+  },
+  {
+    url: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=2000&q=80",
+    alt: "Silky cappuccino latte art on dark surface"
+  },
+  {
+    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/3waxg6go_979C6093-B355-4F2D-95D3-FAEC4F8CEB4D.jpeg",
+    alt: "Ember Reserve — ember-lit South African evening"
+  },
+  {
+    url: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=2000&q=80",
+    alt: "Rich espresso shot pouring into a ceramic cup"
+  },
+  {
+    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg",
+    alt: "Fynbos landscape — wild South African mountains"
+  },
+  {
+    url: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=2000&q=80",
+    alt: "Barista at work — pour over in moody light"
+  },
+];
 
 // South African Landscape Images for Story Carousel
 const LANDSCAPE_IMAGES = [
@@ -51,6 +76,7 @@ const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [heroImageIndex, setHeroImageIndex] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [testimonials, setTestimonials] = useState([]);
 
@@ -66,7 +92,7 @@ const HomePage = () => {
     const preload = document.createElement('link');
     preload.rel = 'preload';
     preload.as = 'image';
-    preload.href = HERO_IMAGE;
+    preload.href = HERO_IMAGES[0].url;
     document.head.appendChild(preload);
 
     return () => {
@@ -74,7 +100,15 @@ const HomePage = () => {
     };
   }, []);
 
-  // Auto-rotate carousel every 5 seconds
+  // Auto-rotate hero slideshow every 6 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroImageIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto-rotate story carousel every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % LANDSCAPE_IMAGES.length);
@@ -146,11 +180,38 @@ const HomePage = () => {
     return (
       <div className="min-h-screen bg-[#FDFBF7]">
         <section className="relative min-h-screen flex items-center" data-testid="hero-section">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url('${HERO_IMAGE}')` }}
-          >
-            <div className="absolute inset-0 hero-overlay" />
+          {/* Crossfading hero slideshow */}
+          <div className="absolute inset-0 overflow-hidden">
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={heroImageIndex}
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url('${HERO_IMAGES[heroImageIndex].url}')` }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.4, ease: 'easeInOut' }}
+                aria-label={HERO_IMAGES[heroImageIndex].alt}
+              />
+            </AnimatePresence>
+            {/* Deep ember overlay for brand feel */}
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(11,7,5,0.72) 0%, rgba(44,26,18,0.55) 50%, rgba(11,7,5,0.65) 100%)' }} />
+          </div>
+
+          {/* Dot indicators */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+            {HERO_IMAGES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setHeroImageIndex(i)}
+                aria-label={`Hero slide ${i + 1}`}
+                className={`rounded-full transition-all duration-300 ${
+                  i === heroImageIndex
+                    ? 'w-6 h-2 bg-[#D05C23]'
+                    : 'w-2 h-2 bg-white/40 hover:bg-white/70'
+                }`}
+              />
+            ))}
           </div>
 
           <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">

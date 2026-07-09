@@ -62,6 +62,7 @@ services:
     restart: always
     environment:
       REACT_APP_BACKEND_URL: https://capeembercoffee.co.za
+      REACT_APP_GA4_MEASUREMENT_ID: ${REACT_APP_GA4_MEASUREMENT_ID:-}
       CI: "false"
     depends_on:
       - backend

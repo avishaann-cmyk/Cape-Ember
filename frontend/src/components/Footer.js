@@ -1,9 +1,39 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { WhatsappLogo, Envelope, MapPin, Phone, InstagramLogo, FacebookLogo } from '@phosphor-icons/react';
+import axios from 'axios';
+import { WhatsappLogo, Envelope, MapPin, Phone, InstagramLogo, FacebookLogo, TiktokLogo, XLogo } from '@phosphor-icons/react';
 const FLAME_LOGO_URL = "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/un142drw_999F77B4-7671-405E-AF3F-CE82CEBF30BF.png";
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const Footer = () => {
+  const [publicSettings, setPublicSettings] = useState({
+    contact_email: 'hello@capeembercoffee.co.za',
+    whatsapp_number: '+27810261618',
+    social_links: {
+      instagram: 'https://instagram.com/capeembercoffee',
+      facebook: 'https://facebook.com/capeembercoffee'
+    }
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await axios.get(`${API}/settings/public`);
+        setPublicSettings((prev) => ({ ...prev, ...(res.data || {}) }));
+      } catch (e) {
+        // Keep defaults if settings are not available.
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const whatsappDigits = useMemo(
+    () => String(publicSettings.whatsapp_number || '').replace(/\D/g, ''),
+    [publicSettings.whatsapp_number]
+  );
+
+  const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}` : 'https://wa.me/27810261618';
+
   return (
     <footer className="bg-[#2C1A12] text-white" data-testid="main-footer">
       {/* Main Footer */}
@@ -25,7 +55,7 @@ const Footer = () => {
             </p>
             <div className="flex gap-4">
               <a 
-                href="https://instagram.com/capeembercoffee"
+                href={publicSettings.social_links?.instagram || 'https://instagram.com/capeembercoffee'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/60 hover:text-[#C86333] transition-colors"
@@ -34,7 +64,7 @@ const Footer = () => {
                 <InstagramLogo size={22} weight="light" />
               </a>
               <a 
-                href="https://facebook.com/capeembercoffee"
+                href={publicSettings.social_links?.facebook || 'https://facebook.com/capeembercoffee'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/60 hover:text-[#C86333] transition-colors"
@@ -42,8 +72,30 @@ const Footer = () => {
               >
                 <FacebookLogo size={22} weight="light" />
               </a>
+              {publicSettings.social_links?.tiktok && (
+                <a
+                  href={publicSettings.social_links.tiktok}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/60 hover:text-[#C86333] transition-colors"
+                  aria-label="TikTok"
+                >
+                  <TiktokLogo size={22} weight="light" />
+                </a>
+              )}
+              {publicSettings.social_links?.x && (
+                <a
+                  href={publicSettings.social_links.x}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/60 hover:text-[#C86333] transition-colors"
+                  aria-label="X"
+                >
+                  <XLogo size={22} weight="light" />
+                </a>
+              )}
               <a 
-                href="https://wa.me/27810261618"
+                href={whatsappHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/60 hover:text-[#25D366] transition-colors"
@@ -109,20 +161,20 @@ const Footer = () => {
             <ul className="space-y-4">
               <li>
                 <a 
-                  href="mailto:hello@capeembercoffee.co.za" 
+                  href={`mailto:${publicSettings.contact_email || 'hello@capeembercoffee.co.za'}`} 
                   className="flex items-center gap-3 text-white/60 hover:text-[#C86333] transition-colors text-sm group"
                 >
                   <Envelope size={18} weight="light" className="group-hover:text-[#C86333]" />
-                  hello@capeembercoffee.co.za
+                  {publicSettings.contact_email || 'hello@capeembercoffee.co.za'}
                 </a>
               </li>
               <li>
                 <a 
-                  href="tel:+27810261618" 
+                  href={`tel:${publicSettings.whatsapp_number || '+27810261618'}`} 
                   className="flex items-center gap-3 text-white/60 hover:text-[#C86333] transition-colors text-sm group"
                 >
                   <Phone size={18} weight="light" className="group-hover:text-[#C86333]" />
-                  +27 81 026 1618
+                  {publicSettings.whatsapp_number || '+27 81 026 1618'}
                 </a>
               </li>
               <li className="flex items-start gap-3 text-white/60 text-sm">
@@ -133,7 +185,7 @@ const Footer = () => {
 
             {/* WhatsApp CTA */}
             <a 
-              href="https://wa.me/27810261618"
+              href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 mt-6 px-4 py-2 bg-[#25D366] hover:bg-[#20BD5A] text-white text-sm font-medium transition-colors"

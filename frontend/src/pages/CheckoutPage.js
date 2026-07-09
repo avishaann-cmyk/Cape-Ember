@@ -8,8 +8,18 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthModal from '../components/AuthModal';
 import { computeCartTotals } from '../lib/cartTotals';
 import { setPageSEO } from '../lib/seo';
+import { trackEvent } from '../lib/analytics';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const getSessionId = () => {
+  let sessionId = localStorage.getItem('guest_session_id');
+  if (!sessionId) {
+    sessionId = `guest_${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`;
+    localStorage.setItem('guest_session_id', sessionId);
+  }
+  return sessionId;
+};
 
 // Province options
 const PROVINCES = [
@@ -132,39 +142,64 @@ const CheckoutPage = () => {
     setError('');
 
     try {
-      // Create order
-      const orderPayload = {
-        shipping_address: address,
-        is_subscription: isSubscription,
-        subscription_frequency: isSubscription ? subscriptionFrequency : null,
+      await trackEvent('begin_checkout', {
+        items_count: cart.items?.length || 0,
+        subtotal,
+        total,
+        is_guest: !isAuthenticated,
+        is_subscription: isSubscription
+      });
+
+      const token = localStorage.getItem('token');
+      const headers = token
+        ? { Authorization: `Bearer ${token}` }
+        : { 'X-Session-ID': getSessionId() };
+
+      const checkoutPayload = {
+        shipping: {
+          method: 'standard',
+          address,
+          notes: orderNotes || null
+        },
+        billing: {
+          same_as_shipping: true,
+          address: null
+        },
         payment_method: 'payfast',
-        order_notes: orderNotes || null,
-        guest_email: guestCheckout ? guestEmail : null
+        coupon_code: cart.coupon_code || null,
+        is_guest: !isAuthenticated,
+        guest_email: isAuthenticated ? null : guestEmail,
+        is_subscription: isSubscription
       };
 
-      const orderRes = await axios.post(`${API}/orders`, orderPayload);
-      const { order_id, whatsapp_link } = orderRes.data;
+      const checkoutRes = await axios.post(`${API}/checkout`, checkoutPayload, { headers });
+      const { payment, total: payableTotal, order_id } = checkoutRes.data;
 
-      // Store for after payment
-      localStorage.setItem('whatsapp_link', whatsapp_link);
+      if (!payment || payment.method !== 'payfast' || !payment.host || !payment.fields) {
+        throw new Error('Unexpected payment response');
+      }
+
+      // Keep order reference available for post-payment success handling.
       localStorage.setItem('order_id', order_id);
-
-      // Create PayFast payment
-      const paymentRes = await axios.post(`${API}/payfast/create-payment`, { order_id });
-      const { payfast_host, fields } = paymentRes.data;
 
       // Create and submit PayFast form
       const form = document.createElement('form');
       form.method = 'POST';
-      form.action = `https://${payfast_host}/eng/process`;
+      form.action = `https://${payment.host}/eng/process`;
 
-      Object.entries(fields).forEach(([key, value]) => {
+      Object.entries(payment.fields).forEach(([key, value]) => {
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = key;
         input.value = value;
         form.appendChild(input);
       });
+
+      // Guard against any client/server drift before redirecting.
+      const submittedAmount = Number(payment.fields.amount || 0);
+      if (Math.abs(submittedAmount - Number(payableTotal || total)) > 0.01) {
+        throw new Error('Payment amount mismatch. Please refresh your cart and try again.');
+      }
 
       document.body.appendChild(form);
       form.submit();
@@ -674,7 +709,7 @@ const CheckoutPage = () => {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-[#6B5048]">
                   <Truck size={16} className="text-[#D05C23]" />
-                  Freshly roasted within 48 hours of your order
+                  Small-batch roasted by trusted partners
                 </div>
               </div>
 

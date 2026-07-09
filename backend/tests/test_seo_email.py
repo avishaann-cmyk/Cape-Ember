@@ -37,7 +37,7 @@ class TestSEOLocalBackend:
         assert "application/xml" in r.headers.get("content-type", "")
         assert r.text.startswith("<?xml")
         # Must contain product URLs
-        assert "/product/" in r.text
+        assert "/products/" in r.text
         # Must list core pages
         for path in ["/shop", "/about", "/subscriptions", "/brew-guide"]:
             assert f"{path}<" in r.text or f"{path}</loc" in r.text, f"sitemap missing {path}"
@@ -52,7 +52,7 @@ class TestSEOLocalBackend:
         r = requests.get(f"{LOCAL_BASE}/robots.txt", timeout=10)
         assert r.status_code == 200
         assert "text/plain" in r.headers.get("content-type", "")
-        for token in ["User-agent: *", "Allow: /", "Disallow: /admin/", "Disallow: /api/", "Sitemap:"]:
+        for token in ["User-agent: *", "Allow: /", "Disallow: /admin/", "Disallow: /api/", "Disallow: /cdn", "Sitemap:"]:
             assert token in r.text, f"robots.txt missing token: {token!r}"
 
 

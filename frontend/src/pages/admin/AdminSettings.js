@@ -34,7 +34,13 @@ const AdminSettings = () => {
       ...form,
       shipping_fee: Number(form.shipping_fee || 0),
       free_shipping_threshold: Number(form.free_shipping_threshold || 0),
-      vat_rate: Number(form.vat_rate || 0)
+      vat_rate: Number(form.vat_rate || 0),
+      social_links: {
+        instagram: form.social_links?.instagram || '',
+        facebook: form.social_links?.facebook || '',
+        tiktok: form.social_links?.tiktok || '',
+        x: form.social_links?.x || ''
+      }
     }, { headers: { Authorization: `Bearer ${token}` } });
     setMessage('Settings saved');
     setTimeout(() => setMessage(''), 2500);
@@ -54,6 +60,10 @@ const AdminSettings = () => {
           <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Store name" value={form.store_name || ''} onChange={(e) => setForm({ ...form, store_name: e.target.value })} />
           <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Contact email" value={form.contact_email || ''} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} />
           <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="WhatsApp number" value={form.whatsapp_number || ''} onChange={(e) => setForm({ ...form, whatsapp_number: e.target.value })} />
+          <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Instagram URL" value={form.social_links?.instagram || ''} onChange={(e) => setForm({ ...form, social_links: { ...(form.social_links || {}), instagram: e.target.value } })} />
+          <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Facebook URL" value={form.social_links?.facebook || ''} onChange={(e) => setForm({ ...form, social_links: { ...(form.social_links || {}), facebook: e.target.value } })} />
+          <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="TikTok URL" value={form.social_links?.tiktok || ''} onChange={(e) => setForm({ ...form, social_links: { ...(form.social_links || {}), tiktok: e.target.value } })} />
+          <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="X / Twitter URL" value={form.social_links?.x || ''} onChange={(e) => setForm({ ...form, social_links: { ...(form.social_links || {}), x: e.target.value } })} />
           <input type="number" className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Shipping fee" value={form.shipping_fee || ''} onChange={(e) => setForm({ ...form, shipping_fee: e.target.value })} />
           <input type="number" className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Free shipping threshold" value={form.free_shipping_threshold || ''} onChange={(e) => setForm({ ...form, free_shipping_threshold: e.target.value })} />
           <input type="number" step="0.01" className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="VAT rate" value={form.vat_rate || ''} onChange={(e) => setForm({ ...form, vat_rate: e.target.value })} />

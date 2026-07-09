@@ -4,6 +4,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Chromium is required for react-snap prerendering.
+RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
+
 # Copy package files
 COPY package.json yarn.lock ./
 
@@ -14,7 +17,8 @@ RUN yarn install --frozen-lockfile
 COPY . .
 
 # Build application
-RUN yarn build
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+RUN yarn build:prerender || yarn build
 
 # Production stage
 FROM node:20-alpine

@@ -15,9 +15,9 @@ export const computeCartTotals = (cart, rules = DEFAULT_CART_RULES) => {
     cart?.shipping ?? (subtotal >= rules.freeShippingThreshold ? 0 : rules.shippingCost)
   );
 
-  const totalBeforeVatExtraction = subtotal - discount + shipping;
-  const vat = Number(cart?.vat ?? (totalBeforeVatExtraction * rules.vatRate / (1 + rules.vatRate)));
-  const total = Number(cart?.total ?? totalBeforeVatExtraction);
+  const taxableAmount = subtotal - discount + shipping;
+  const vat = Number(cart?.vat ?? (taxableAmount * rules.vatRate));
+  const total = Number(cart?.total ?? (taxableAmount + vat));
 
   return {
     subtotal,

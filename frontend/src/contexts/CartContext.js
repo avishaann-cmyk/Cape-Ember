@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { trackEvent } from '../lib/analytics';
 
 const CartContext = createContext(null);
 
@@ -61,6 +62,13 @@ export const CartProvider = ({ children }) => {
       await axios.post(`${API}/cart/add`, payload, {
         headers: getAuthHeaders()
       });
+
+      await trackEvent('add_to_cart', {
+        product_id: productId,
+        variant_id: variantId,
+        quantity
+      });
+
       await fetchCart();
       return true;
     } catch (error) {
@@ -100,7 +108,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = async () => {
     try {
-      await axios.delete(`${API}/cart/clear`, {
+      await axios.delete(`${API}/cart`, {
         headers: getAuthHeaders()
       });
       await fetchCart();

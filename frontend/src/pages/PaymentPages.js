@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, MessageCircle } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { trackEvent } from '../lib/analytics';
 
 const PaymentSuccessPage = () => {
   const [searchParams] = useSearchParams();
@@ -12,6 +13,10 @@ const PaymentSuccessPage = () => {
   useEffect(() => {
     // Refresh cart after successful payment
     refreshCart();
+
+    trackEvent('purchase', {
+      order_id: orderId || null
+    });
     
     // Get whatsapp link
     const link = localStorage.getItem('whatsapp_link');
@@ -22,7 +27,7 @@ const PaymentSuccessPage = () => {
     // Clean up
     localStorage.removeItem('whatsapp_link');
     localStorage.removeItem('order_id');
-  }, [refreshCart]);
+  }, [refreshCart, orderId]);
 
   return (
     <div className="min-h-screen pt-20 md:pt-24 flex items-center justify-center">
@@ -80,6 +85,12 @@ const PaymentSuccessPage = () => {
 const PaymentCancelPage = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('order_id');
+
+  useEffect(() => {
+    trackEvent('payment_cancelled', {
+      order_id: orderId || null
+    });
+  }, [orderId]);
 
   return (
     <div className="min-h-screen pt-20 md:pt-24 flex items-center justify-center">

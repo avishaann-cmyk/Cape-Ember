@@ -3,7 +3,7 @@ Cape Ember Coffee Co. - Production E-commerce Backend
 Enterprise-grade e-commerce platform with PayFast & Stitch Payments
 """
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, Body, BackgroundTasks, Header
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -462,6 +462,15 @@ class ProductFilter(BaseModel):
     max_price: Optional[float] = None
     in_stock: Optional[bool] = None
     tags: List[str] = []
+
+
+class AnalyticsEventIn(BaseModel):
+    event_name: str
+    anonymous_id: Optional[str] = None
+    session_id: Optional[str] = None
+    page_path: Optional[str] = None
+    referrer: Optional[str] = None
+    params: Dict[str, Any] = {}
 
 
 # Admin Models
@@ -1523,32 +1532,6 @@ PRODUCTS = [
         "is_featured": True,
         "is_bundle": False
     },
-    {
-        "id": "landscape-bundle",
-        "name": "Landscape Range Bundle",
-        "slug": "landscape-bundle",
-        "description": "Experience the complete Cape Ember journey with all four signature blends — from the wild fynbos of the Cape Peninsula to the vast plains of the Karoo. Each blend captures a different South African landscape, offering a unique coffee experience in every bag. The perfect way to discover your favourite or share with someone special.",
-        "short_description": "Complete collection of all four blends",
-        "category": ProductCategory.GIFT_BOXES,
-        "roast_level": None,
-        "origin": "South African Roasted",
-        "strength": None,
-        "flavor_notes": "Complete Collection · 4 x 250g",
-        "tasting_notes": [],
-        "brewing_methods": [],
-        "images": [
-            {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/2yv1tstu_0028652C-25DC-4D60-B03B-3259460E5E93.jpeg", "alt": "Landscape Bundle", "is_primary": True, "sort_order": 0}
-        ],
-        "variants": [
-            {"id": "bundle-whole", "name": "4 x 250g Whole Bean", "sku": "GB-LAND-4X250W", "price": 599.00, "compare_at_price": 626.00, "grind": GrindType.WHOLE_BEAN, "weight": "4 x 250g", "stock_quantity": 15},
-            {"id": "bundle-ground", "name": "4 x 250g Ground", "sku": "GB-LAND-4X250G", "price": 599.00, "compare_at_price": 626.00, "grind": GrindType.MEDIUM, "weight": "4 x 250g", "stock_quantity": 10}
-        ],
-        "tags": ["bundle", "gift", "value", "complete-collection"],
-        "is_active": True,
-        "is_featured": True,
-        "is_bundle": True,
-        "bundle_items": ["fynbos-roast", "garden-route", "ember-reserve", "karoo-horizon"]
-    }
 ]
 
 PRODUCTS_MAP = {p["id"]: p for p in PRODUCTS}
@@ -2012,8 +1995,9 @@ def calculate_cart_totals(items: list, coupon: Optional[dict] = None, shipping_c
             discount = min(coupon["discount_value"], subtotal)
     
     discounted_subtotal = subtotal - discount
-    total = discounted_subtotal + shipping_cost
-    vat = calculate_vat(total)
+    taxable_amount = discounted_subtotal + shipping_cost
+    vat = round(taxable_amount * VAT_RATE, 2)
+    total = taxable_amount + vat
     
     return {
         "subtotal": round(subtotal, 2),
@@ -2387,8 +2371,13 @@ async def create_checkout(
         checkout.is_subscription
     )
     
-    vat = calculate_vat(subtotal - discount + shipping_cost)
-    total = subtotal - discount + shipping_cost
+    totals = calculate_cart_totals(
+        [{"price": item["price"], "quantity": item["quantity"]} for item in order_items],
+        coupon,
+        shipping_cost
+    )
+    vat = totals["vat"]
+    total = totals["total"]
     
     if total < 5.0:
         raise HTTPException(status_code=400, detail="Minimum order amount is R5.00")
@@ -2404,10 +2393,10 @@ async def create_checkout(
         "user_id": user_id,
         "guest_email": checkout.guest_email if not user_id else None,
         "items": order_items,
-        "subtotal": round(subtotal, 2),
-        "discount": round(discount, 2),
+        "subtotal": totals["subtotal"],
+        "discount": totals["discount"],
         "shipping_cost": round(shipping_cost, 2),
-        "vat": round(vat, 2),
+        "vat": vat,
         "total": round(total, 2),
         "status": OrderStatus.PENDING_PAYMENT,
         "payment_status": PaymentStatus.PENDING,
@@ -3225,6 +3214,30 @@ async def create_subscription_request(
     background_tasks.add_task(send_subscription_request_emails, doc)
 
     return {"message": "Subscription request submitted", "id": subscription_id}
+
+
+@api_router.post("/analytics/event")
+async def ingest_analytics_event(event: AnalyticsEventIn, request: Request):
+    """Ingest first-party analytics events from the storefront."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    client_ip = forwarded_for.split(",")[0].strip() if forwarded_for else (request.client.host if request.client else "")
+
+    event_doc = {
+        "_id": str(uuid.uuid4()),
+        "event_name": event.event_name[:64],
+        "anonymous_id": (event.anonymous_id or "")[:128],
+        "session_id": (event.session_id or "")[:128],
+        "page_path": (event.page_path or "")[:255],
+        "referrer": (event.referrer or "")[:1024],
+        "params": event.params or {},
+        "user_agent": request.headers.get("user-agent", "")[:512],
+        "ip": client_ip,
+        "created_at": now_iso
+    }
+
+    await db.analytics_events.insert_one(event_doc)
+    return {"message": "Event captured"}
 
 
 @api_router.get("/subscriptions")
@@ -4188,6 +4201,285 @@ async def get_admin_reports(
     }
 
 
+@api_router.get("/admin/traffic")
+async def get_admin_traffic_insights(
+    admin: dict = Depends(get_admin_user),
+    range_days: int = 30
+):
+    """Aggregate first-party website traffic analytics for admin insights."""
+    def classify_channel(source: str, medium: str, referrer: str) -> str:
+        src = (source or "").lower()
+        med = (medium or "").lower()
+        ref = (referrer or "").lower()
+
+        if med in ["paid_social", "social_paid", "cpc_social"]:
+            return "Paid Social"
+        if med in ["social", "organic_social"]:
+            return "Organic Social"
+        if med in ["cpc", "ppc", "paid_search", "sem"]:
+            return "Paid Search"
+        if med in ["email", "newsletter", "edm"]:
+            return "Email"
+        if med in ["affiliate", "affiliates"]:
+            return "Affiliate"
+        if med in ["display", "banner", "programmatic"]:
+            return "Display"
+        if med in ["sms", "whatsapp", "messaging"]:
+            return "Messaging"
+        if med == "referral":
+            return "Referral"
+        if med == "organic":
+            return "Organic Search"
+
+        if src in ["google", "bing", "yahoo", "duckduckgo"] or any(s in ref for s in ["google.", "bing.", "yahoo.", "duckduckgo."]):
+            return "Organic Search"
+        if src in ["facebook", "instagram", "meta", "tiktok", "x", "twitter", "linkedin", "youtube"]:
+            return "Organic Social"
+        if src in ["direct", "(direct)", ""] and (ref in ["", "direct"]):
+            return "Direct"
+        if ref not in ["", "direct"]:
+            return "Referral"
+        return "Other"
+
+    range_days = max(1, min(range_days, 90))
+    now = datetime.now(timezone.utc)
+    start_dt = (now - timedelta(days=range_days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    start_iso = start_dt.isoformat()
+
+    events = await db.analytics_events.find({"created_at": {"$gte": start_iso}}).to_list(None)
+
+    day_map: Dict[str, Dict[str, Any]] = {}
+    page_counter: Dict[str, int] = {}
+    referrer_counter: Dict[str, int] = {}
+    campaign_counter: Dict[str, int] = {}
+    campaign_channel_map: Dict[str, str] = {}
+    source_counter: Dict[str, int] = {}
+    channel_counter: Dict[str, int] = {}
+    event_counter: Dict[str, int] = {}
+    unique_visitors = set()
+    unique_sessions = set()
+
+    for event in events:
+        created_at = str(event.get("created_at", ""))
+        day_key = created_at[:10] if len(created_at) >= 10 else now.strftime("%Y-%m-%d")
+        bucket = day_map.setdefault(day_key, {
+            "date": day_key,
+            "page_views": 0,
+            "unique_visitors": set(),
+            "sessions": set(),
+            "add_to_cart": 0,
+            "begin_checkout": 0,
+            "purchase": 0
+        })
+
+        event_name = str(event.get("event_name", "unknown"))
+        event_counter[event_name] = event_counter.get(event_name, 0) + 1
+
+        anon_id = event.get("anonymous_id") or ""
+        session_id = event.get("session_id") or ""
+        if anon_id:
+            bucket["unique_visitors"].add(anon_id)
+            unique_visitors.add(anon_id)
+        if session_id:
+            bucket["sessions"].add(session_id)
+            unique_sessions.add(session_id)
+
+        if event_name == "page_view":
+            bucket["page_views"] += 1
+            params = event.get("params") if isinstance(event.get("params"), dict) else {}
+            page_path = event.get("page_path") or params.get("path") or "/"
+            page_counter[page_path] = page_counter.get(page_path, 0) + 1
+
+            raw_referrer = event.get("referrer") or params.get("referrer") or ""
+            if raw_referrer:
+                parsed = urllib.parse.urlparse(raw_referrer)
+                normalized_referrer = parsed.netloc or raw_referrer
+            else:
+                normalized_referrer = "direct"
+            referrer_counter[normalized_referrer] = referrer_counter.get(normalized_referrer, 0) + 1
+
+            utm_source = (params.get("utm_source") or "").strip()
+            utm_medium = (params.get("utm_medium") or "").strip()
+            utm_campaign = (params.get("utm_campaign") or "").strip()
+
+            source = utm_source or normalized_referrer or "direct"
+            medium = utm_medium or ("organic" if normalized_referrer not in ["", "direct"] else "direct")
+            campaign = utm_campaign or "(not set)"
+            channel = classify_channel(source, medium, normalized_referrer)
+            campaign_key = f"{source}|{medium}|{campaign}"
+
+            campaign_counter[campaign_key] = campaign_counter.get(campaign_key, 0) + 1
+            if campaign_key not in campaign_channel_map:
+                campaign_channel_map[campaign_key] = channel
+            source_counter[source] = source_counter.get(source, 0) + 1
+            channel_counter[channel] = channel_counter.get(channel, 0) + 1
+        elif event_name == "add_to_cart":
+            bucket["add_to_cart"] += 1
+        elif event_name == "begin_checkout":
+            bucket["begin_checkout"] += 1
+        elif event_name == "purchase":
+            bucket["purchase"] += 1
+
+    daily = []
+    for offset in range(range_days):
+        day = (start_dt + timedelta(days=offset)).strftime("%Y-%m-%d")
+        source = day_map.get(day, {
+            "date": day,
+            "page_views": 0,
+            "unique_visitors": set(),
+            "sessions": set(),
+            "add_to_cart": 0,
+            "begin_checkout": 0,
+            "purchase": 0
+        })
+        daily.append({
+            "date": day,
+            "page_views": source["page_views"],
+            "unique_visitors": len(source["unique_visitors"]),
+            "sessions": len(source["sessions"]),
+            "add_to_cart": source["add_to_cart"],
+            "begin_checkout": source["begin_checkout"],
+            "purchase": source["purchase"]
+        })
+
+    total_page_views = sum(day["page_views"] for day in daily)
+    total_add_to_cart = sum(day["add_to_cart"] for day in daily)
+    total_begin_checkout = sum(day["begin_checkout"] for day in daily)
+    total_purchase = sum(day["purchase"] for day in daily)
+
+    top_pages = [
+        {"path": path, "views": views}
+        for path, views in sorted(page_counter.items(), key=lambda item: item[1], reverse=True)[:10]
+    ]
+    top_referrers = [
+        {"referrer": referrer, "visits": visits}
+        for referrer, visits in sorted(referrer_counter.items(), key=lambda item: item[1], reverse=True)[:10]
+    ]
+    top_sources = [
+        {"source": source, "visits": visits}
+        for source, visits in sorted(source_counter.items(), key=lambda item: item[1], reverse=True)[:10]
+    ]
+    top_channels = [
+        {"channel": channel, "visits": visits}
+        for channel, visits in sorted(channel_counter.items(), key=lambda item: item[1], reverse=True)[:10]
+    ]
+    top_campaigns = []
+    for key, visits in sorted(campaign_counter.items(), key=lambda item: item[1], reverse=True)[:10]:
+        source, medium, campaign = key.split("|", 2)
+        top_campaigns.append({
+            "source": source,
+            "medium": medium,
+            "campaign": campaign,
+            "channel": campaign_channel_map.get(key, "Other"),
+            "visits": visits
+        })
+    events_breakdown = [
+        {"event_name": name, "count": count}
+        for name, count in sorted(event_counter.items(), key=lambda item: item[1], reverse=True)
+    ]
+
+    # ---- Web Vitals aggregation ----
+    vitals_lcp: List[float] = []
+    vitals_fcp: List[float] = []
+    vitals_cls: List[float] = []
+    vitals_ttfb: List[float] = []
+
+    for event in events:
+        if event.get("event_name") != "web_vitals":
+            continue
+        p = event.get("params") if isinstance(event.get("params"), dict) else {}
+        if isinstance(p.get("lcp_ms"), (int, float)) and p["lcp_ms"] > 0:
+            vitals_lcp.append(float(p["lcp_ms"]))
+        if isinstance(p.get("fcp_ms"), (int, float)) and p["fcp_ms"] > 0:
+            vitals_fcp.append(float(p["fcp_ms"]))
+        if isinstance(p.get("cls"), (int, float)) and p["cls"] >= 0:
+            vitals_cls.append(float(p["cls"]))
+        if isinstance(p.get("ttfb_ms"), (int, float)) and p["ttfb_ms"] > 0:
+            vitals_ttfb.append(float(p["ttfb_ms"]))
+
+    def p75(lst: List[float]) -> float:
+        if not lst:
+            return 0.0
+        lst_sorted = sorted(lst)
+        idx = int(len(lst_sorted) * 0.75)
+        return round(lst_sorted[min(idx, len(lst_sorted) - 1)], 1)
+
+    def avg(lst: List[float]) -> float:
+        return round(sum(lst) / len(lst), 1) if lst else 0.0
+
+    def score_lcp(ms: float) -> str:
+        if ms == 0:
+            return "no data"
+        return "good" if ms <= 2500 else "needs-improvement" if ms <= 4000 else "poor"
+
+    def score_fcp(ms: float) -> str:
+        if ms == 0:
+            return "no data"
+        return "good" if ms <= 1800 else "needs-improvement" if ms <= 3000 else "poor"
+
+    def score_cls(val: float) -> str:
+        if val == 0 and not vitals_cls:
+            return "no data"
+        return "good" if val <= 0.1 else "needs-improvement" if val <= 0.25 else "poor"
+
+    def score_ttfb(ms: float) -> str:
+        if ms == 0:
+            return "no data"
+        return "good" if ms <= 800 else "needs-improvement" if ms <= 1800 else "poor"
+
+    lcp_p75 = p75(vitals_lcp)
+    fcp_p75 = p75(vitals_fcp)
+    cls_avg = avg(vitals_cls)
+    ttfb_p75 = p75(vitals_ttfb)
+
+    web_vitals = {
+        "sample_count": len(vitals_lcp),
+        "lcp_ms_p75": lcp_p75,
+        "lcp_rating": score_lcp(lcp_p75),
+        "fcp_ms_p75": fcp_p75,
+        "fcp_rating": score_fcp(fcp_p75),
+        "cls_avg": round(cls_avg, 4),
+        "cls_rating": score_cls(cls_avg),
+        "ttfb_ms_p75": ttfb_p75,
+        "ttfb_rating": score_ttfb(ttfb_p75)
+    }
+
+    # ---- Funnel conversion rates ----
+    add_to_cart_rate = round((total_add_to_cart / total_page_views) * 100, 2) if total_page_views else 0
+    checkout_rate = round((total_begin_checkout / total_add_to_cart) * 100, 2) if total_add_to_cart else 0
+    purchase_rate = round((total_purchase / total_begin_checkout) * 100, 2) if total_begin_checkout else 0
+
+    return {
+        "range_days": range_days,
+        "overview": {
+            "page_views": total_page_views,
+            "unique_visitors": len(unique_visitors),
+            "sessions": len(unique_sessions),
+            "add_to_cart": total_add_to_cart,
+            "begin_checkout": total_begin_checkout,
+            "purchase": total_purchase,
+            "purchase_conversion_rate": round((total_purchase / total_page_views) * 100, 2) if total_page_views else 0
+        },
+        "funnel": {
+            "page_views": total_page_views,
+            "add_to_cart": total_add_to_cart,
+            "begin_checkout": total_begin_checkout,
+            "purchase": total_purchase,
+            "add_to_cart_rate": add_to_cart_rate,
+            "checkout_rate": checkout_rate,
+            "purchase_rate": purchase_rate
+        },
+        "web_vitals": web_vitals,
+        "daily": daily,
+        "top_pages": top_pages,
+        "top_referrers": top_referrers,
+        "top_sources": top_sources,
+        "top_channels": top_channels,
+        "top_campaigns": top_campaigns,
+        "events": events_breakdown
+    }
+
+
 @api_router.get("/admin/settings")
 async def get_admin_settings(admin: dict = Depends(get_admin_user)):
     """Get store settings."""
@@ -4211,6 +4503,30 @@ async def get_admin_settings(admin: dict = Depends(get_admin_user)):
     settings.pop("_id", None)
     settings["resend_configured"] = resend_is_configured()
     return settings
+
+
+@api_router.get("/settings/public")
+async def get_public_settings():
+    """Get public-safe store settings for storefront contact/social links."""
+    settings = await db.settings.find_one({"_id": "store"}) or {
+        "store_name": "Cape Ember Coffee Co.",
+        "contact_email": "hello@capeembercoffee.co.za",
+        "whatsapp_number": "+27810261618",
+        "social_links": {
+            "instagram": "https://instagram.com/capeembercoffee",
+            "facebook": "https://facebook.com/capeembercoffee"
+        }
+    }
+
+    return {
+        "store_name": settings.get("store_name", "Cape Ember Coffee Co."),
+        "contact_email": settings.get("contact_email", "hello@capeembercoffee.co.za"),
+        "whatsapp_number": settings.get("whatsapp_number", "+27810261618"),
+        "social_links": settings.get("social_links", {
+            "instagram": "https://instagram.com/capeembercoffee",
+            "facebook": "https://facebook.com/capeembercoffee"
+        })
+    }
 
 
 @api_router.put("/admin/settings")
@@ -4428,6 +4744,11 @@ async def startup_event():
         )
         logger.info(f"Updated admin user password: {admin_email}")
 
+    # Indexes for fast traffic analytics queries
+    await db.analytics_events.create_index([("created_at", -1)])
+    await db.analytics_events.create_index([("event_name", 1), ("created_at", -1)])
+    await db.analytics_events.create_index([("anonymous_id", 1), ("created_at", -1)])
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
@@ -4446,6 +4767,7 @@ Disallow: /cart
 Disallow: /checkout
 Disallow: /account
 Disallow: /api/
+Disallow: /cdn
 
 Sitemap: https://capeembercoffee.co.za/sitemap.xml
 """
@@ -4464,13 +4786,13 @@ async def sitemap_xml():
         {"loc": f"{base_url}/about", "changefreq": "monthly", "priority": "0.7"},
         {"loc": f"{base_url}/contact", "changefreq": "monthly", "priority": "0.7"},
         {"loc": f"{base_url}/subscriptions", "changefreq": "weekly", "priority": "0.8"},
-        {"loc": f"{base_url}/cart", "changefreq": "weekly", "priority": "0.5"},
-        {"loc": f"{base_url}/checkout", "changefreq": "weekly", "priority": "0.5"},
         {"loc": f"{base_url}/brew-guide", "changefreq": "monthly", "priority": "0.6"},
     ]
     
     # Add product pages
     for product in PRODUCTS:
+        if product.get("is_bundle"):
+            continue
         urls.append({
             "loc": f"{base_url}/products/{product['slug']}",
             "changefreq": "weekly",
@@ -4491,4 +4813,14 @@ async def sitemap_xml():
     xml_content += '</urlset>'
     
     return Response(content=xml_content, media_type="application/xml")
+
+
+@app.get("/cdn")
+async def redirect_cdn_root():
+    return RedirectResponse(url="/", status_code=301)
+
+
+@app.get("/cdn/{path:path}")
+async def redirect_cdn_path(path: str):
+    return RedirectResponse(url="/", status_code=301)
 

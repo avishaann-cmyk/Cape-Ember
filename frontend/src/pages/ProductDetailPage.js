@@ -241,6 +241,18 @@ const ProductDetailPage = () => {
   const currentPrice = selectedVariant?.price || product.price;
   const stockQuantity = selectedVariant?.stock_quantity ?? product.stock_quantity ?? 50;
   const inStock = stockQuantity > 0;
+  const currentWeight = selectedVariant?.weight || product.variants?.[0]?.weight || '250g';
+  const roastLabel = (product.roast_level || 'medium')
+    .toString()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+  const tastingSummary = product.tasting_notes?.length
+    ? product.tasting_notes.map((note) => note.note).join(', ')
+    : (product.flavor_notes || 'Smooth, balanced cup');
+  const grindOptions = product.variants?.length
+    ? product.variants.map((variant) => variant.name).join(' | ')
+    : 'Whole Bean | Ground';
 
   // Product Schema JSON-LD for SEO
   const productSchema = {
@@ -373,6 +385,44 @@ const ProductDetailPage = () => {
             <p className="text-[#6B5048] leading-relaxed mb-6">
               {product.description}
             </p>
+
+            {/* Product Specs */}
+            <div className="mb-6 border border-[#E6DCD1] bg-[#F9F5EE] p-4 space-y-2" data-testid="product-specs">
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-[#6B5048]">Price</span>
+                <span className="text-[#2C1A12] font-medium">R {currentPrice.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-[#6B5048]">Weight</span>
+                <span className="text-[#2C1A12] font-medium">{currentWeight}</span>
+              </div>
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-[#6B5048]">Roast Level</span>
+                <span className="text-[#2C1A12] font-medium">{roastLabel} Roast</span>
+              </div>
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-[#6B5048]">Tasting Notes</span>
+                <span className="text-[#2C1A12] font-medium text-right">{tastingSummary}</span>
+              </div>
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-[#6B5048]">Grind Options</span>
+                <span className="text-[#2C1A12] font-medium text-right">{grindOptions}</span>
+              </div>
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-[#6B5048]">Stock Status</span>
+                <span className={`font-medium ${inStock ? 'text-[#2F855A]' : 'text-[#C53030]'}`}>
+                  {inStock ? `In stock (${stockQuantity} available)` : 'Out of stock'}
+                </span>
+              </div>
+              <div className="pt-2 border-t border-[#E6DCD1] text-sm text-[#6B5048]">
+                Shipping Note: Nationwide shipping across South Africa. Free shipping on orders over R399.
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h2 className="text-sm tracking-[0.2em] uppercase text-[#6B5048] mb-2">Product Story</h2>
+              <p className="text-[#6B5048] leading-relaxed">{product.description}</p>
+            </div>
 
             {/* Variants Selection */}
             {product.variants?.length > 0 && (

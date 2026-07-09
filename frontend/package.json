@@ -59,9 +59,9 @@
   },
   "scripts": {
     "start": "craco start",
-    "build": "craco build",
+    "build": "craco build && node scripts/seo-static-pages.js",
     "build:spa": "craco build",
-    "build:prerender": "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium craco build && react-snap",
+    "build:prerender": "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium craco build && react-snap && node scripts/seo-static-pages.js",
     "test": "craco test"
   },
   "reactSnap": {

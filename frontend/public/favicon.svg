@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="6" fill="#15110E"/>
+  <!-- Flame / ember icon built from brand colours -->
+  <path d="M16 4 C16 4 22 10 22 17 C22 20.87 19.31 24 16 24 C12.69 24 10 20.87 10 17 C10 10 16 4 16 4 Z" fill="#D05C23"/>
+  <path d="M16 12 C16 12 19 15.5 19 18.5 C19 20.43 17.66 22 16 22 C14.34 22 13 20.43 13 18.5 C13 15.5 16 12 16 12 Z" fill="#F5A623"/>
+  <circle cx="16" cy="20" r="2" fill="#FDFBF7"/>
+</svg>

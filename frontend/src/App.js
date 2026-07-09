@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import Navbar from './components/Navbar';
@@ -29,18 +29,36 @@ import AdminProducts from './pages/admin/AdminProducts';
 import AdminDeliveries from './pages/admin/AdminDeliveries';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminReports from './pages/admin/AdminReports';
+import AdminTraffic from './pages/admin/AdminTraffic';
+import AdminPerformance from './pages/admin/AdminPerformance';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminContent from './pages/admin/AdminContent';
 import AdminSubscribers from './pages/admin/AdminSubscribers';
 import AdminSubscriptions from './pages/admin/AdminSubscriptions';
 import AdminRoute from './components/admin/AdminRoute';
+import { initAnalytics, trackPageView } from './lib/analytics';
 import './index.css';
 
+const AnalyticsPageTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    trackPageView(`${location.pathname}${location.search}`);
+  }, [location.pathname, location.search]);
+
+  return null;
+};
+
 function App() {
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
   return (
     <AuthProvider>
       <CartProvider>
         <BrowserRouter>
+          <AnalyticsPageTracker />
           <div className="min-h-screen bg-[#FAFAF7] flex flex-col">
             <Navbar />
             <main className="flex-1" id="main-content">
@@ -72,6 +90,8 @@ function App() {
                 <Route path="/admin/deliveries" element={<AdminRoute><AdminDeliveries /></AdminRoute>} />
                 <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
                 <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
+                <Route path="/admin/traffic" element={<AdminRoute><AdminTraffic /></AdminRoute>} />
+                <Route path="/admin/performance" element={<AdminRoute><AdminPerformance /></AdminRoute>} />
                 <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
                 <Route path="/admin/content" element={<AdminRoute><AdminContent /></AdminRoute>} />
                 <Route path="/admin/subscribers" element={<AdminRoute><AdminSubscribers /></AdminRoute>} />

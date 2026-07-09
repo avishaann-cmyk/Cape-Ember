@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Envelope, Phone, MapPin, WhatsappLogo, InstagramLogo, FacebookLogo } from '@phosphor-icons/react';
+import { Envelope, Phone, MapPin, WhatsappLogo, InstagramLogo, FacebookLogo, TiktokLogo, XLogo } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { setPageSEO } from '../lib/seo';
@@ -16,6 +16,14 @@ const ContactPage = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const [publicSettings, setPublicSettings] = useState({
+    contact_email: 'hello@capeembercoffee.co.za',
+    whatsapp_number: '+27810261618',
+    social_links: {
+      instagram: 'https://instagram.com/capeembercoffee',
+      facebook: 'https://facebook.com/capeembercoffee'
+    }
+  });
 
   React.useEffect(() => {
     setPageSEO({
@@ -25,6 +33,21 @@ const ContactPage = () => {
       image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
     });
   }, []);
+
+  React.useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await axios.get(`${API}/settings/public`);
+        setPublicSettings((prev) => ({ ...prev, ...(res.data || {}) }));
+      } catch (e) {
+        // Keep default public contact channels if endpoint is unavailable.
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const whatsappDigits = String(publicSettings.whatsapp_number || '').replace(/\D/g, '');
+  const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}` : 'https://wa.me/27810261618';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,20 +85,20 @@ const ContactPage = () => {
     {
       icon: Envelope,
       label: 'Email',
-      value: 'hello@capeembercoffee.co.za',
-      href: 'mailto:hello@capeembercoffee.co.za'
+      value: publicSettings.contact_email || 'hello@capeembercoffee.co.za',
+      href: `mailto:${publicSettings.contact_email || 'hello@capeembercoffee.co.za'}`
     },
     {
       icon: WhatsappLogo,
       label: 'WhatsApp',
-      value: '+27 (0)81 026 1618',
-      href: 'https://wa.me/27810261618'
+      value: publicSettings.whatsapp_number || '+27 (0)81 026 1618',
+      href: whatsappHref
     },
     {
       icon: Phone,
       label: 'Phone',
-      value: '+27 (0)81 026 1618',
-      href: 'tel:+27810261618'
+      value: publicSettings.whatsapp_number || '+27 (0)81 026 1618',
+      href: `tel:${publicSettings.whatsapp_number || '+27810261618'}`
     },
     {
       icon: MapPin,
@@ -86,10 +109,12 @@ const ContactPage = () => {
   ];
 
   const socialLinks = [
-    { icon: InstagramLogo, href: 'https://instagram.com/capeembercoffee', label: 'Instagram' },
-    { icon: FacebookLogo, href: 'https://facebook.com/capeembercoffee', label: 'Facebook' },
-    { icon: WhatsappLogo, href: 'https://wa.me/27810261618', label: 'WhatsApp' }
-  ];
+    { icon: InstagramLogo, href: publicSettings.social_links?.instagram || 'https://instagram.com/capeembercoffee', label: 'Instagram' },
+    { icon: FacebookLogo, href: publicSettings.social_links?.facebook || 'https://facebook.com/capeembercoffee', label: 'Facebook' },
+    { icon: TiktokLogo, href: publicSettings.social_links?.tiktok || '', label: 'TikTok' },
+    { icon: XLogo, href: publicSettings.social_links?.x || '', label: 'X' },
+    { icon: WhatsappLogo, href: whatsappHref, label: 'WhatsApp' }
+  ].filter((link) => Boolean(link.href));
 
   return (
     <div className="min-h-screen pt-20 md:pt-24 bg-[#FDFBF7]">

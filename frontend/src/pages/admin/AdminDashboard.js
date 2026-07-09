@@ -118,6 +118,8 @@ const AdminDashboard = () => {
             { icon: Truck, label: 'Deliveries', href: '/admin/deliveries', color: 'bg-cyan-600' },
             { icon: Star, label: 'Reviews', href: '/admin/reviews', color: 'bg-amber-500' },
             { icon: ChartLineUp, label: 'Reports', href: '/admin/reports', color: 'bg-emerald-600' },
+            { icon: ChartLineUp, label: 'Traffic', href: '/admin/traffic', color: 'bg-teal-700' },
+            { icon: ChartLineUp, label: 'Performance', href: '/admin/performance', color: 'bg-indigo-700' },
             { icon: Gear, label: 'Settings', href: '/admin/settings', color: 'bg-gray-700' },
             { icon: NotePencil, label: 'Content', href: '/admin/content', color: 'bg-[#6F7A52]' },
             { icon: EnvelopeSimple, label: 'Subscribers', href: '/admin/subscribers', color: 'bg-[#B56A35]' },
