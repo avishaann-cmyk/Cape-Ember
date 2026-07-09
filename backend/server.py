@@ -62,8 +62,8 @@ EMAIL_FROM = os.environ.get('EMAIL_FROM', 'orders@capeembercoffee.co.za')
 ADMIN_NOTIFICATION_EMAIL = os.environ.get('ADMIN_NOTIFICATION_EMAIL', 'hello@capeembercoffee.co.za')
 
 # URLs
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://axis-creator.preview.emergentagent.com')
-BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://axis-creator.preview.emergentagent.com')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://capeembercoffee.co.za')
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://capeembercoffee.co.za')
 
 # VAT Rate (South Africa)
 VAT_RATE = 0.15
@@ -1081,7 +1081,7 @@ async def send_password_reset(email: str, reset_token: str):
         import asyncio
         
         resend_key = os.environ.get("RESEND_API_KEY")
-        sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+        sender_email = os.environ.get("SENDER_EMAIL", "Cape Ember Coffee <noreply@capeembercoffee.co.za>")
         
         if not resend_key:
             logger.warning("RESEND_API_KEY not configured - skipping email")
@@ -1173,7 +1173,7 @@ async def send_welcome_email(email: str, first_name: str):
         import asyncio
         
         resend_key = os.environ.get("RESEND_API_KEY")
-        sender_email = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+        sender_email = os.environ.get("SENDER_EMAIL", "Cape Ember Coffee <noreply@capeembercoffee.co.za>")
         
         if not resend_key:
             logger.warning("RESEND_API_KEY not configured - skipping email")
