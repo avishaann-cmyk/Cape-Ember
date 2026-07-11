@@ -21,6 +21,14 @@ const AdminCustomers = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 1 });
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomerSummary, setSelectedCustomerSummary] = useState(null);
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editTags, setEditTags] = useState('');
 
   const fetchCustomers = useCallback(async (searchTerm = '') => {
     setLoading(true);
@@ -60,6 +68,49 @@ const AdminCustomers = () => {
     e.preventDefault();
     setPagination(prev => ({ ...prev, page: 1 }));
     fetchCustomers(search);
+  };
+
+  const fetchCustomerDetail = async (customerId) => {
+    setDetailLoading(true);
+    setDetailError('');
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/admin/customers/${customerId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const detail = response.data?.customer;
+      setSelectedCustomer(detail || null);
+      setSelectedCustomerSummary(response.data?.summary || null);
+      setOrderHistory(response.data?.order_history || []);
+      setEditPhone(detail?.phone || '');
+      setEditNotes(detail?.notes || '');
+      setEditTags((detail?.tags || []).join(', '));
+    } catch (err) {
+      setDetailError(err.response?.data?.detail || 'Failed to load customer detail');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const saveCustomer = async () => {
+    if (!selectedCustomer?.id) return;
+    setDetailError('');
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `${API}/admin/customers/${selectedCustomer.id}`,
+        {
+          phone: editPhone,
+          notes: editNotes,
+          tags: editTags.split(',').map((tag) => tag.trim()).filter(Boolean)
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      await fetchCustomerDetail(selectedCustomer.id);
+      await fetchCustomers(search);
+    } catch (err) {
+      setDetailError(err.response?.data?.detail || 'Failed to save customer changes');
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -151,7 +202,8 @@ const AdminCustomers = () => {
                         key={customer.id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="hover:bg-[#F8F5F0]/50"
+                        className={`hover:bg-[#F8F5F0]/50 cursor-pointer ${selectedCustomer?.id === customer.id ? 'bg-[#F8F5F0]' : ''}`}
+                        onClick={() => fetchCustomerDetail(customer.id)}
                       >
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
@@ -218,6 +270,103 @@ const AdminCustomers = () => {
             </>
           )}
         </div>
+
+        <div className="mt-4 flex justify-end">
+          <a
+            href={`${API}/admin/customers/export`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-[#D05C23] hover:underline"
+          >
+            Export Customers CSV
+          </a>
+        </div>
+
+        {(detailLoading || selectedCustomer || detailError) && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
+            <h2 className="font-heading text-2xl text-[#2C1A12] mb-4">Customer Detail</h2>
+
+            {detailLoading && <p className="text-[#6B5048]">Loading customer profile...</p>}
+            {detailError && <p className="text-[#C53030] text-sm mb-3">{detailError}</p>}
+
+            {!detailLoading && selectedCustomer && (
+              <>
+                <div className="grid md:grid-cols-3 gap-4 mb-6">
+                  <div className="p-4 bg-[#F8F5F0] rounded-lg">
+                    <p className="text-xs uppercase text-[#6B5048]">Email</p>
+                    <p className="text-[#2C1A12] font-medium break-all">{selectedCustomer.email}</p>
+                  </div>
+                  <div className="p-4 bg-[#F8F5F0] rounded-lg">
+                    <p className="text-xs uppercase text-[#6B5048]">Orders</p>
+                    <p className="text-[#2C1A12] font-medium">{selectedCustomerSummary?.orders_count ?? 0}</p>
+                  </div>
+                  <div className="p-4 bg-[#F8F5F0] rounded-lg">
+                    <p className="text-xs uppercase text-[#6B5048]">Total Spent</p>
+                    <p className="text-[#2C1A12] font-medium">{formatCurrency(selectedCustomerSummary?.total_spent ?? 0)}</p>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-3 mb-6">
+                  <input
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="Phone"
+                    className="w-full border border-[#E6DCD1] rounded-lg px-3 py-2"
+                  />
+                  <input
+                    value={editTags}
+                    onChange={(e) => setEditTags(e.target.value)}
+                    placeholder="Tags (comma separated)"
+                    className="w-full border border-[#E6DCD1] rounded-lg px-3 py-2 md:col-span-2"
+                  />
+                </div>
+                <textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  rows={4}
+                  placeholder="Customer notes"
+                  className="w-full border border-[#E6DCD1] rounded-lg px-3 py-2 mb-4"
+                />
+                <button
+                  onClick={saveCustomer}
+                  className="btn-primary"
+                >
+                  Save Customer
+                </button>
+
+                <div className="mt-8">
+                  <h3 className="font-heading text-xl text-[#2C1A12] mb-3">Order History</h3>
+                  {orderHistory.length === 0 ? (
+                    <p className="text-[#6B5048] text-sm">No orders yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto border border-[#E6DCD1] rounded-lg">
+                      <table className="w-full">
+                        <thead className="bg-[#F8F5F0]">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs uppercase text-[#6B5048]">Order</th>
+                            <th className="px-3 py-2 text-left text-xs uppercase text-[#6B5048]">Status</th>
+                            <th className="px-3 py-2 text-left text-xs uppercase text-[#6B5048]">Total</th>
+                            <th className="px-3 py-2 text-left text-xs uppercase text-[#6B5048]">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#E6DCD1]">
+                          {orderHistory.map((order) => (
+                            <tr key={order.id}>
+                              <td className="px-3 py-2 text-sm text-[#2C1A12]">{order.order_number}</td>
+                              <td className="px-3 py-2 text-sm text-[#6B5048]">{order.status}</td>
+                              <td className="px-3 py-2 text-sm text-[#2C1A12]">{formatCurrency(order.total || 0)}</td>
+                              <td className="px-3 py-2 text-sm text-[#6B5048]">{formatDate(order.created_at)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

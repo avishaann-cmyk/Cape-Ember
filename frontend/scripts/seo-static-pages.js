@@ -128,6 +128,104 @@ const pageConfigs = [
       name: 'Contact Cape Ember Coffee Co.',
       url: 'https://capeembercoffee.co.za/contact'
     }
+  },
+  {
+    route: '/cart',
+    title: 'Your Cart | Cape Ember Coffee Co.',
+    description: 'Review your selected Cape Ember coffees, shipping, and VAT before checkout.',
+    canonical: 'https://capeembercoffee.co.za/cart',
+    type: 'website',
+    html: '<h1>Your Cart</h1><p>Review coffee items, shipping cost, VAT, and final total before checkout.</p>',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Cape Ember Cart',
+      url: 'https://capeembercoffee.co.za/cart'
+    }
+  },
+  {
+    route: '/checkout',
+    title: 'Secure Checkout | Cape Ember Coffee Co.',
+    description: 'Secure Cape Ember checkout with delivery details, payment, VAT, and order confirmation.',
+    canonical: 'https://capeembercoffee.co.za/checkout',
+    type: 'website',
+    html: '<h1>Secure Checkout</h1><p>Complete your order with shipping, payment, VAT, and confirmation.</p>',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'CheckoutPage',
+      name: 'Cape Ember Checkout',
+      url: 'https://capeembercoffee.co.za/checkout'
+    }
+  },
+  {
+    route: '/subscriptions',
+    title: 'Coffee Subscriptions | Cape Ember Coffee Co.',
+    description: 'Flexible South African coffee subscriptions with delivery scheduling and grind options.',
+    canonical: 'https://capeembercoffee.co.za/subscriptions',
+    type: 'website',
+    html: '<h1>Coffee Subscriptions</h1><p>Choose blend, grind, and frequency for recurring Cape Ember delivery.</p>',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Cape Ember Subscriptions',
+      url: 'https://capeembercoffee.co.za/subscriptions'
+    }
+  },
+  {
+    route: '/brew-guide',
+    title: 'Brew Guide | Cape Ember Coffee Co.',
+    description: 'Brew guidance and ratios for Cape Ember coffees across popular brewing methods.',
+    canonical: 'https://capeembercoffee.co.za/brew-guide',
+    type: 'article',
+    html: '<h1>Brew Guide</h1><p>Find brew ratios and methods for espresso, pour over, French press, and more.</p>',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
+      name: 'Cape Ember Brew Guide',
+      url: 'https://capeembercoffee.co.za/brew-guide'
+    }
+  },
+  {
+    route: '/privacy',
+    title: 'Privacy Policy | Cape Ember Coffee Co.',
+    description: 'Read Cape Ember Coffee Co. privacy and data handling practices.',
+    canonical: 'https://capeembercoffee.co.za/privacy',
+    type: 'article',
+    html: '<h1>Privacy Policy</h1><p>How Cape Ember handles customer data, analytics, and communications.</p>',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Cape Ember Privacy Policy',
+      url: 'https://capeembercoffee.co.za/privacy'
+    }
+  },
+  {
+    route: '/terms',
+    title: 'Terms and Conditions | Cape Ember Coffee Co.',
+    description: 'Terms and conditions for orders, payments, deliveries, and store usage.',
+    canonical: 'https://capeembercoffee.co.za/terms',
+    type: 'article',
+    html: '<h1>Terms and Conditions</h1><p>Store terms for purchases, payment processing, and delivery.</p>',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Cape Ember Terms and Conditions',
+      url: 'https://capeembercoffee.co.za/terms'
+    }
+  },
+  {
+    route: '/returns',
+    title: 'Returns Policy | Cape Ember Coffee Co.',
+    description: 'Cape Ember returns and support policy for coffee orders.',
+    canonical: 'https://capeembercoffee.co.za/returns',
+    type: 'article',
+    html: '<h1>Returns Policy</h1><p>Returns, support, and resolution policy for Cape Ember coffee orders.</p>',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Cape Ember Returns Policy',
+      url: 'https://capeembercoffee.co.za/returns'
+    }
   }
 ];
 
