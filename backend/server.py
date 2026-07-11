@@ -525,19 +525,32 @@ def generate_sku(category: str, name: str) -> str:
     random_part = secrets.token_hex(2).upper()
     return f"{cat_code}-{name_code}-{random_part}"
 
-def calculate_shipping(subtotal: float, method: ShippingMethod, province: str, is_subscription: bool = False) -> float:
-    """Calculate shipping cost - flat rate of R75 (free for subscriptions or over R399)"""
+def is_sedgefield_destination(*parts: Optional[str]) -> bool:
+    location_text = " ".join(part.strip() for part in parts if part and str(part).strip()).lower()
+    return bool(re.search(r"\bsedgefield\b", location_text))
+
+
+def calculate_shipping(subtotal: float, method: ShippingMethod, province: str, is_subscription: bool = False, city: Optional[str] = None) -> float:
+    """Calculate shipping cost using shipping zones, with free delivery for Sedgefield."""
     if method == ShippingMethod.COLLECTION:
         return 0.0
     if is_subscription:
-        return 0.0  # Free shipping for subscriptions
-    if subtotal >= 399:  # Free shipping threshold
         return 0.0
-    return 75.0  # Flat rate for all shipping methods
+    if is_sedgefield_destination(city, province):
+        return 0.0
+    if subtotal >= 399:
+        return 0.0
+    zone_rates = SHIPPING_ZONES.get(province, SHIPPING_ZONES.get("Western Cape", {}))
+    if method == ShippingMethod.LOCAL_DELIVERY and "local_delivery" in zone_rates:
+        return float(zone_rates["local_delivery"])
+    if method == ShippingMethod.EXPRESS and "express" in zone_rates:
+        return float(zone_rates["express"])
+    return float(zone_rates.get("standard", 75.0))
 
 def calculate_vat(amount: float) -> float:
-    """Calculate VAT (included in price for SA)"""
-    return round(amount * VAT_RATE / (1 + VAT_RATE), 2)
+    """Calculate the VAT portion included in a VAT-inclusive amount."""
+    safe_amount = max(float(amount or 0), 0.0)
+    return round(safe_amount * VAT_RATE / (1 + VAT_RATE), 2)
 
 
 # ============ AUTH DEPENDENCIES ============
@@ -1571,6 +1584,8 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks):
         "last_name": user_data.last_name,
         "phone": user_data.phone,
         "addresses": [],
+        "notes": "",
+        "tags": [],
         "accepts_marketing": user_data.accepts_marketing,
         "is_admin": False,
         "admin_role": None,
@@ -1995,13 +2010,13 @@ def calculate_cart_totals(items: list, coupon: Optional[dict] = None, shipping_c
             discount = min(coupon["discount_value"], subtotal)
     
     discounted_subtotal = subtotal - discount
-    taxable_amount = discounted_subtotal + shipping_cost
-    vat = round(taxable_amount * VAT_RATE, 2)
-    total = taxable_amount + vat
+    vat = calculate_vat(discounted_subtotal)
+    total = discounted_subtotal + shipping_cost
     
     return {
         "subtotal": round(subtotal, 2),
         "discount": round(discount, 2),
+        "shipping": round(shipping_cost, 2),
         "vat": round(vat, 2),
         "total": round(total, 2),
         "item_count": sum(item["quantity"] for item in items)
@@ -2274,6 +2289,17 @@ async def remove_coupon(
 @api_router.get("/shipping/rates")
 async def get_shipping_rates(province: str, subtotal: float):
     """Get shipping rates for a province"""
+    if is_sedgefield_destination(province):
+        return {
+            "rates": [
+                {"method": "standard", "name": "Standard Delivery (3-5 days)", "price": 0, "free": True},
+                {"method": "express", "name": "Express Delivery (1-2 days)", "price": 0, "free": True},
+                {"method": "local_delivery", "name": "Local Delivery (Same Day)", "price": 0, "free": True},
+            ],
+            "free_shipping_threshold": 399,
+            "message": "Free local delivery in Sedgefield"
+        }
+
     if subtotal >= 399:
         return {
             "rates": [
@@ -2368,7 +2394,8 @@ async def create_checkout(
         subtotal - discount,
         checkout.shipping.method,
         checkout.shipping.address.province,
-        checkout.is_subscription
+        checkout.is_subscription,
+        checkout.shipping.address.city
     )
     
     totals = calculate_cart_totals(
@@ -2475,6 +2502,10 @@ async def create_checkout(
     return {
         "order_id": order_id,
         "order_number": order_number,
+        "subtotal": totals["subtotal"],
+        "discount": totals["discount"],
+        "shipping_cost": round(shipping_cost, 2),
+        "vat": vat,
         "total": total,
         "payment": payment_data
     }
@@ -2525,7 +2556,20 @@ async def create_simple_order(
     if cart.get("coupon_code"):
         coupon = await db.coupons.find_one({"code": cart["coupon_code"], "is_active": True})
 
-    shipping_cost = 0.0 if order_data.is_subscription else (0.0 if subtotal >= 399 else 75.0)
+    discount = 0.0
+    if coupon:
+        if coupon["discount_type"] == "percentage":
+            discount = subtotal * (coupon["discount_value"] / 100)
+        elif coupon["discount_type"] == "fixed_amount":
+            discount = min(coupon["discount_value"], subtotal)
+
+    shipping_cost = calculate_shipping(
+        subtotal - discount,
+        ShippingMethod.STANDARD,
+        order_data.shipping_address.get("province", "Western Cape"),
+        order_data.is_subscription,
+        order_data.shipping_address.get("city")
+    )
     totals = calculate_cart_totals(
         [{"price": item["price"], "quantity": item["quantity"]} for item in order_items],
         coupon,
@@ -3122,6 +3166,24 @@ async def get_newsletter_subscribers(
     }
 
 
+@api_router.get("/admin/subscribers")
+async def get_admin_subscribers_alias(
+    admin: dict = Depends(get_admin_user),
+    search: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    page: int = 1,
+    limit: int = 50
+):
+    """Backward-compatible alias for admin subscriber list."""
+    return await get_newsletter_subscribers(
+        admin=admin,
+        search=search,
+        is_active=is_active,
+        page=page,
+        limit=limit
+    )
+
+
 @api_router.get("/admin/newsletter/export")
 async def export_newsletter_csv(admin: dict = Depends(get_admin_user)):
     subscribers = await db.newsletter.find().sort("subscribed_at", -1).to_list(None)
@@ -3692,6 +3754,9 @@ async def get_admin_customers(
             "first_name": user.get("first_name", ""),
             "last_name": user.get("last_name", ""),
             "phone": user.get("phone", ""),
+            "address_count": len(user.get("addresses", [])),
+            "notes": user.get("notes", ""),
+            "tags": user.get("tags", []),
             "orders_count": stats.get("count", 0),
             "total_spent": round(stats.get("total", 0), 2),
             "is_admin": user.get("is_admin", False),
@@ -3705,6 +3770,79 @@ async def get_admin_customers(
         "limit": limit,
         "total_pages": (total + limit - 1) // limit
     }
+
+
+@api_router.get("/admin/customers/{customer_id}")
+async def get_admin_customer_detail(customer_id: str, admin: dict = Depends(get_admin_user)):
+    """Get full customer profile including order history, addresses, tags, and notes."""
+    user = await db.users.find_one({"_id": customer_id}, {"password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    orders = await db.orders.find({"user_id": customer_id}).sort("created_at", -1).to_list(None)
+    order_history = []
+    total_spent = 0.0
+    paid_orders = 0
+
+    for order in orders:
+        paid = order.get("payment_status") == PaymentStatus.COMPLETE
+        if paid:
+            total_spent += float(order.get("total", 0) or 0)
+            paid_orders += 1
+        order_history.append({
+            "id": order.get("_id"),
+            "order_number": order.get("order_number", "N/A"),
+            "status": order.get("status", "unknown"),
+            "payment_status": order.get("payment_status", "unknown"),
+            "subtotal": order.get("subtotal", 0),
+            "shipping_cost": order.get("shipping_cost", 0),
+            "vat": order.get("vat", 0),
+            "total": order.get("total", 0),
+            "items_count": len(order.get("items", [])),
+            "created_at": order.get("created_at", "")
+        })
+
+    return {
+        "customer": {
+            "id": user.get("_id"),
+            "email": user.get("email", ""),
+            "first_name": user.get("first_name", ""),
+            "last_name": user.get("last_name", ""),
+            "phone": user.get("phone", ""),
+            "addresses": user.get("addresses", []),
+            "notes": user.get("notes", ""),
+            "tags": user.get("tags", []),
+            "accepts_marketing": user.get("accepts_marketing", False),
+            "created_at": user.get("created_at", ""),
+            "updated_at": user.get("updated_at", "")
+        },
+        "summary": {
+            "orders_count": paid_orders,
+            "total_spent": round(total_spent, 2),
+            "address_count": len(user.get("addresses", []))
+        },
+        "order_history": order_history
+    }
+
+
+@api_router.put("/admin/customers/{customer_id}")
+async def update_admin_customer(
+    customer_id: str,
+    payload: AdminCustomerUpdate,
+    admin: dict = Depends(get_admin_user)
+):
+    """Update admin-managed customer fields such as phone, notes, and tags."""
+    update_data = {k: v for k, v in payload.dict().items() if v is not None}
+    if "tags" in update_data:
+        update_data["tags"] = [str(tag).strip() for tag in update_data["tags"] if str(tag).strip()]
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No changes supplied")
+
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.users.update_one({"_id": customer_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return {"message": "Customer updated", "id": customer_id}
 
 
 @api_router.get("/admin/inventory")
@@ -3728,6 +3866,13 @@ async def get_admin_inventory(admin: dict = Depends(get_admin_user)):
     
     # Sort by stock quantity (lowest first)
     inventory.sort(key=lambda x: x["stock_quantity"])
+
+    low_stock_alerts = [
+        i for i in inventory
+        if i["stock_status"] in ["low_stock", "out_of_stock"]
+    ]
+
+    recent_adjustments = await db.inventory_adjustments.find({}).sort("created_at", -1).limit(20).to_list(20)
     
     return {
         "inventory": inventory,
@@ -3737,12 +3882,36 @@ async def get_admin_inventory(admin: dict = Depends(get_admin_user)):
             "out_of_stock": sum(1 for i in inventory if i["stock_status"] == "out_of_stock"),
             "low_stock": sum(1 for i in inventory if i["stock_status"] == "low_stock"),
             "in_stock": sum(1 for i in inventory if i["stock_status"] == "in_stock")
-        }
+        },
+        "alerts": low_stock_alerts,
+        "recent_adjustments": [{
+            "id": entry.get("_id"),
+            "product_id": entry.get("product_id"),
+            "variant_id": entry.get("variant_id"),
+            "old_stock": entry.get("old_stock"),
+            "new_stock": entry.get("new_stock"),
+            "delta": entry.get("delta"),
+            "reason": entry.get("reason", "manual_adjustment"),
+            "admin_email": entry.get("admin_email"),
+            "created_at": entry.get("created_at")
+        } for entry in recent_adjustments]
     }
 
 
 class InventoryUpdate(BaseModel):
     stock_quantity: int
+    reason: Optional[str] = None
+
+
+class InventoryAdjustmentCreate(BaseModel):
+    delta: int
+    reason: str = "manual_adjustment"
+
+
+class AdminCustomerUpdate(BaseModel):
+    phone: Optional[str] = None
+    notes: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 
 class AdminProductUpsert(BaseModel):
@@ -3844,14 +4013,99 @@ async def update_inventory(
     if not variant:
         raise HTTPException(status_code=404, detail="Variant not found")
     
-    # Update in memory (in production, this would update DB)
+    previous_stock = int(variant.get("stock_quantity", 0))
     variant["stock_quantity"] = update.stock_quantity
+
+    await db.inventory_adjustments.insert_one({
+        "_id": str(uuid.uuid4()),
+        "product_id": product_id,
+        "variant_id": variant_id,
+        "old_stock": previous_stock,
+        "new_stock": int(update.stock_quantity),
+        "delta": int(update.stock_quantity) - previous_stock,
+        "reason": update.reason or "set_stock",
+        "admin_user_id": admin.get("_id"),
+        "admin_email": admin.get("email"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
     
     return {
         "message": "Inventory updated",
         "product_id": product_id,
         "variant_id": variant_id,
         "new_stock": update.stock_quantity
+    }
+
+
+@api_router.post("/admin/inventory/{product_id}/{variant_id}/adjust")
+async def adjust_inventory(
+    product_id: str,
+    variant_id: str,
+    payload: InventoryAdjustmentCreate,
+    admin: dict = Depends(get_admin_user)
+):
+    """Adjust stock by delta and record an auditable adjustment entry."""
+    product = PRODUCTS_MAP.get(product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    variant = next((v for v in product["variants"] if v["id"] == variant_id), None)
+    if not variant:
+        raise HTTPException(status_code=404, detail="Variant not found")
+
+    previous_stock = int(variant.get("stock_quantity", 0))
+    new_stock = max(0, previous_stock + int(payload.delta))
+    variant["stock_quantity"] = new_stock
+
+    await db.inventory_adjustments.insert_one({
+        "_id": str(uuid.uuid4()),
+        "product_id": product_id,
+        "variant_id": variant_id,
+        "old_stock": previous_stock,
+        "new_stock": new_stock,
+        "delta": int(payload.delta),
+        "reason": payload.reason,
+        "admin_user_id": admin.get("_id"),
+        "admin_email": admin.get("email"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
+    return {
+        "message": "Inventory adjusted",
+        "product_id": product_id,
+        "variant_id": variant_id,
+        "old_stock": previous_stock,
+        "new_stock": new_stock,
+        "applied_delta": int(payload.delta)
+    }
+
+
+@api_router.get("/admin/inventory/alerts")
+async def get_inventory_alerts(admin: dict = Depends(get_admin_user)):
+    """Low-stock and out-of-stock alerts based on per-product thresholds."""
+    alerts = []
+    for product in PRODUCTS:
+        threshold = int(product.get("low_stock_alert", 10))
+        for variant in product.get("variants", []):
+            stock = int(variant.get("stock_quantity", 0))
+            if stock <= threshold:
+                severity = "critical" if stock == 0 else "warning"
+                alerts.append({
+                    "product_id": product.get("id"),
+                    "product_name": product.get("name"),
+                    "variant_id": variant.get("id"),
+                    "variant_name": variant.get("name"),
+                    "sku": variant.get("sku", ""),
+                    "stock_quantity": stock,
+                    "threshold": threshold,
+                    "severity": severity
+                })
+
+    alerts.sort(key=lambda row: (0 if row["severity"] == "critical" else 1, row["stock_quantity"]))
+    return {
+        "alerts": alerts,
+        "critical": sum(1 for a in alerts if a["severity"] == "critical"),
+        "warning": sum(1 for a in alerts if a["severity"] == "warning")
     }
 
 
@@ -3873,10 +4127,17 @@ async def export_inventory_csv(admin: dict = Depends(get_admin_user)):
 async def export_customers_csv(admin: dict = Depends(get_admin_user)):
     """Export customers as CSV."""
     users = await db.users.find({}, {"password_hash": 0}).to_list(None)
-    lines = ["id,email,first_name,last_name,phone,accepts_marketing,created_at"]
+    lines = ["id,email,first_name,last_name,phone,address_count,tags,notes,orders_count,total_spent,accepts_marketing,created_at"]
     for user in users:
+        order_stats = await db.orders.aggregate([
+            {"$match": {"user_id": user.get("_id"), "payment_status": "complete"}},
+            {"$group": {"_id": None, "count": {"$sum": 1}, "total": {"$sum": "$total"}}}
+        ]).to_list(1)
+        stats = order_stats[0] if order_stats else {"count": 0, "total": 0}
+        notes_clean = (user.get("notes", "") or "").replace(",", " ").replace("\n", " ").strip()
+        tags_csv = "|".join([str(tag).strip() for tag in user.get("tags", []) if str(tag).strip()])
         lines.append(
-            f"{user.get('_id','')},{user.get('email','')},{user.get('first_name','')},{user.get('last_name','')},{user.get('phone','')},{user.get('accepts_marketing',False)},{user.get('created_at','')}"
+            f"{user.get('_id','')},{user.get('email','')},{user.get('first_name','')},{user.get('last_name','')},{user.get('phone','')},{len(user.get('addresses', []))},{tags_csv},{notes_clean},{stats.get('count', 0)},{round(stats.get('total', 0), 2)},{user.get('accepts_marketing',False)},{user.get('created_at','')}"
         )
     return PlainTextResponse("\n".join(lines), media_type="text/csv")
 

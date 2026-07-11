@@ -292,7 +292,7 @@ const CartPage = () => {
               
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-[#6B5048]">
-                  <span>Subtotal ({cart.items.length} items)</span>
+                  <span>Subtotal (VAT Included)</span>
                   <span>R {subtotal.toFixed(2)}</span>
                 </div>
                 
@@ -311,7 +311,7 @@ const CartPage = () => {
                 </div>
                 
                 <div className="flex justify-between text-[#6B5048] text-sm">
-                  <span>VAT (included)</span>
+                  <span>VAT Included in Total</span>
                   <span>R {vatAmount.toFixed(2)}</span>
                 </div>
                 

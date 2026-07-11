@@ -6,7 +6,7 @@ import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from '../components/AuthModal';
-import { computeCartTotals } from '../lib/cartTotals';
+import { DEFAULT_CART_RULES, computeCartTotals } from '../lib/cartTotals';
 import { setPageSEO } from '../lib/seo';
 import { trackEvent } from '../lib/analytics';
 
@@ -67,6 +67,7 @@ const CheckoutPage = () => {
   const [orderNotes, setOrderNotes] = useState('');
   const [isSubscription, setIsSubscription] = useState(false);
   const [subscriptionFrequency, setSubscriptionFrequency] = useState('monthly');
+  const shippingDestination = `${address.city || ''} ${address.province || ''}`.trim();
 
   // Load saved address if available
   useEffect(() => {
@@ -212,7 +213,10 @@ const CheckoutPage = () => {
   };
 
   // Calculate totals from one shared helper to keep checkout/cart consistent
-  const { subtotal, discount, shipping: shippingCost, total, vat: vatAmount } = computeCartTotals(cart);
+  const { subtotal, discount, shipping: shippingCost, total, vat: vatAmount } = computeCartTotals(cart, {
+    ...DEFAULT_CART_RULES,
+    destination: shippingDestination,
+  });
 
   const getImageUrl = (item) => item.image_url || '/placeholder-coffee.jpg';
 
@@ -675,7 +679,7 @@ const CheckoutPage = () => {
               {/* Totals */}
               <div className="space-y-3 py-4 border-t border-[#E6DCD1]">
                 <div className="flex justify-between text-sm text-[#6B5048]">
-                  <span>Subtotal</span>
+                  <span>Subtotal (VAT Included)</span>
                   <span>R {subtotal.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
@@ -691,7 +695,7 @@ const CheckoutPage = () => {
                   </span>
                 </div>
                 <div className="flex justify-between text-xs text-[#6B5048]">
-                  <span>VAT (included)</span>
+                  <span>VAT Included in Total</span>
                   <span>R {vatAmount.toFixed(2)}</span>
                 </div>
               </div>

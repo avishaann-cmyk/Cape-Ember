@@ -4,6 +4,26 @@ export const DEFAULT_CART_RULES = {
   vatRate: 0.15,
 };
 
+const normalizeText = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+export const isSedgefieldLocation = (value) => normalizeText(value).includes('sedgefield');
+
+export const calculateIncludedVat = (amount, vatRate = DEFAULT_CART_RULES.vatRate) => {
+  const safeAmount = Math.max(Number(amount || 0), 0);
+  return Number((safeAmount * vatRate / (1 + vatRate)).toFixed(2));
+};
+
+export const resolveShippingCost = (subtotal, rules = DEFAULT_CART_RULES) => {
+  const safeSubtotal = Math.max(Number(subtotal || 0), 0);
+  if (isSedgefieldLocation(rules.destination)) {
+    return 0;
+  }
+  if (safeSubtotal >= rules.freeShippingThreshold) {
+    return 0;
+  }
+  return Number(rules.shippingCost || 0);
+};
+
 export const computeCartTotals = (cart, rules = DEFAULT_CART_RULES) => {
   const items = cart?.items || [];
   const subtotal = Number(
@@ -11,13 +31,10 @@ export const computeCartTotals = (cart, rules = DEFAULT_CART_RULES) => {
   );
 
   const discount = Number(cart?.discount ?? 0);
-  const shipping = Number(
-    cart?.shipping ?? (subtotal >= rules.freeShippingThreshold ? 0 : rules.shippingCost)
-  );
-
-  const taxableAmount = subtotal - discount + shipping;
-  const vat = Number(cart?.vat ?? (taxableAmount * rules.vatRate));
-  const total = Number(cart?.total ?? (taxableAmount + vat));
+  const shipping = Number(cart?.shipping ?? resolveShippingCost(subtotal - discount, rules));
+  const discountedSubtotal = Math.max(subtotal - discount, 0);
+  const vat = Number(cart?.vat ?? calculateIncludedVat(discountedSubtotal, rules.vatRate));
+  const total = Number(cart?.total ?? (discountedSubtotal + shipping));
 
   return {
     subtotal,
