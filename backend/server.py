@@ -3828,7 +3828,7 @@ async def get_admin_customer_detail(customer_id: str, admin: dict = Depends(get_
 @api_router.put("/admin/customers/{customer_id}")
 async def update_admin_customer(
     customer_id: str,
-    payload: AdminCustomerUpdate,
+    payload: "AdminCustomerUpdate",
     admin: dict = Depends(get_admin_user)
 ):
     """Update admin-managed customer fields such as phone, notes, and tags."""
