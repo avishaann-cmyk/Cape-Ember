@@ -6,29 +6,40 @@ import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
 import { setPageSEO } from '../lib/seo';
-import { ASSETS } from '../lib/capeEmberAssets';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const HOME_ASSETS = {
+  fynbos: '/assets/cape-ember/Fynbos%20Home.PNG',
+  gardenRoute: '/assets/cape-ember/Garden%20Route%20Home.PNG',
+  emberReserve: '/assets/cape-ember/Ember%20Reserve%20home.PNG',
+  karooHorizon: '/assets/cape-ember/Karoo%20Horizon%20Home.PNG',
+  landscapeBundle: '/assets/cape-ember/Landscape%20Bundle%20Home.PNG',
+};
 
 // Hero slideshow — dark Cape Ember lifestyle & landscape images
 const HERO_IMAGES = [
   {
-    url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2000&q=80',
-    alt: 'Espresso pouring into a cup',
+    url: HOME_ASSETS.fynbos,
+    alt: 'Fynbos coffee lifestyle scene',
   },
   {
-    url: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=2000&q=80',
-    alt: 'Friends enjoying coffee together at a cafe table',
+    url: HOME_ASSETS.gardenRoute,
+    alt: 'Garden Route coffee lifestyle scene',
   },
   {
-    url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=2000&q=80',
-    alt: 'Latte art and cappuccino cups on a coffee bar',
+    url: HOME_ASSETS.emberReserve,
+    alt: 'Ember Reserve coffee lifestyle scene',
+  },
+  {
+    url: HOME_ASSETS.karooHorizon,
+    alt: 'Karoo Horizon coffee lifestyle scene',
   },
 ];
 
 const STORY_IMAGE = {
-  url: ASSETS.landscapeBundleBanner.src,
-  alt: ASSETS.landscapeBundleBanner.alt,
+  url: HOME_ASSETS.landscapeBundle,
+  alt: 'Landscape Bundle lifestyle scene',
   shopPath: '/products/landscape-bundle',
 };
 
@@ -56,7 +67,7 @@ const HomePage = () => {
       title: 'Cape Ember Coffee Co. | Premium South African Coffee',
       description: 'Premium coffee inspired by the places we love. Crafted with trusted roasting partners and delivered nationwide in South Africa.',
       canonicalPath: '/',
-      image: ASSETS.fynbosLifestyle.src
+      image: HOME_ASSETS.fynbos
     });
 
     const preload = document.createElement('link');
