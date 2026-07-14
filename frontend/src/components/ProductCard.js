@@ -2,17 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { ShoppingBag, Heart } from '@phosphor-icons/react';
+import { getProductGallery } from '../lib/capeEmberAssets';
 
 const ProductCard = ({ product, onAuthRequired }) => {
   const { addToCart } = useCart();
   const [adding, setAdding] = React.useState(false);
   const [added, setAdded] = React.useState(false);
 
-  // Support both old image_url and new images array format
-  const imageUrl = product.image_url || 
-    (product.images && product.images.length > 0 
-      ? (product.images.find(img => img.is_primary)?.url || product.images[0]?.url)
-      : '/placeholder-coffee.jpg');
+  const imageUrl = getProductGallery(product)[0]?.url || '/placeholder-coffee.jpg';
 
   // Get weight from variants or old weight field
   const productWeight = product.weight || 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Coffee, Droplets, Clock, ThermometerSun, Scale, ChevronDown, ChevronUp } from 'lucide-react';
+import { ASSETS } from '../lib/capeEmberAssets';
 
 const BREWING_METHODS = [
   {
@@ -216,11 +217,13 @@ const BrewGuidePage = () => {
     <div className="min-h-screen pt-20 md:pt-24">
       {/* Hero */}
       <section className="relative h-[40vh] min-h-[300px] flex items-center">
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ 
-            backgroundImage: `url('https://customer-assets.emergentagent.com/job_axis-creator/artifacts/q3tzfpa9_IMG_6532.jpeg')`
-          }}
+        <img
+          src={ASSETS.fourProductCollection.src}
+          alt={ASSETS.fourProductCollection.alt}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full">

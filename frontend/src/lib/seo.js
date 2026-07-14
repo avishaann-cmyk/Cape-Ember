@@ -43,7 +43,10 @@ export const setPageSEO = ({ title, description, canonicalPath, image, type = 'w
   upsertMeta('meta[property="og:type"]', { property: 'og:type', content: type });
 
   if (image) {
-    upsertMeta('meta[property="og:image"]', { property: 'og:image', content: image });
-    upsertMeta('meta[property="twitter:image"]', { property: 'twitter:image', content: image });
+    const absoluteImage = image.startsWith('http')
+      ? image
+      : `https://capeembercoffee.co.za${image.startsWith('/') ? image : `/${image}`}`;
+    upsertMeta('meta[property="og:image"]', { property: 'og:image', content: absoluteImage });
+    upsertMeta('meta[property="twitter:image"]', { property: 'twitter:image', content: absoluteImage });
   }
 };

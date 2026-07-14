@@ -83,3 +83,87 @@ export const PRODUCT_IMAGES = {
   'karoo-horizon': ASSETS.karooHorizonLifestyle,
   'landscape-bundle': ASSETS.landscapeBundleBanner,
 };
+
+/**
+ * Resolve the best available static asset for a product object.
+ */
+export const getProductAsset = (product) => {
+  if (!product) return null;
+  return (
+    PRODUCT_IMAGES[product.id] ||
+    PRODUCT_IMAGES[product.slug] ||
+    null
+  );
+};
+
+/**
+ * Build a gallery for PDP and cards when API image arrays are sparse.
+ */
+export const getProductGallery = (product) => {
+  const gallery = [];
+  const pushUnique = (entry) => {
+    if (!entry?.url) return;
+    if (gallery.some((img) => img.url === entry.url)) return;
+    gallery.push(entry);
+  };
+
+  if (Array.isArray(product?.images)) {
+    product.images.forEach((img) => {
+      if (!img?.url) return;
+      pushUnique({
+        url: img.url,
+        alt: img.alt || product?.name || 'Cape Ember coffee',
+        width: img.width,
+        height: img.height,
+        is_primary: !!img.is_primary,
+      });
+    });
+  }
+
+  if (product?.image_url) {
+    pushUnique({
+      url: product.image_url,
+      alt: product.name || 'Cape Ember coffee',
+      is_primary: gallery.length === 0,
+    });
+  }
+
+  const primaryAsset = getProductAsset(product);
+  if (primaryAsset) {
+    pushUnique({
+      url: primaryAsset.src,
+      alt: primaryAsset.alt,
+      width: primaryAsset.width,
+      height: primaryAsset.height,
+      is_primary: gallery.length === 0,
+    });
+  }
+
+  if (product?.is_bundle) {
+    [ASSETS.landscapeBundleBanner, ASSETS.fourProductCollection].forEach((asset) => {
+      pushUnique({
+        url: asset.src,
+        alt: asset.alt,
+        width: asset.width,
+        height: asset.height,
+      });
+    });
+  } else {
+    pushUnique({
+      url: ASSETS.fourProductCollection.src,
+      alt: ASSETS.fourProductCollection.alt,
+      width: ASSETS.fourProductCollection.width,
+      height: ASSETS.fourProductCollection.height,
+    });
+  }
+
+  if (!gallery.length) {
+    pushUnique({
+      url: '/placeholder-coffee.jpg',
+      alt: product?.name || 'Cape Ember coffee',
+      is_primary: true,
+    });
+  }
+
+  return gallery;
+};

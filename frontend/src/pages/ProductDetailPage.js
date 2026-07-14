@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthModal from '../components/AuthModal';
 import ProductCard from '../components/ProductCard';
 import { setPageSEO } from '../lib/seo';
+import { getProductGallery, getProductAsset, ASSETS } from '../lib/capeEmberAssets';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -125,13 +126,16 @@ const ProductDetailPage = () => {
         if (productRes.data.variants?.length > 0) {
           setSelectedVariant(productRes.data.variants[0]);
         }
+
+        const fallbackAsset = getProductAsset(productRes.data);
+        const seoImage = productRes.data.images?.[0]?.url || productRes.data.image_url || fallbackAsset?.src || ASSETS.fourProductCollection.src;
         
         const seoSlug = productRes.data.slug || productRes.data.id;
         setPageSEO({
           title: `${productRes.data.name} | Cape Ember Coffee Co.`,
           description: productRes.data.meta_description || productRes.data.short_description || productRes.data.description?.substring(0, 160),
           canonicalPath: `/products/${seoSlug}`,
-          image: productRes.data.images?.[0]?.url,
+          image: seoImage,
           type: 'product'
         });
         
@@ -141,7 +145,7 @@ const ProductDetailPage = () => {
           "@type": "Product",
           "name": productRes.data.name,
           "description": productRes.data.description || productRes.data.short_description,
-          "image": productRes.data.images?.[0]?.url,
+          "image": seoImage,
           "brand": {
             "@type": "Brand",
             "name": "Cape Ember Coffee Co."
@@ -223,9 +227,7 @@ const ProductDetailPage = () => {
   }
 
   // Get all images
-  const images = product.images?.length > 0 
-    ? product.images 
-    : [{ url: product.image_url || '/placeholder-coffee.jpg', alt: product.name, is_primary: true }];
+  const images = getProductGallery(product);
 
   // Related products (same category, exclude current)
   const relatedProducts = allProducts
@@ -685,9 +687,11 @@ const ProductDetailPage = () => {
                   className="flex items-center gap-4 p-4 bg-[#F4EFE6] hover:bg-[#E6DCD1] transition-colors"
                 >
                   <img 
-                    src={p.images?.[0]?.url || p.image_url} 
+                    src={getProductGallery(p)[0]?.url || '/placeholder-coffee.jpg'} 
                     alt={p.name} 
                     className="w-16 h-16 object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div>
                     <span className="font-medium text-[#2C1A12] block">{p.name}</span>

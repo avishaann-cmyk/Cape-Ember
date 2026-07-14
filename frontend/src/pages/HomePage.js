@@ -13,28 +13,28 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // Hero slideshow — dark Cape Ember lifestyle & landscape images
 const HERO_IMAGES = [
   {
-    url: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2000&q=80",
-    alt: "Espresso being crafted in a moody coffee bar"
+    url: ASSETS.fourProductCollection.src,
+    alt: ASSETS.fourProductCollection.alt,
   },
   {
-    url: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=2000&q=80",
-    alt: "Silky cappuccino latte art on dark surface"
+    url: ASSETS.landscapeBundleBanner.src,
+    alt: ASSETS.landscapeBundleBanner.alt,
   },
   {
     url: ASSETS.emberReserveLifestyle.src,
     alt: ASSETS.emberReserveLifestyle.alt,
   },
   {
-    url: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=2000&q=80",
-    alt: "Rich espresso shot pouring into a ceramic cup"
+    url: ASSETS.gardenRouteLifestyle.src,
+    alt: ASSETS.gardenRouteLifestyle.alt,
   },
   {
     url: ASSETS.fynbosLifestyle.src,
     alt: ASSETS.fynbosLifestyle.alt,
   },
   {
-    url: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=2000&q=80",
-    alt: "Barista at work — pour over in moody light"
+    url: ASSETS.karooHorizonLifestyle.src,
+    alt: ASSETS.karooHorizonLifestyle.alt,
   },
 ];
 
@@ -167,15 +167,18 @@ const HomePage = () => {
           {/* Crossfading hero slideshow */}
           <div className="absolute inset-0 overflow-hidden">
             <AnimatePresence initial={false}>
-              <motion.div
+              <motion.img
                 key={heroImageIndex}
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url('${HERO_IMAGES[heroImageIndex].url}')` }}
+                src={HERO_IMAGES[heroImageIndex].url}
+                alt={HERO_IMAGES[heroImageIndex].alt}
+                className="absolute inset-0 w-full h-full object-cover"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 1.4, ease: 'easeInOut' }}
-                aria-label={HERO_IMAGES[heroImageIndex].alt}
+                loading={heroImageIndex === 0 ? 'eager' : 'lazy'}
+                fetchPriority={heroImageIndex === 0 ? 'high' : 'auto'}
+                decoding="async"
               />
             </AnimatePresence>
             {/* Deep ember overlay for brand feel */}
@@ -348,6 +351,8 @@ const HomePage = () => {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.7 }}
                         loading="lazy"
+                        width={1080}
+                        height={1080}
                         decoding="async"
                       />
                     </AnimatePresence>
