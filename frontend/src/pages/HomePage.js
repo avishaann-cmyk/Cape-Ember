@@ -20,15 +20,15 @@ const HOME_ASSETS = {
 // Hero slideshow — dark Cape Ember lifestyle & landscape images
 const HERO_IMAGES = [
   {
-    url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2000&q=80',
+    url: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=2000&q=80',
     alt: 'Espresso pouring into a cup',
   },
   {
-    url: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=2000&q=80',
+    url: 'https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=2000&q=80',
     alt: 'People enjoying coffee together at a cafe table',
   },
   {
-    url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=2000&q=80',
+    url: 'https://images.unsplash.com/photo-1494314671902-399b18174975?auto=format&fit=crop&w=2000&q=80',
     alt: 'Different coffee drinks on a coffee bar',
   },
 ];
