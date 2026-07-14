@@ -11,7 +11,7 @@ import { setPageSEO } from '../lib/seo';
 import { getProductGallery, getProductAsset, ASSETS } from '../lib/capeEmberAssets';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const LANDSCAPE_BUNDLE_HERO_IMAGE = 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2000&q=80';
+const LANDSCAPE_BUNDLE_HERO_IMAGE = '/assets/cape-ember/Landscape%20Bundle%20Home.PNG';
 
 // Strength Meter Component
 const StrengthMeter = ({ strength = 3, maxStrength = 5 }) => (
@@ -232,7 +232,7 @@ const ProductDetailPage = () => {
     ? [
         {
           url: LANDSCAPE_BUNDLE_HERO_IMAGE,
-          alt: 'Espresso being poured in a coffee bar',
+          alt: 'Landscape Bundle home lifestyle scene',
           is_primary: true,
         },
         ...getProductGallery(product),

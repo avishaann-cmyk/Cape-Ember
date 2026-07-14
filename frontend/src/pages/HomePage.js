@@ -20,20 +20,16 @@ const HOME_ASSETS = {
 // Hero slideshow — dark Cape Ember lifestyle & landscape images
 const HERO_IMAGES = [
   {
-    url: HOME_ASSETS.fynbos,
-    alt: 'Fynbos coffee lifestyle scene',
+    url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2000&q=80',
+    alt: 'Espresso pouring into a cup',
   },
   {
-    url: HOME_ASSETS.gardenRoute,
-    alt: 'Garden Route coffee lifestyle scene',
+    url: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=2000&q=80',
+    alt: 'People enjoying coffee together at a cafe table',
   },
   {
-    url: HOME_ASSETS.emberReserve,
-    alt: 'Ember Reserve coffee lifestyle scene',
-  },
-  {
-    url: HOME_ASSETS.karooHorizon,
-    alt: 'Karoo Horizon coffee lifestyle scene',
+    url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=2000&q=80',
+    alt: 'Different coffee drinks on a coffee bar',
   },
 ];
 
@@ -41,6 +37,14 @@ const STORY_IMAGE = {
   url: HOME_ASSETS.landscapeBundle,
   alt: 'Landscape Bundle lifestyle scene',
   shopPath: '/products/landscape-bundle',
+};
+
+const HOME_PRODUCT_IMAGES = {
+  'fynbos-roast': HOME_ASSETS.fynbos,
+  'garden-route': HOME_ASSETS.gardenRoute,
+  'garden-route-blend': HOME_ASSETS.gardenRoute,
+  'ember-reserve': HOME_ASSETS.emberReserve,
+  'karoo-horizon': HOME_ASSETS.karooHorizon,
 };
 
 // Animation variants
@@ -121,6 +125,10 @@ const HomePage = () => {
   const individualProducts = products
     .filter((p) => coreIds.includes(p.id))
     .sort((a, b) => coreIds.indexOf(a.id) - coreIds.indexOf(b.id));
+  const homepageCardProducts = individualProducts.map((product) => ({
+    ...product,
+    image_url: HOME_PRODUCT_IMAGES[product.id] || HOME_PRODUCT_IMAGES[product.slug] || product.image_url,
+  }));
   const features = [
     { icon: Truck, title: 'Nationwide Delivery', desc: 'Reliable courier delivery across South Africa' },
     { icon: ShieldCheck, title: 'Secure Checkout', desc: 'Safe encrypted payments with trusted gateways' },
@@ -291,7 +299,7 @@ const HomePage = () => {
                 viewport={{ once: true }}
                 variants={staggerContainer}
               >
-                {individualProducts.map((product) => (
+                {homepageCardProducts.map((product) => (
                   <motion.div key={product.id} variants={fadeInUp}>
                     <ProductCard product={product} onAuthRequired={() => setAuthModalOpen(true)} />
                   </motion.div>
