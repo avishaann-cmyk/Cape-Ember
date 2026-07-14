@@ -4,7 +4,7 @@ import { Coffee, Leaf, MapPin, Heart } from 'lucide-react';
 import { setPageSEO } from '../lib/seo';
 import { ASSETS } from '../lib/capeEmberAssets';
 
-const ABOUT_HERO_IMAGE = 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=2000&q=80';
+const ABOUT_HERO_IMAGE = 'https://images.unsplash.com/photo-1498804103079-a6351b050096?auto=format&fit=crop&w=2000&q=80';
 
 const AboutPage = () => {
   React.useEffect(() => {

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Coffee, Droplets, Clock, ThermometerSun, Scale, ChevronDown, ChevronUp } from 'lucide-react';
 import { ASSETS } from '../lib/capeEmberAssets';
 
-const BREW_GUIDE_HERO_IMAGE = 'https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?auto=format&fit=crop&w=2000&q=80';
+const BREW_GUIDE_HERO_IMAGE = 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2000&q=80';
 
 const BREWING_METHODS = [
   {
