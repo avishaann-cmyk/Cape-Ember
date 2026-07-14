@@ -5,6 +5,7 @@ import axios from 'axios';
 import { setPageSEO } from '../lib/seo';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const CONTACT_HERO_IMAGE = 'https://images.unsplash.com/photo-1504630083234-14187a9df0f5?auto=format&fit=crop&w=2000&q=80';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -121,7 +122,16 @@ const ContactPage = () => {
   return (
     <div className="min-h-screen pt-20 md:pt-24 bg-[#FDFBF7]">
       {/* Hero Section */}
-      <section className="section-padding bg-gradient-to-b from-[#2C1A12] to-[#2C1A12]/90 text-white">
+      <section className="section-padding relative text-white overflow-hidden">
+        <img
+          src={CONTACT_HERO_IMAGE}
+          alt="Coffee lifestyle scene with people enjoying coffee"
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+        />
+        <div className="absolute inset-0 bg-[#2C1A12]/70" />
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h1 className="font-heading text-5xl md:text-6xl mb-4">Get in Touch</h1>
           <p className="text-lg text-white/80">

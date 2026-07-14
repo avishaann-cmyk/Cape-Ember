@@ -11,6 +11,7 @@ import { setPageSEO } from '../lib/seo';
 import { getProductGallery, getProductAsset, ASSETS } from '../lib/capeEmberAssets';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const LANDSCAPE_BUNDLE_HERO_IMAGE = 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2000&q=80';
 
 // Strength Meter Component
 const StrengthMeter = ({ strength = 3, maxStrength = 5 }) => (
@@ -226,8 +227,17 @@ const ProductDetailPage = () => {
     );
   }
 
-  // Get all images
-  const images = getProductGallery(product);
+  // Keep the bundle page hero image focused on coffee-making lifestyle visuals.
+  const images = product.id === 'landscape-bundle'
+    ? [
+        {
+          url: LANDSCAPE_BUNDLE_HERO_IMAGE,
+          alt: 'Espresso being poured in a coffee bar',
+          is_primary: true,
+        },
+        ...getProductGallery(product),
+      ]
+    : getProductGallery(product);
 
   // Related products (same category, exclude current)
   const relatedProducts = allProducts

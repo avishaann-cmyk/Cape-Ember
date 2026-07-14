@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Coffee, Droplets, Clock, ThermometerSun, Scale, ChevronDown, ChevronUp } from 'lucide-react';
 import { ASSETS } from '../lib/capeEmberAssets';
 
+const BREW_GUIDE_HERO_IMAGE = 'https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?auto=format&fit=crop&w=2000&q=80';
+
 const BREWING_METHODS = [
   {
     id: 'french-press',
@@ -218,8 +220,8 @@ const BrewGuidePage = () => {
       {/* Hero */}
       <section className="relative h-[40vh] min-h-[300px] flex items-center">
         <img
-          src={ASSETS.fourProductCollection.src}
-          alt={ASSETS.fourProductCollection.alt}
+          src={BREW_GUIDE_HERO_IMAGE}
+          alt="Barista preparing a fresh coffee pour"
           className="absolute inset-0 w-full h-full object-cover"
           loading="eager"
           fetchPriority="high"
