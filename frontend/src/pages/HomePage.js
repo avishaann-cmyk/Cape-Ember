@@ -6,44 +6,31 @@ import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
 import { setPageSEO } from '../lib/seo';
-import { LANDSCAPE_CAROUSEL, ASSETS } from '../lib/capeEmberAssets';
+import { ASSETS } from '../lib/capeEmberAssets';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Hero slideshow — dark Cape Ember lifestyle & landscape images
 const HERO_IMAGES = [
   {
-    url: ASSETS.fourProductCollection.src,
-    alt: ASSETS.fourProductCollection.alt,
+    url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=2000&q=80',
+    alt: 'Espresso pouring into a cup',
   },
   {
-    url: ASSETS.landscapeBundleBanner.src,
-    alt: ASSETS.landscapeBundleBanner.alt,
+    url: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=2000&q=80',
+    alt: 'Friends enjoying coffee together at a cafe table',
   },
   {
-    url: ASSETS.emberReserveLifestyle.src,
-    alt: ASSETS.emberReserveLifestyle.alt,
-  },
-  {
-    url: ASSETS.gardenRouteLifestyle.src,
-    alt: ASSETS.gardenRouteLifestyle.alt,
-  },
-  {
-    url: ASSETS.fynbosLifestyle.src,
-    alt: ASSETS.fynbosLifestyle.alt,
-  },
-  {
-    url: ASSETS.karooHorizonLifestyle.src,
-    alt: ASSETS.karooHorizonLifestyle.alt,
+    url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=2000&q=80',
+    alt: 'Latte art and cappuccino cups on a coffee bar',
   },
 ];
 
-// South African Landscape Images for Story Carousel — sourced from central asset config
-const LANDSCAPE_IMAGES = LANDSCAPE_CAROUSEL.map((a) => ({
-  url: a.src,
-  alt: a.alt,
-  shopPath: a.link,
-}));
+const STORY_IMAGE = {
+  url: ASSETS.landscapeBundleBanner.src,
+  alt: ASSETS.landscapeBundleBanner.alt,
+  shopPath: '/products/landscape-bundle',
+};
 
 // Animation variants
 const fadeInUp = {
@@ -61,7 +48,6 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [testimonials, setTestimonials] = useState([]);
 
   // SEO metadata
@@ -89,14 +75,6 @@ const HomePage = () => {
     const interval = setInterval(() => {
       setHeroImageIndex((prev) => (prev + 1) % HERO_IMAGES.length);
     }, 6000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Auto-rotate story carousel every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % LANDSCAPE_IMAGES.length);
-    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -340,25 +318,22 @@ const HomePage = () => {
               >
                 <div className="relative">
                   <div className="aspect-[4/5] overflow-hidden relative group">
-                    <AnimatePresence mode="wait">
-                      <motion.img
-                        key={currentImageIndex}
-                        src={LANDSCAPE_IMAGES[currentImageIndex].url}
-                        alt={LANDSCAPE_IMAGES[currentImageIndex].alt}
-                        className="w-full h-full object-cover"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.7 }}
-                        loading="lazy"
-                        width={1080}
-                        height={1080}
-                        decoding="async"
-                      />
-                    </AnimatePresence>
+                    <motion.img
+                      src={STORY_IMAGE.url}
+                      alt={STORY_IMAGE.alt}
+                      className="w-full h-full object-cover"
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.7 }}
+                      loading="lazy"
+                      width={1080}
+                      height={1080}
+                      decoding="async"
+                    />
 
                     <Link
-                      to={LANDSCAPE_IMAGES[currentImageIndex].shopPath}
+                      to={STORY_IMAGE.shopPath}
                       className="absolute bottom-4 right-4 px-4 py-2 text-xs tracking-[0.12em] uppercase bg-white/90 text-[#2C1A12] hover:bg-white transition-colors"
                     >
                       Shop Now
