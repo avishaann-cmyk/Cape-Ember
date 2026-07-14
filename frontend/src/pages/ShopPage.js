@@ -196,7 +196,7 @@ const ShopPage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
-            backgroundImage: `url('/assets/cape-ember/cape-ember-four-product-collection.jpeg')`
+            backgroundImage: `url('/assets/cape-ember/Garden%20Route%20Home.PNG')`
           }}
         />
         <div className="absolute inset-0 bg-black/40" />
