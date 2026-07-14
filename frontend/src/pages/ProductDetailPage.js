@@ -242,15 +242,19 @@ const ProductDetailPage = () => {
   const stockQuantity = selectedVariant?.stock_quantity ?? product.stock_quantity ?? 50;
   const inStock = stockQuantity > 0;
   const currentWeight = selectedVariant?.weight || product.variants?.[0]?.weight || '250g';
-  const roastLabel = (product.roast_level || 'medium')
-    .toString()
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+  const roastLabel = product.is_bundle
+    ? 'Curated'
+    : (product.roast_level || 'medium')
+        .toString()
+        .split('_')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
   const tastingSummary = product.tasting_notes?.length
     ? product.tasting_notes.map((note) => note.note).join(', ')
     : (product.flavor_notes || 'Smooth, balanced cup');
-  const grindOptions = product.variants?.length
+  const grindOptions = product.is_bundle
+    ? 'Included as curated bundle items'
+    : product.variants?.length
     ? product.variants.map((variant) => variant.name).join(' | ')
     : 'Whole Bean | Ground';
 
@@ -415,7 +419,7 @@ const ProductDetailPage = () => {
                 </span>
               </div>
               <div className="pt-2 border-t border-[#E6DCD1] text-sm text-[#6B5048]">
-                Shipping Note: Nationwide shipping across South Africa. Free shipping on orders over R399.
+                Shipping Note: Nationwide shipping across South Africa. Complimentary delivery on orders over R399.
               </div>
             </div>
 
@@ -655,7 +659,7 @@ const ProductDetailPage = () => {
             <div className="grid grid-cols-3 gap-4 py-6 border-t border-[#E6DCD1]">
               <div className="text-center">
                 <Truck size={20} weight="light" className="mx-auto text-[#D05C23] mb-1" />
-                <span className="text-xs text-[#6B5048]">Free delivery over R399</span>
+                <span className="text-xs text-[#6B5048]">Complimentary delivery over R399</span>
               </div>
               <div className="text-center">
                 <Lightning size={20} weight="light" className="mx-auto text-[#D05C23] mb-1" />
@@ -828,7 +832,7 @@ const ProductDetailPage = () => {
           <div className="bg-white border border-[#E6DCD1] p-6">
             <h3 className="font-heading text-2xl text-[#2C1A12] mb-4">Shipping Information</h3>
             <ul className="space-y-2 text-[#6B5048]">
-              <li>Orders above R399 qualify for free shipping.</li>
+              <li>Orders above R399 qualify for complimentary delivery.</li>
               <li>Standard delivery is typically 3-5 business days nationwide.</li>
               <li>Freshly packed and dispatched quickly from Cape Town.</li>
               <li>Tracking details are shared once your order is on the way.</li>

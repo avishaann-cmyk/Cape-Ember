@@ -116,11 +116,12 @@ const Footer = () => {
             <h5 className="text-white font-medium text-sm tracking-wide uppercase mb-6">Shop</h5>
             <ul className="space-y-3">
               {[
+                { to: '/products/landscape-bundle', label: 'Landscape Bundle' },
                 { to: '/shop', label: 'All Coffees' },
                 { to: '/shop?category=single-origin', label: 'Single Origin' },
                 { to: '/shop?category=blends', label: 'Blends' },
                 { to: '/subscriptions', label: 'Subscriptions' },
-                { to: '/shop?tag=bundle', label: 'Gift Sets' },
+                { to: '/shop?category=bundle', label: 'Bundles & Gift Sets' },
               ].map((link) => (
                 <li key={link.to}>
                   <Link 
@@ -139,6 +140,7 @@ const Footer = () => {
             <h5 className="text-white font-medium text-sm tracking-wide uppercase mb-6">Help</h5>
             <ul className="space-y-3">
               {[
+                { to: '/', label: 'Home' },
                 { to: '/brew-guide', label: 'Brew Guide' },
                 { to: '/about', label: 'Our Story' },
                 { to: '/contact', label: 'Contact Us' },

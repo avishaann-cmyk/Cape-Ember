@@ -33,7 +33,6 @@ import AdminTraffic from './pages/admin/AdminTraffic';
 import AdminPerformance from './pages/admin/AdminPerformance';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminContent from './pages/admin/AdminContent';
-import AdminSubscribers from './pages/admin/AdminSubscribers';
 import AdminSubscriptions from './pages/admin/AdminSubscriptions';
 import AdminRoute from './components/admin/AdminRoute';
 import { initAnalytics, trackPageView } from './lib/analytics';
@@ -94,7 +93,6 @@ function App() {
                 <Route path="/admin/performance" element={<AdminRoute><AdminPerformance /></AdminRoute>} />
                 <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
                 <Route path="/admin/content" element={<AdminRoute><AdminContent /></AdminRoute>} />
-                <Route path="/admin/subscribers" element={<AdminRoute><AdminSubscribers /></AdminRoute>} />
                 <Route path="/admin/subscriptions" element={<AdminRoute><AdminSubscriptions /></AdminRoute>} />
               </Routes>
             </main>

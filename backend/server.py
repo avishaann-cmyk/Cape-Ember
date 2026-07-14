@@ -67,6 +67,8 @@ BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://capeembercoffee.c
 
 # VAT Rate (South Africa)
 VAT_RATE = 0.15
+DEFAULT_SHIPPING_FEE = 75.0
+DEFAULT_FREE_SHIPPING_THRESHOLD = 399.0
 
 # MongoDB Connection
 client = AsyncIOMotorClient(MONGO_URL)
@@ -410,22 +412,12 @@ class ReviewResponse(BaseModel):
     created_at: str
 
 
-class NewsletterSubscribeRequest(BaseModel):
-    email: EmailStr
-    first_name: Optional[str] = None
-    marketing_consent: bool = False
-    source: Optional[str] = "unknown"
-
-
-class NewsletterUpdateRequest(BaseModel):
-    is_active: Optional[bool] = None
-
-
 class ContactSubmissionRequest(BaseModel):
     name: str
     email: EmailStr
     subject: str
     message: str
+    website: Optional[str] = None
 
 
 class SubscriptionRequestCreate(BaseModel):
@@ -530,27 +522,56 @@ def is_sedgefield_destination(*parts: Optional[str]) -> bool:
     return bool(re.search(r"\bsedgefield\b", location_text))
 
 
-def calculate_shipping(subtotal: float, method: ShippingMethod, province: str, is_subscription: bool = False, city: Optional[str] = None) -> float:
-    """Calculate shipping cost using shipping zones, with free delivery for Sedgefield."""
+async def get_store_rules() -> dict:
+    settings = await db.settings.find_one({"_id": "store"}) or {}
+
+    def _safe_float(value: Any, default: float) -> float:
+        try:
+            if value is None:
+                return default
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    return {
+        "shipping_fee": max(_safe_float(settings.get("shipping_fee"), DEFAULT_SHIPPING_FEE), 0.0),
+        "free_shipping_threshold": max(_safe_float(settings.get("free_shipping_threshold"), DEFAULT_FREE_SHIPPING_THRESHOLD), 0.0),
+        "vat_rate": max(_safe_float(settings.get("vat_rate"), VAT_RATE), 0.0),
+    }
+
+
+def calculate_shipping(
+    subtotal: float,
+    method: ShippingMethod,
+    province: str,
+    is_subscription: bool = False,
+    city: Optional[str] = None,
+    free_shipping_threshold: float = 399.0,
+    default_shipping_fee: float = 75.0,
+) -> float:
+    """Calculate shipping cost using shipping zones, with complimentary delivery for Sedgefield."""
     if method == ShippingMethod.COLLECTION:
         return 0.0
     if is_subscription:
         return 0.0
     if is_sedgefield_destination(city, province):
         return 0.0
-    if subtotal >= 399:
+    if subtotal >= free_shipping_threshold:
         return 0.0
     zone_rates = SHIPPING_ZONES.get(province, SHIPPING_ZONES.get("Western Cape", {}))
     if method == ShippingMethod.LOCAL_DELIVERY and "local_delivery" in zone_rates:
         return float(zone_rates["local_delivery"])
     if method == ShippingMethod.EXPRESS and "express" in zone_rates:
         return float(zone_rates["express"])
-    return float(zone_rates.get("standard", 75.0))
+    return float(zone_rates.get("standard", default_shipping_fee))
 
-def calculate_vat(amount: float) -> float:
+def calculate_vat(amount: float, vat_rate: float = VAT_RATE) -> float:
     """Calculate the VAT portion included in a VAT-inclusive amount."""
     safe_amount = max(float(amount or 0), 0.0)
-    return round(safe_amount * VAT_RATE / (1 + VAT_RATE), 2)
+    safe_rate = max(float(vat_rate or 0), 0.0)
+    if safe_rate == 0:
+        return 0.0
+    return round(safe_amount * safe_rate / (1 + safe_rate), 2)
 
 
 # ============ AUTH DEPENDENCIES ============
@@ -1242,7 +1263,7 @@ async def send_welcome_email(email: str, first_name: str):
                                             </td>
                                             <td width="33%" style="text-align: center; padding: 20px;">
                                                 <div style="font-size: 36px; margin-bottom: 10px;">🚚</div>
-                                                <p style="margin: 0; color: #2C1A12; font-weight: 600; font-size: 14px;">Free Shipping<br>Over R399</p>
+                                                <p style="margin: 0; color: #2C1A12; font-weight: 600; font-size: 14px;">Complimentary Delivery<br>Over R399</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -1323,19 +1344,6 @@ async def send_resend_email(to_email: str, subject: str, html: str):
         except Exception as e:
                 logger.error(f"Failed to send email via Resend: {str(e)}")
                 return False
-
-
-async def send_newsletter_welcome_email(email: str, first_name: Optional[str] = None):
-        display_name = first_name or "there"
-        html = f"""
-        <div style=\"font-family: Arial, sans-serif; color: #2C1A12;\">
-            <h2 style=\"color: #B56A35;\">Welcome to Cape Ember Coffee Co.</h2>
-            <p>Hi {display_name},</p>
-            <p>Thank you for joining Cape Ember. We'll share new roasts, special offers, and stories inspired by South African landscapes.</p>
-            <p style=\"margin-top: 20px;\">South African landscapes in every cup.</p>
-        </div>
-        """
-        await send_resend_email(email, "Welcome to Cape Ember Coffee Co.", html)
 
 
 async def send_contact_emails(name: str, email: str, subject: str, message: str):
@@ -1422,7 +1430,7 @@ PRODUCTS = [
         "short_description": "Smooth medium roast with nutty sweetness",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.MEDIUM,
-        "origin": "Brazil Medium Roast",
+        "origin": "South African Roasted",
         "strength": 3,
         "flavor_notes": "Smooth · Nutty · Balanced",
         "tasting_notes": [
@@ -1436,7 +1444,7 @@ PRODUCTS = [
             {"method": "AeroPress", "description": "Smooth concentrate", "ratio": "1:12", "time": "1.5 min", "temperature": "88°C"}
         ],
         "images": [
-            {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg", "alt": "Fynbos Roast Coffee", "is_primary": True, "sort_order": 0}
+            {"url": "https://capeembercoffee.co.za/images/fynbos-roast.jpg", "alt": "Fynbos Roast Coffee", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
             {"id": "fynbos-250g-whole", "name": "250g Whole Bean", "sku": "CB-FYNB-250W", "price": 149.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 50},
@@ -1455,7 +1463,7 @@ PRODUCTS = [
         "short_description": "Smooth house blend with cocoa notes",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.MEDIUM,
-        "origin": "Medium Roast",
+        "origin": "South African Roasted",
         "strength": 3,
         "flavor_notes": "Smooth · Cocoa · Gentle Citrus",
         "tasting_notes": [
@@ -1469,7 +1477,7 @@ PRODUCTS = [
             {"method": "Espresso", "description": "Rich crema", "ratio": "1:2", "time": "28 sec", "temperature": "93°C"}
         ],
         "images": [
-            {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg", "alt": "Garden Route Blend", "is_primary": True, "sort_order": 0}
+            {"url": "https://capeembercoffee.co.za/images/garden-route-blend.jpg", "alt": "Garden Route Blend", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
             {"id": "garden-250g-whole", "name": "250g Whole Bean", "sku": "CB-GARD-250W", "price": 149.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 45},
@@ -1488,7 +1496,7 @@ PRODUCTS = [
         "short_description": "Bold dark roast with chocolate intensity",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.DARK,
-        "origin": "Colombia Dark Roast",
+        "origin": "South African Roasted",
         "strength": 5,
         "flavor_notes": "Rich · Dark Chocolate · Intense",
         "tasting_notes": [
@@ -1502,7 +1510,7 @@ PRODUCTS = [
             {"method": "Moka Pot", "description": "Stovetop intensity", "ratio": "1:10", "time": "4 min", "temperature": "Stovetop"}
         ],
         "images": [
-            {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg", "alt": "Ember Reserve", "is_primary": True, "sort_order": 0}
+            {"url": "https://capeembercoffee.co.za/images/ember-reserve.jpg", "alt": "Ember Reserve", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
             {"id": "ember-250g-whole", "name": "250g Whole Bean", "sku": "CB-EMBR-250W", "price": 169.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 40},
@@ -1521,7 +1529,7 @@ PRODUCTS = [
         "short_description": "Delicate light roast with fruity florals",
         "category": ProductCategory.COFFEE_BEANS,
         "roast_level": RoastLevel.LIGHT,
-        "origin": "Light Roast",
+        "origin": "South African Roasted",
         "strength": 2,
         "flavor_notes": "Floral · Blueberry · Bright",
         "tasting_notes": [
@@ -1534,7 +1542,7 @@ PRODUCTS = [
             {"method": "AeroPress", "description": "Concentrated fruit", "ratio": "1:13", "time": "1.5 min", "temperature": "85°C"}
         ],
         "images": [
-            {"url": "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/7rra3n1s_38C77683-E4ED-4917-95F8-08997E2C06FE.jpeg", "alt": "Karoo Horizon", "is_primary": True, "sort_order": 0}
+            {"url": "https://capeembercoffee.co.za/images/karoo-horizon.jpg", "alt": "Karoo Horizon", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
             {"id": "karoo-250g-whole", "name": "250g Whole Bean", "sku": "CB-KARO-250W", "price": 169.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 25},
@@ -1544,6 +1552,38 @@ PRODUCTS = [
         "is_active": True,
         "is_featured": True,
         "is_bundle": False
+    },
+    {
+        "id": "landscape-bundle",
+        "name": "Landscape Bundle",
+        "slug": "landscape-bundle",
+        "description": "Experience the complete Cape Ember journey in one curated bundle. The Landscape Bundle brings together our four signature coffees in a single collection inspired by South Africa's coastlines, mountains, plains, and ember-lit evenings.",
+        "short_description": "A curated four-coffee collection inspired by South African landscapes",
+        "category": ProductCategory.GIFT_BOXES,
+        "roast_level": RoastLevel.MEDIUM,
+        "origin": "South African Roasted",
+        "strength": 3,
+        "flavor_notes": "Four signature coffees · 1kg total · curated savings",
+        "tasting_notes": [
+            {"note": "Nutty Sweetness", "intensity": 3},
+            {"note": "Cocoa Depth", "intensity": 4},
+            {"note": "Floral Brightness", "intensity": 3}
+        ],
+        "brewing_methods": [
+            {"method": "French Press", "description": "A rich way to explore the darker and medium profiles", "ratio": "1:15", "time": "4 min", "temperature": "93°C"},
+            {"method": "Pour Over", "description": "Best for comparing the bundle's brighter notes", "ratio": "1:16", "time": "3 min", "temperature": "92°C"}
+        ],
+        "images": [
+            {"url": "https://capeembercoffee.co.za/images/landscape-range-bundle.jpg", "alt": "Cape Ember Landscape Bundle", "is_primary": True, "sort_order": 0}
+        ],
+        "variants": [
+            {"id": "landscape-bundle-1kg", "name": "4 x 250g Signature Collection", "sku": "CB-LAND-4X250", "price": 549.00, "grind": GrindType.WHOLE_BEAN, "weight": "4 x 250g", "stock_quantity": 12}
+        ],
+        "bundle_items": ["fynbos-roast", "garden-route", "ember-reserve", "karoo-horizon"],
+        "tags": ["bundle", "gift-set", "featured"],
+        "is_active": True,
+        "is_featured": True,
+        "is_bundle": True
     },
 ]
 
@@ -1998,7 +2038,7 @@ async def get_or_create_cart(user_id: Optional[str], session_id: Optional[str]) 
     raise HTTPException(status_code=400, detail="Authentication or session required")
 
 
-def calculate_cart_totals(items: list, coupon: Optional[dict] = None, shipping_cost: float = 0.0) -> dict:
+def calculate_cart_totals(items: list, coupon: Optional[dict] = None, shipping_cost: float = 0.0, vat_rate: float = VAT_RATE) -> dict:
     """Calculate cart totals with optional coupon and shipping."""
     subtotal = sum(item["price"] * item["quantity"] for item in items)
     discount = 0.0
@@ -2010,7 +2050,7 @@ def calculate_cart_totals(items: list, coupon: Optional[dict] = None, shipping_c
             discount = min(coupon["discount_value"], subtotal)
     
     discounted_subtotal = subtotal - discount
-    vat = calculate_vat(discounted_subtotal)
+    vat = calculate_vat(discounted_subtotal, vat_rate)
     total = discounted_subtotal + shipping_cost
     
     return {
@@ -2053,9 +2093,15 @@ async def get_cart(
                 stock_available=variant["stock_quantity"]
             ))
     
+    store_rules = await get_store_rules()
     raw_subtotal = sum(i.price * i.quantity for i in items)
-    shipping = 0.0 if raw_subtotal >= 399 else 75.0
-    totals = calculate_cart_totals([{"price": i.price, "quantity": i.quantity} for i in items], coupon, shipping)
+    shipping = 0.0 if raw_subtotal >= store_rules["free_shipping_threshold"] else store_rules["shipping_fee"]
+    totals = calculate_cart_totals(
+        [{"price": i.price, "quantity": i.quantity} for i in items],
+        coupon,
+        shipping,
+        store_rules["vat_rate"],
+    )
     
     return CartResponse(
         items=items,
@@ -2289,6 +2335,9 @@ async def remove_coupon(
 @api_router.get("/shipping/rates")
 async def get_shipping_rates(province: str, subtotal: float):
     """Get shipping rates for a province"""
+    store_rules = await get_store_rules()
+    threshold = store_rules["free_shipping_threshold"]
+
     if is_sedgefield_destination(province):
         return {
             "rates": [
@@ -2296,18 +2345,18 @@ async def get_shipping_rates(province: str, subtotal: float):
                 {"method": "express", "name": "Express Delivery (1-2 days)", "price": 0, "free": True},
                 {"method": "local_delivery", "name": "Local Delivery (Same Day)", "price": 0, "free": True},
             ],
-            "free_shipping_threshold": 399,
-            "message": "Free local delivery in Sedgefield"
+            "free_shipping_threshold": threshold,
+            "message": "Free local delivery - Sedgefield"
         }
 
-    if subtotal >= 399:
+    if subtotal >= threshold:
         return {
             "rates": [
                 {"method": "standard", "name": "Standard Delivery (3-5 days)", "price": 0, "free": True},
                 {"method": "express", "name": "Express Delivery (1-2 days)", "price": 0, "free": True}
             ],
-            "free_shipping_threshold": 399,
-            "message": "Free shipping on orders over R399"
+            "free_shipping_threshold": threshold,
+            "message": f"Complimentary delivery on orders over R{int(threshold)}"
         }
     
     zone_rates = SHIPPING_ZONES.get(province, SHIPPING_ZONES.get("Western Cape"))
@@ -2324,8 +2373,8 @@ async def get_shipping_rates(province: str, subtotal: float):
     
     return {
         "rates": rates,
-        "free_shipping_threshold": 399,
-        "amount_until_free": max(0, 399 - subtotal)
+        "free_shipping_threshold": threshold,
+        "amount_until_free": max(0, threshold - subtotal)
     }
 
 
@@ -2390,18 +2439,22 @@ async def create_checkout(
             elif coupon["discount_type"] == "fixed_amount":
                 discount = min(coupon["discount_value"], subtotal)
     
+    store_rules = await get_store_rules()
     shipping_cost = calculate_shipping(
         subtotal - discount,
         checkout.shipping.method,
         checkout.shipping.address.province,
         checkout.is_subscription,
-        checkout.shipping.address.city
+        checkout.shipping.address.city,
+        store_rules["free_shipping_threshold"],
+        store_rules["shipping_fee"],
     )
     
     totals = calculate_cart_totals(
         [{"price": item["price"], "quantity": item["quantity"]} for item in order_items],
         coupon,
-        shipping_cost
+        shipping_cost,
+        store_rules["vat_rate"],
     )
     vat = totals["vat"]
     total = totals["total"]
@@ -2563,17 +2616,21 @@ async def create_simple_order(
         elif coupon["discount_type"] == "fixed_amount":
             discount = min(coupon["discount_value"], subtotal)
 
+    store_rules = await get_store_rules()
     shipping_cost = calculate_shipping(
         subtotal - discount,
         ShippingMethod.STANDARD,
         order_data.shipping_address.get("province", "Western Cape"),
         order_data.is_subscription,
-        order_data.shipping_address.get("city")
+        order_data.shipping_address.get("city"),
+        store_rules["free_shipping_threshold"],
+        store_rules["shipping_fee"],
     )
     totals = calculate_cart_totals(
         [{"price": item["price"], "quantity": item["quantity"]} for item in order_items],
         coupon,
-        shipping_cost
+        shipping_cost,
+        store_rules["vat_rate"],
     )
     total = totals["total"]
     vat = totals["vat"]
@@ -3069,148 +3126,6 @@ async def create_review(product_id: str, review: ReviewCreate, user: dict = Depe
     return {"message": "Review submitted", "review_id": str(result.inserted_id)}
 
 
-# ============ NEWSLETTER ROUTES ============
-
-@api_router.post("/newsletter/subscribe")
-async def subscribe_newsletter(
-    background_tasks: BackgroundTasks,
-    payload: Optional[NewsletterSubscribeRequest] = Body(default=None),
-    email: Optional[EmailStr] = Query(default=None),
-    first_name: Optional[str] = Query(default=None),
-    marketing_consent: Optional[bool] = Query(default=None),
-    source: Optional[str] = Query(default=None)
-):
-    # Backward compatible with existing query-param clients.
-    final_email = (payload.email if payload else email)
-    if not final_email:
-        raise HTTPException(status_code=400, detail="Email is required")
-
-    final_first_name = payload.first_name if payload else first_name
-    final_consent = payload.marketing_consent if payload else (marketing_consent if marketing_consent is not None else False)
-    final_source = payload.source if payload else (source or "unknown")
-
-    existing = await db.newsletter.find_one({"email": final_email.lower()})
-    if existing:
-        await db.newsletter.update_one(
-            {"email": final_email.lower()},
-            {"$set": {
-                "is_active": True,
-                "marketing_consent": final_consent,
-                "source": final_source,
-                "first_name": final_first_name,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
-        return {"message": "Already subscribed", "email": final_email.lower()}
-    
-    await db.newsletter.insert_one({
-        "_id": str(uuid.uuid4()),
-        "email": final_email.lower(),
-        "first_name": final_first_name,
-        "marketing_consent": final_consent,
-        "source": final_source,
-        "subscribed_at": datetime.now(timezone.utc).isoformat(),
-        "is_active": True
-    })
-
-    background_tasks.add_task(send_newsletter_welcome_email, final_email.lower(), final_first_name)
-    
-    return {"message": "Successfully subscribed to newsletter", "email": final_email.lower()}
-
-
-@api_router.post("/newsletter/unsubscribe")
-async def unsubscribe_newsletter(email: EmailStr):
-    await db.newsletter.update_one(
-        {"email": email.lower()},
-        {"$set": {"is_active": False, "unsubscribed_at": datetime.now(timezone.utc).isoformat()}}
-    )
-    return {"message": "Unsubscribed from newsletter"}
-
-
-@api_router.get("/admin/newsletter")
-async def get_newsletter_subscribers(
-    admin: dict = Depends(get_admin_user),
-    search: Optional[str] = None,
-    is_active: Optional[bool] = None,
-    page: int = 1,
-    limit: int = 50
-):
-    query: Dict[str, Any] = {}
-    if is_active is not None:
-        query["is_active"] = is_active
-    if search:
-        query["$or"] = [
-            {"email": {"$regex": search, "$options": "i"}},
-            {"first_name": {"$regex": search, "$options": "i"}},
-            {"source": {"$regex": search, "$options": "i"}}
-        ]
-
-    skip = max(0, (page - 1) * limit)
-    total = await db.newsletter.count_documents(query)
-    subscribers = await db.newsletter.find(query).sort("subscribed_at", -1).skip(skip).limit(limit).to_list(limit)
-
-    return {
-        "subscribers": [{
-            "id": s.get("_id"),
-            "email": s.get("email"),
-            "first_name": s.get("first_name"),
-            "marketing_consent": s.get("marketing_consent", False),
-            "source": s.get("source", "unknown"),
-            "is_active": s.get("is_active", True),
-            "subscribed_at": s.get("subscribed_at"),
-            "unsubscribed_at": s.get("unsubscribed_at")
-        } for s in subscribers],
-        "page": page,
-        "total": total,
-        "total_pages": (total + limit - 1) // limit
-    }
-
-
-@api_router.get("/admin/subscribers")
-async def get_admin_subscribers_alias(
-    admin: dict = Depends(get_admin_user),
-    search: Optional[str] = None,
-    is_active: Optional[bool] = None,
-    page: int = 1,
-    limit: int = 50
-):
-    """Backward-compatible alias for admin subscriber list."""
-    return await get_newsletter_subscribers(
-        admin=admin,
-        search=search,
-        is_active=is_active,
-        page=page,
-        limit=limit
-    )
-
-
-@api_router.get("/admin/newsletter/export")
-async def export_newsletter_csv(admin: dict = Depends(get_admin_user)):
-    subscribers = await db.newsletter.find().sort("subscribed_at", -1).to_list(None)
-    lines = ["id,email,first_name,marketing_consent,source,is_active,subscribed_at,unsubscribed_at"]
-    for s in subscribers:
-        lines.append(
-            f"{s.get('_id','')},{s.get('email','')},{(s.get('first_name') or '').replace(',', ' ')},{s.get('marketing_consent',False)},{s.get('source','')},{s.get('is_active',True)},{s.get('subscribed_at','')},{s.get('unsubscribed_at','')}"
-        )
-    return PlainTextResponse("\n".join(lines), media_type="text/csv")
-
-
-@api_router.put("/admin/newsletter/{subscriber_id}")
-async def update_newsletter_subscriber(
-    subscriber_id: str,
-    update: NewsletterUpdateRequest,
-    admin: dict = Depends(get_admin_user)
-):
-    payload = {k: v for k, v in update.dict().items() if v is not None}
-    if not payload:
-        raise HTTPException(status_code=400, detail="No changes supplied")
-    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
-    result = await db.newsletter.update_one({"_id": subscriber_id}, {"$set": payload})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Subscriber not found")
-    return {"message": "Subscriber updated", "id": subscriber_id}
-
-
 # ============ CONTACT ROUTES ============
 
 @api_router.post("/contact")
@@ -3218,6 +3133,9 @@ async def submit_contact(
     payload: ContactSubmissionRequest,
     background_tasks: BackgroundTasks
 ):
+    if payload.website and payload.website.strip():
+        raise HTTPException(status_code=400, detail="Invalid submission")
+
     await db.contact_submissions.insert_one({
         "_id": str(uuid.uuid4()),
         "name": payload.name,
@@ -3450,9 +3368,8 @@ async def get_admin_dashboard(admin: dict = Depends(get_admin_user)):
     # Total customers
     total_customers = await db.users.count_documents({})
 
-    # Subscriber and subscription stats
+    # Subscription stats
     active_subscriptions = await db.subscriptions.count_documents({"status": {"$in": ["active", "requested"]}})
-    newsletter_signups = await db.newsletter.count_documents({"is_active": True})
     
     # Recent orders
     recent_orders = await db.orders.find().sort("created_at", -1).limit(5).to_list(5)
@@ -3500,8 +3417,7 @@ async def get_admin_dashboard(admin: dict = Depends(get_admin_user)):
             "low_stock_products": low_stock_count,
             "new_customers": new_customers,
             "total_customers": total_customers,
-            "active_subscriptions": active_subscriptions,
-            "newsletter_signups": newsletter_signups
+            "active_subscriptions": active_subscriptions
         },
         "recent_orders": recent_orders_formatted,
         "top_products": top_products_formatted
@@ -3982,6 +3898,9 @@ class StoreSettingsUpdate(BaseModel):
     shipping_fee: Optional[float] = None
     free_shipping_threshold: Optional[float] = None
     vat_rate: Optional[float] = None
+    vat_inclusive_prices: Optional[bool] = None
+    sedgefield_local_delivery_enabled: Optional[bool] = None
+    sedgefield_local_delivery_label: Optional[str] = None
     social_links: Optional[dict] = None
     seo_defaults: Optional[dict] = None
 
@@ -4752,6 +4671,9 @@ async def get_admin_settings(admin: dict = Depends(get_admin_user)):
         "shipping_fee": 75,
         "free_shipping_threshold": 399,
         "vat_rate": 0.15,
+        "vat_inclusive_prices": True,
+        "sedgefield_local_delivery_enabled": True,
+        "sedgefield_local_delivery_label": "Sedgefield",
         "social_links": {
             "instagram": "https://instagram.com/capeembercoffee",
             "facebook": "https://facebook.com/capeembercoffee"
@@ -4799,6 +4721,12 @@ async def get_public_settings():
         "store_name": settings.get("store_name") or default_public["store_name"],
         "contact_email": settings.get("contact_email") or default_public["contact_email"],
         "whatsapp_number": settings.get("whatsapp_number") or default_public["whatsapp_number"],
+        "shipping_fee": settings.get("shipping_fee") if settings.get("shipping_fee") is not None else DEFAULT_SHIPPING_FEE,
+        "free_shipping_threshold": settings.get("free_shipping_threshold") if settings.get("free_shipping_threshold") is not None else DEFAULT_FREE_SHIPPING_THRESHOLD,
+        "vat_rate": settings.get("vat_rate") if settings.get("vat_rate") is not None else VAT_RATE,
+        "vat_inclusive_prices": settings.get("vat_inclusive_prices") if settings.get("vat_inclusive_prices") is not None else True,
+        "sedgefield_local_delivery_enabled": settings.get("sedgefield_local_delivery_enabled") if settings.get("sedgefield_local_delivery_enabled") is not None else True,
+        "sedgefield_local_delivery_label": settings.get("sedgefield_local_delivery_label") or "Sedgefield",
         "social_links": social_links
     }
 
@@ -4830,7 +4758,7 @@ async def get_admin_content(admin: dict = Depends(get_admin_user)):
             "shop": "/shop",
             "story": "/about"
         },
-        "announcement_bar": "Free nationwide shipping over R399"
+        "announcement_bar": "Complimentary nationwide delivery over R399"
     }
     content.pop("_id", None)
     return content

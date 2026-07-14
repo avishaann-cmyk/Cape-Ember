@@ -11,7 +11,8 @@ const ContactPage = () => {
     name: '',
     email: '',
     subject: '',
-    message: ''
+    message: '',
+    website: ''
   });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -30,7 +31,7 @@ const ContactPage = () => {
       title: 'Contact Cape Ember Coffee Co. | Premium South African Coffee',
       description: 'Get in touch with Cape Ember Coffee Co. for coffee questions, wholesale enquiries, and support.',
       canonicalPath: '/contact',
-      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
+      image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
     });
   }, []);
 
@@ -70,10 +71,11 @@ const ContactPage = () => {
         name: formData.name,
         email: formData.email,
         subject: formData.subject || 'General Enquiry',
-        message: formData.message
+        message: formData.message,
+        website: formData.website
       });
       setSubmitted(true);
-      setFormData({ name: '', email: '', subject: '', message: '' });
+      setFormData({ name: '', email: '', subject: '', message: '', website: '' });
     } catch (err) {
       setError(err.response?.data?.detail || 'Something went wrong. Please try again or WhatsApp us.');
     } finally {
@@ -151,6 +153,17 @@ const ContactPage = () => {
                     {error}
                   </div>
                 )}
+
+                <input
+                  type="text"
+                  name="website"
+                  value={formData.website}
+                  onChange={handleChange}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  className="hidden"
+                  aria-hidden="true"
+                />
                 
                 <div>
                   <label className="block text-sm font-medium text-[#2C1A12] mb-2">Name *</label>

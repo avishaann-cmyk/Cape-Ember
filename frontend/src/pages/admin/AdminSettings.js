@@ -44,6 +44,9 @@ const AdminSettings = () => {
       shipping_fee: Number(form.shipping_fee || 0),
       free_shipping_threshold: Number(form.free_shipping_threshold || 0),
       vat_rate: Number(form.vat_rate || 0),
+      vat_inclusive_prices: Boolean(form.vat_inclusive_prices),
+      sedgefield_local_delivery_enabled: Boolean(form.sedgefield_local_delivery_enabled),
+      sedgefield_local_delivery_label: form.sedgefield_local_delivery_label || 'Sedgefield',
       social_links: {
         instagram: form.social_links?.instagram || '',
         facebook: form.social_links?.facebook || '',
@@ -96,8 +99,17 @@ const AdminSettings = () => {
           <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="TikTok URL" value={form.social_links?.tiktok || ''} onChange={(e) => setForm({ ...form, social_links: { ...(form.social_links || {}), tiktok: e.target.value } })} />
           <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="X / Twitter URL" value={form.social_links?.x || ''} onChange={(e) => setForm({ ...form, social_links: { ...(form.social_links || {}), x: e.target.value } })} />
           <input type="number" className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Shipping fee" value={form.shipping_fee || ''} onChange={(e) => setForm({ ...form, shipping_fee: e.target.value })} />
-          <input type="number" className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Free shipping threshold" value={form.free_shipping_threshold || ''} onChange={(e) => setForm({ ...form, free_shipping_threshold: e.target.value })} />
+          <input type="number" className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Complimentary delivery threshold" value={form.free_shipping_threshold || ''} onChange={(e) => setForm({ ...form, free_shipping_threshold: e.target.value })} />
           <input type="number" step="0.01" className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="VAT rate" value={form.vat_rate || ''} onChange={(e) => setForm({ ...form, vat_rate: e.target.value })} />
+          <input className="w-full border border-[#D7B98C] px-3 py-2 rounded" placeholder="Local delivery area label" value={form.sedgefield_local_delivery_label || ''} onChange={(e) => setForm({ ...form, sedgefield_local_delivery_label: e.target.value })} />
+          <label className="flex items-center gap-3 text-sm text-[#2C1A12]">
+            <input type="checkbox" checked={Boolean(form.vat_inclusive_prices)} onChange={(e) => setForm({ ...form, vat_inclusive_prices: e.target.checked })} />
+            Prices shown across the store are VAT-inclusive
+          </label>
+          <label className="flex items-center gap-3 text-sm text-[#2C1A12]">
+            <input type="checkbox" checked={Boolean(form.sedgefield_local_delivery_enabled)} onChange={(e) => setForm({ ...form, sedgefield_local_delivery_enabled: e.target.checked })} />
+            Enable complimentary local delivery for the configured area
+          </label>
           <div className="text-sm text-[#3A2418] bg-[#F3E4CC] border border-[#D7B98C] rounded px-3 py-2">
             Resend status: {form.resend_configured ? 'Configured' : 'Not configured'}
           </div>

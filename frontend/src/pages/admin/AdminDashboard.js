@@ -13,7 +13,6 @@ import {
   Star,
   Gear,
   NotePencil,
-  EnvelopeSimple,
   Repeat
 } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
@@ -122,7 +121,6 @@ const AdminDashboard = () => {
             { icon: ChartLineUp, label: 'Performance', href: '/admin/performance', color: 'bg-indigo-700' },
             { icon: Gear, label: 'Settings', href: '/admin/settings', color: 'bg-gray-700' },
             { icon: NotePencil, label: 'Content', href: '/admin/content', color: 'bg-[#6F7A52]' },
-            { icon: EnvelopeSimple, label: 'Subscribers', href: '/admin/subscribers', color: 'bg-[#B56A35]' },
             { icon: Repeat, label: 'Subscriptions', href: '/admin/subscriptions', color: 'bg-[#3A2418]' },
           ].map((item, idx) => (
             <Link
@@ -314,7 +312,7 @@ const AdminDashboard = () => {
         {/* Customer Stats */}
         <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
           <h2 className="font-heading text-xl text-[#2C1A12] mb-4">Customer Overview</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             <div>
               <p className="text-3xl font-heading text-[#2C1A12]">{stats?.overview?.total_customers || 0}</p>
               <p className="text-sm text-[#6B5048]">Total Customers</p>
@@ -342,10 +340,6 @@ const AdminDashboard = () => {
             <div>
               <p className="text-3xl font-heading text-[#2C1A12]">{stats?.overview?.active_subscriptions || 0}</p>
               <p className="text-sm text-[#6B5048]">Active Subscriptions</p>
-            </div>
-            <div>
-              <p className="text-3xl font-heading text-[#2C1A12]">{stats?.overview?.newsletter_signups || 0}</p>
-              <p className="text-sm text-[#6B5048]">Newsletter Signups</p>
             </div>
           </div>
         </div>

@@ -50,6 +50,8 @@ const Navbar = () => {
   };
 
   const navLinks = [
+    { to: '/', label: 'Home' },
+    { to: '/products/landscape-bundle', label: 'Landscape Bundle' },
     { to: '/shop', label: 'Shop' },
     { to: '/about', label: 'Our Story' },
     { to: '/brew-guide', label: 'Brew Guide' },

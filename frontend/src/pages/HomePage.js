@@ -28,7 +28,7 @@ const HERO_IMAGES = [
     alt: "Rich espresso shot pouring into a ceramic cup"
   },
   {
-    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg",
+    url: "https://capeembercoffee.co.za/images/fynbos-roast.jpg",
     alt: "Fynbos landscape — wild South African mountains"
   },
   {
@@ -40,17 +40,17 @@ const HERO_IMAGES = [
 // South African Landscape Images for Story Carousel
 const LANDSCAPE_IMAGES = [
   {
-    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg",
+    url: "https://capeembercoffee.co.za/images/fynbos-roast.jpg",
     alt: "Fynbos Roast",
     shopPath: "/products/fynbos-roast"
   },
   {
-    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg",
+    url: "https://capeembercoffee.co.za/images/garden-route-blend.jpg",
     alt: "Garden Route Blend",
     shopPath: "/products/garden-route-blend"
   },
   {
-    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/73l0xugw_74A430E9-0D85-4995-89A7-4A464A396CA4.jpeg",
+    url: "https://capeembercoffee.co.za/images/karoo-horizon.jpg",
     alt: "Karoo Horizon",
     shopPath: "/products/karoo-horizon"
   },
@@ -86,7 +86,7 @@ const HomePage = () => {
       title: 'Cape Ember Coffee Co. | Premium South African Coffee',
       description: 'Premium coffee inspired by the places we love. Crafted with trusted roasting partners and delivered nationwide in South Africa.',
       canonicalPath: '/',
-      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
+      image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
     });
 
     const preload = document.createElement('link');
@@ -251,11 +251,19 @@ const HomePage = () => {
                 variants={fadeInUp}
               >
                 <Link
-                  to="/shop"
+                  to="/products/landscape-bundle"
                   className="btn-primary inline-flex items-center gap-3 group"
                   data-testid="hero-shop-btn"
                 >
-                  Shop Coffee
+                  Discover the Landscape Bundle
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  to="/shop"
+                  className="btn-secondary inline-flex items-center gap-3 group"
+                  data-testid="hero-collection-btn"
+                >
+                  Explore Individual Blends
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
               </motion.div>
@@ -553,7 +561,7 @@ const HomePage = () => {
                 { label: 'Secure Checkout', icon: ShieldCheck, desc: 'SSL Encrypted' },
                 { label: 'Small-Batch Quality', icon: Medal, desc: 'Artisan Crafted' },
                 { label: 'Proudly South African', icon: Fire, desc: 'Local Excellence' },
-                { label: 'Nationwide Delivery', icon: Truck, desc: 'Free Over R399' },
+                { label: 'Nationwide Delivery', icon: Truck, desc: 'Complimentary Over R399' },
               ].map((badge, index) => (
                 <motion.div
                   key={index}

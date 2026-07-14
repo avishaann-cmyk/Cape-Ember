@@ -165,7 +165,7 @@ const BLEND_RECOMMENDATIONS = [
     idealMethods: ['French Press', 'AeroPress', 'Pour Over'],
     grindTip: 'Medium grind works best - adjust finer for espresso, coarser for French Press',
     flavorTip: 'To bring out the nutty sweetness, try brewing at 92°C',
-    image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
+    image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
   },
   {
     id: 'garden-route',
@@ -176,7 +176,7 @@ const BLEND_RECOMMENDATIONS = [
     idealMethods: ['Pour Over', 'Cold Brew', 'AeroPress'],
     grindTip: 'Medium-fine for pour over brings out the cocoa; extra coarse for cold brew highlights sweetness',
     flavorTip: 'This blend makes exceptional cold brew with natural sweetness',
-    image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg'
+    image: 'https://capeembercoffee.co.za/images/garden-route-blend.jpg'
   },
   {
     id: 'ember-reserve',
@@ -187,7 +187,7 @@ const BLEND_RECOMMENDATIONS = [
     idealMethods: ['Espresso', 'French Press', 'Moka Pot'],
     grindTip: 'Fine for espresso, coarse for French Press - avoid medium grinds which can taste bitter',
     flavorTip: 'Extend French Press time to 4:30 for maximum body and chocolate notes',
-    image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg'
+    image: 'https://capeembercoffee.co.za/images/ember-reserve.jpg'
   },
   {
     id: 'karoo-horizon',
@@ -198,7 +198,7 @@ const BLEND_RECOMMENDATIONS = [
     idealMethods: ['Pour Over', 'AeroPress'],
     grindTip: 'Medium-fine grind, and don\'t over-extract - stop at 3 minutes',
     flavorTip: 'Use 90°C water to preserve the delicate blueberry and floral notes',
-    image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/7rra3n1s_38C77683-E4ED-4917-95F8-08997E2C06FE.jpeg'
+    image: 'https://capeembercoffee.co.za/images/karoo-horizon.jpg'
   }
 ];
 

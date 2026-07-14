@@ -11,8 +11,11 @@ import { setPageSEO } from '../lib/seo';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Shipping threshold for free shipping
-const FREE_SHIPPING_THRESHOLD = 399;
+const DEFAULT_CART_RULES = {
+  freeShippingThreshold: 399,
+  shippingCost: 75,
+  vatRate: 0.15,
+};
 
 const CartPage = () => {
   const { cart, updateQuantity, removeFromCart, loading, refreshCart, applyCoupon, removeCoupon } = useCart();
@@ -21,6 +24,7 @@ const CartPage = () => {
   const [couponError, setCouponError] = useState('');
   const [upsellProducts, setUpsellProducts] = useState([]);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [cartRules, setCartRules] = useState(DEFAULT_CART_RULES);
 
   // Fetch upsell products
   useEffect(() => {
@@ -28,7 +32,7 @@ const CartPage = () => {
       title: 'Shopping Cart | Cape Ember Coffee Co.',
       description: 'Review your Cape Ember coffee cart, shipping, VAT, and total before checkout.',
       canonicalPath: '/cart',
-      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
+      image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
     });
 
     const fetchUpsells = async () => {
@@ -47,6 +51,25 @@ const CartPage = () => {
       fetchUpsells();
     }
   }, [cart.items]);
+
+  useEffect(() => {
+    const fetchPublicSettings = async () => {
+      try {
+        const response = await axios.get(`${API}/settings/public`);
+        const data = response.data || {};
+        setCartRules((prev) => ({
+          ...prev,
+          freeShippingThreshold: Number(data.free_shipping_threshold ?? prev.freeShippingThreshold),
+          shippingCost: Number(data.shipping_fee ?? prev.shippingCost),
+          vatRate: Number(data.vat_rate ?? prev.vatRate),
+        }));
+      } catch (error) {
+        console.error('Failed to load public settings:', error);
+      }
+    };
+
+    fetchPublicSettings();
+  }, []);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -78,9 +101,12 @@ const CartPage = () => {
   };
 
   // Use centralized totals computation so cart + checkout cannot diverge
-  const { subtotal, discount, shipping: shippingCost, vat: vatAmount, total } = computeCartTotals(cart);
-  const amountToFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
-  const progressToFreeShipping = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
+  const { subtotal, discount, shipping: shippingCost, vat: vatAmount, total } = computeCartTotals(cart, cartRules);
+  const freeShippingThreshold = Number(cartRules.freeShippingThreshold || 0);
+  const amountToFreeShipping = freeShippingThreshold - subtotal;
+  const progressToFreeShipping = freeShippingThreshold > 0
+    ? Math.min((subtotal / freeShippingThreshold) * 100, 100)
+    : 100;
 
   if (loading) {
     return (
@@ -112,8 +138,8 @@ const CartPage = () => {
           <span className="text-[#6B5048]">{cart.items.length} {cart.items.length === 1 ? 'item' : 'items'}</span>
         </div>
 
-        {/* Free Shipping Progress */}
-        {subtotal > 0 && subtotal < FREE_SHIPPING_THRESHOLD && (
+        {/* Complimentary Delivery Progress */}
+        {subtotal > 0 && subtotal < freeShippingThreshold && (
           <motion.div 
             className="mb-8 p-4 bg-[#F4EFE6] border border-[#E6DCD1]"
             initial={{ opacity: 0, y: -10 }}
@@ -122,7 +148,7 @@ const CartPage = () => {
             <div className="flex items-center gap-3 mb-3">
               <Truck size={20} className="text-[#D05C23]" />
               <span className="text-[#2C1A12] font-medium">
-                Add R {amountToFreeShipping.toFixed(2)} more for free shipping!
+                Add R {amountToFreeShipping.toFixed(2)} more for complimentary delivery.
               </span>
             </div>
             <div className="w-full h-2 bg-[#E6DCD1] rounded-full overflow-hidden">
@@ -136,7 +162,7 @@ const CartPage = () => {
           </motion.div>
         )}
 
-        {subtotal >= FREE_SHIPPING_THRESHOLD && (
+        {subtotal >= freeShippingThreshold && (
           <motion.div 
             className="mb-8 p-4 bg-[#2F855A]/10 border border-[#2F855A]/30"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -145,7 +171,7 @@ const CartPage = () => {
             <div className="flex items-center gap-3">
               <Truck size={20} className="text-[#2F855A]" />
               <span className="text-[#2F855A] font-medium">
-                🎉 You've unlocked free shipping!
+                🎉 You've unlocked complimentary delivery.
               </span>
             </div>
           </motion.div>

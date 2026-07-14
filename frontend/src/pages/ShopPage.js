@@ -63,7 +63,7 @@ const ShopPage = () => {
       title: 'Shop Premium South African Coffee | Cape Ember Coffee Co.',
       description: 'Shop Fynbos Roast, Garden Route Blend, Karoo Horizon, and Ember Reserve. Premium coffee inspired by South African landscapes.',
       canonicalPath: '/shop',
-      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg'
+      image: 'https://capeembercoffee.co.za/images/garden-route-blend.jpg'
     });
     
     const fetchProducts = async () => {
@@ -207,7 +207,7 @@ const ShopPage = () => {
           </h1>
           <p className="text-white/80 max-w-2xl mx-auto">
             Premium small-batch roasted coffee beans, inspired by the landscapes of South Africa. 
-            Free delivery on orders over R399.
+            Complimentary delivery on orders over R399.
           </p>
         </div>
       </div>

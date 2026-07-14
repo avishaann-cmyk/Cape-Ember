@@ -63,7 +63,7 @@ const TermsPage = () => {
             <h2 className="font-heading text-2xl text-[#2D2622] mb-4">4. Delivery</h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>We deliver throughout South Africa.</li>
-              <li>Free delivery on orders over R399.</li>
+              <li>Complimentary delivery on orders over R399.</li>
               <li>Standard delivery fee is R75 for orders under R399.</li>
               <li>Estimated delivery times: 3-5 business days for major cities, 5-7 business days for other areas.</li>
               <li>Delivery times are estimates and not guaranteed.</li>
@@ -74,7 +74,7 @@ const TermsPage = () => {
             <h2 className="font-heading text-2xl text-[#2D2622] mb-4">5. Subscriptions</h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>Subscriptions can be paused, modified, or cancelled at any time via your account dashboard.</li>
-              <li>Subscription orders include free delivery.</li>
+              <li>Subscription orders include complimentary delivery.</li>
               <li>You will be charged on each delivery cycle (weekly, bi-weekly, or monthly).</li>
               <li>Cancellation must be done at least 48 hours before the next scheduled delivery.</li>
             </ul>

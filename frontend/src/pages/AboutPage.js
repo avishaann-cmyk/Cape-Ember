@@ -9,7 +9,7 @@ const AboutPage = () => {
       title: 'About Cape Ember Coffee Co. | South African Landscapes in Every Cup',
       description: 'Discover the Cape Ember story: premium coffee inspired by South African landscapes and crafted with trusted roasting partners.',
       canonicalPath: '/about',
-      image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/11b4v0fr_IMG_6815.jpeg'
+      image: 'https://capeembercoffee.co.za/images/landscape-range-bundle.jpg'
     });
   }, []);
 
@@ -20,7 +20,7 @@ const AboutPage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
-            backgroundImage: `url('https://customer-assets.emergentagent.com/job_axis-creator/artifacts/11b4v0fr_IMG_6815.jpeg')`
+            backgroundImage: `url('https://capeembercoffee.co.za/images/landscape-range-bundle.jpg')`
           }}
         />
         <div className="absolute inset-0 hero-overlay" />
@@ -132,22 +132,22 @@ const AboutPage = () => {
               {
                 name: 'Fynbos Roast',
                 desc: 'Inspired by the wild fynbos of the Cape, this medium roast offers a grounded, comforting cup with natural sweetness. Smooth, nutty, and perfectly balanced for everyday enjoyment.',
-                image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/s93qex0b_77A74D65-C0D2-4A33-9348-2B0D5FE7082C.jpeg'
+                image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
               },
               {
                 name: 'Garden Route Blend',
                 desc: 'A tribute to South Africa\'s iconic coast. This balanced house blend offers a smooth cup with hints of cocoa and gentle citrus notes — perfect for any time of day.',
-                image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/bvwasl9r_81ABD9FE-73FC-4C42-BF11-D3A0A1024683.jpeg'
+                image: 'https://capeembercoffee.co.za/images/garden-route-blend.jpg'
               },
               {
                 name: 'Ember Reserve',
                 desc: 'For those who appreciate depth and intensity. This premium dark roast delivers a bold, lingering finish with rich dark chocolate notes and a full-bodied character.',
-                image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/urotn845_DA24A032-67E2-4343-9612-0534B6EA7394.jpeg'
+                image: 'https://capeembercoffee.co.za/images/ember-reserve.jpg'
               },
               {
                 name: 'Karoo Horizon',
                 desc: 'From the vast, open plains of the Karoo. This expressive light roast offers delicate blueberry and wildflower notes with a relaxed honey finish — a limited release for adventurous palates.',
-                image: 'https://customer-assets.emergentagent.com/job_axis-creator/artifacts/7rra3n1s_38C77683-E4ED-4917-95F8-08997E2C06FE.jpeg'
+                image: 'https://capeembercoffee.co.za/images/karoo-horizon.jpg'
               },
             ].map((blend, idx) => (
               <div 
@@ -181,11 +181,11 @@ const AboutPage = () => {
             Explore the four signature coffees in a calm, premium collection inspired by South African landscapes.
           </p>
           <Link 
-            to="/shop" 
+            to="/products/landscape-bundle" 
             className="btn-primary inline-block"
             data-testid="about-cta"
           >
-            Shop the Collection
+            Discover the Landscape Bundle
           </Link>
         </div>
       </section>
