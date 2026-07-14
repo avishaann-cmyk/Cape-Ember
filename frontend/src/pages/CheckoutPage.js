@@ -11,6 +11,7 @@ import { setPageSEO } from '../lib/seo';
 import { trackEvent } from '../lib/analytics';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const BRAND_LOGO = '/Logo.jpeg';
 
 const getSessionId = () => {
   let sessionId = localStorage.getItem('guest_session_id');
@@ -237,6 +238,14 @@ const CheckoutPage = () => {
             <ArrowLeft size={18} />
             {step > 1 ? 'Back' : 'Back to Cart'}
           </button>
+
+          <img
+            src={BRAND_LOGO}
+            alt="Cape Ember Coffee Co."
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover object-center border border-[#E6DCD1] bg-white"
+            loading="eager"
+            decoding="async"
+          />
           
           {/* Progress Steps */}
           <div className="hidden sm:flex items-center gap-2">

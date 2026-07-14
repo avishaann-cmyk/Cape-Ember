@@ -10,6 +10,7 @@ import { computeCartTotals } from '../lib/cartTotals';
 import { setPageSEO } from '../lib/seo';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const BRAND_LOGO = '/Logo.jpeg';
 
 const DEFAULT_CART_RULES = {
   freeShippingThreshold: 399,
@@ -133,8 +134,17 @@ const CartPage = () => {
     <div className="min-h-screen pt-20 md:pt-24 bg-[#FDFBF7]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="font-heading text-4xl text-[#2C1A12]">Your Cart</h1>
+        <div className="flex items-center justify-between mb-8 gap-4">
+          <div className="flex items-center gap-3">
+            <img
+              src={BRAND_LOGO}
+              alt="Cape Ember Coffee Co."
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover object-center border border-[#E6DCD1] bg-white"
+              loading="eager"
+              decoding="async"
+            />
+            <h1 className="font-heading text-4xl text-[#2C1A12]">Your Cart</h1>
+          </div>
           <span className="text-[#6B5048]">{cart.items.length} {cart.items.length === 1 ? 'item' : 'items'}</span>
         </div>
 
