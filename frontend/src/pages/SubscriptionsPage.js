@@ -61,7 +61,7 @@ const SubscriptionsPage = () => {
       title: 'Ember Circle Subscriptions | Cape Ember Coffee Co.',
       description: 'Never run out of coffee. Join Ember Circle with flexible delivery for your favourite Cape Ember blends.',
       canonicalPath: '/subscriptions',
-      image: 'https://capeembercoffee.co.za/images/ember-reserve.jpg'
+      image: '/assets/cape-ember/cape-ember-ember-reserve-lifestyle.jpeg'
     });
 
     const fetchProducts = async () => {

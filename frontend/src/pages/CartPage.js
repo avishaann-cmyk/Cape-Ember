@@ -32,7 +32,7 @@ const CartPage = () => {
       title: 'Shopping Cart | Cape Ember Coffee Co.',
       description: 'Review your Cape Ember coffee cart, shipping, VAT, and total before checkout.',
       canonicalPath: '/cart',
-      image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
+      image: '/assets/cape-ember/cape-ember-fynbos-lifestyle.jpeg'
     });
 
     const fetchUpsells = async () => {

@@ -75,7 +75,7 @@ const CheckoutPage = () => {
       title: 'Checkout | Cape Ember Coffee Co.',
       description: 'Secure checkout for Cape Ember Coffee Co. Review shipping, VAT, and payment before placing your order.',
       canonicalPath: '/checkout',
-      image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
+      image: '/assets/cape-ember/cape-ember-fynbos-lifestyle.jpeg'
     });
   }, []);
 

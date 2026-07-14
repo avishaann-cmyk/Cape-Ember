@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Coffee, Leaf, MapPin, Heart } from 'lucide-react';
 import { setPageSEO } from '../lib/seo';
+import { ASSETS } from '../lib/capeEmberAssets';
 
 const AboutPage = () => {
   React.useEffect(() => {
@@ -9,7 +10,7 @@ const AboutPage = () => {
       title: 'About Cape Ember Coffee Co. | South African Landscapes in Every Cup',
       description: 'Discover the Cape Ember story: premium coffee inspired by South African landscapes and crafted with trusted roasting partners.',
       canonicalPath: '/about',
-      image: 'https://capeembercoffee.co.za/images/landscape-range-bundle.jpg'
+      image: ASSETS.fourProductCollection.src
     });
   }, []);
 
@@ -20,7 +21,7 @@ const AboutPage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
-            backgroundImage: `url('https://capeembercoffee.co.za/images/landscape-range-bundle.jpg')`
+            backgroundImage: `url('${ASSETS.fourProductCollection.src}')`
           }}
         />
         <div className="absolute inset-0 hero-overlay" />
@@ -62,8 +63,8 @@ const AboutPage = () => {
             </div>
             <div className="aspect-square overflow-hidden">
               <img
-                src="https://customer-assets.emergentagent.com/job_axis-creator/artifacts/iu170te7_8FCEC634-E08A-49A5-B9F5-A1FADCEE6008.png"
-                alt="Cape Ember Coffee - South African Landscape"
+                src={ASSETS.fourProductCollection.src}
+                alt={ASSETS.fourProductCollection.alt}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -132,22 +133,22 @@ const AboutPage = () => {
               {
                 name: 'Fynbos Roast',
                 desc: 'Inspired by the wild fynbos of the Cape, this medium roast offers a grounded, comforting cup with natural sweetness. Smooth, nutty, and perfectly balanced for everyday enjoyment.',
-                image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
+                image: ASSETS.fynbosLifestyle.src
               },
               {
                 name: 'Garden Route Blend',
                 desc: 'A tribute to South Africa\'s iconic coast. This balanced house blend offers a smooth cup with hints of cocoa and gentle citrus notes — perfect for any time of day.',
-                image: 'https://capeembercoffee.co.za/images/garden-route-blend.jpg'
+                image: ASSETS.gardenRouteLifestyle.src
               },
               {
                 name: 'Ember Reserve',
                 desc: 'For those who appreciate depth and intensity. This premium dark roast delivers a bold, lingering finish with rich dark chocolate notes and a full-bodied character.',
-                image: 'https://capeembercoffee.co.za/images/ember-reserve.jpg'
+                image: ASSETS.emberReserveLifestyle.src
               },
               {
                 name: 'Karoo Horizon',
                 desc: 'From the vast, open plains of the Karoo. This expressive light roast offers delicate blueberry and wildflower notes with a relaxed honey finish — a limited release for adventurous palates.',
-                image: 'https://capeembercoffee.co.za/images/karoo-horizon.jpg'
+                image: ASSETS.karooHorizonLifestyle.src
               },
             ].map((blend, idx) => (
               <div 

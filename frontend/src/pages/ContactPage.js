@@ -31,7 +31,7 @@ const ContactPage = () => {
       title: 'Contact Cape Ember Coffee Co. | Premium South African Coffee',
       description: 'Get in touch with Cape Ember Coffee Co. for coffee questions, wholesale enquiries, and support.',
       canonicalPath: '/contact',
-      image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
+      image: '/assets/cape-ember/cape-ember-fynbos-lifestyle.jpeg'
     });
   }, []);
 

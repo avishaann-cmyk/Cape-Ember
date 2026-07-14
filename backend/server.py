@@ -1444,7 +1444,7 @@ PRODUCTS = [
             {"method": "AeroPress", "description": "Smooth concentrate", "ratio": "1:12", "time": "1.5 min", "temperature": "88°C"}
         ],
         "images": [
-            {"url": "https://capeembercoffee.co.za/images/fynbos-roast.jpg", "alt": "Fynbos Roast Coffee", "is_primary": True, "sort_order": 0}
+            {"url": "/assets/cape-ember/cape-ember-fynbos-lifestyle.jpeg", "alt": "Cape Ember Fynbos Roast surrounded by indigenous South African fynbos", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
             {"id": "fynbos-250g-whole", "name": "250g Whole Bean", "sku": "CB-FYNB-250W", "price": 149.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 50},
@@ -1477,7 +1477,7 @@ PRODUCTS = [
             {"method": "Espresso", "description": "Rich crema", "ratio": "1:2", "time": "28 sec", "temperature": "93°C"}
         ],
         "images": [
-            {"url": "https://capeembercoffee.co.za/images/garden-route-blend.jpg", "alt": "Garden Route Blend", "is_primary": True, "sort_order": 0}
+            {"url": "/assets/cape-ember/cape-ember-garden-route-lifestyle.jpeg", "alt": "Cape Ember Garden Route Blend overlooking a South African coastal landscape", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
             {"id": "garden-250g-whole", "name": "250g Whole Bean", "sku": "CB-GARD-250W", "price": 149.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 45},
@@ -1510,7 +1510,7 @@ PRODUCTS = [
             {"method": "Moka Pot", "description": "Stovetop intensity", "ratio": "1:10", "time": "4 min", "temperature": "Stovetop"}
         ],
         "images": [
-            {"url": "https://capeembercoffee.co.za/images/ember-reserve.jpg", "alt": "Ember Reserve", "is_primary": True, "sort_order": 0}
+            {"url": "/assets/cape-ember/cape-ember-ember-reserve-lifestyle.jpeg", "alt": "Cape Ember Ember Reserve dark roast inspired by South African mountain valleys", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
             {"id": "ember-250g-whole", "name": "250g Whole Bean", "sku": "CB-EMBR-250W", "price": 169.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 40},
@@ -1542,7 +1542,7 @@ PRODUCTS = [
             {"method": "AeroPress", "description": "Concentrated fruit", "ratio": "1:13", "time": "1.5 min", "temperature": "85°C"}
         ],
         "images": [
-            {"url": "https://capeembercoffee.co.za/images/karoo-horizon.jpg", "alt": "Karoo Horizon", "is_primary": True, "sort_order": 0}
+            {"url": "/assets/cape-ember/cape-ember-karoo-horizon-lifestyle.jpeg", "alt": "Cape Ember Karoo Horizon coffee inspired by the open Karoo landscape", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
             {"id": "karoo-250g-whole", "name": "250g Whole Bean", "sku": "CB-KARO-250W", "price": 169.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 25},
@@ -1574,7 +1574,7 @@ PRODUCTS = [
             {"method": "Pour Over", "description": "Best for comparing the bundle's brighter notes", "ratio": "1:16", "time": "3 min", "temperature": "92°C"}
         ],
         "images": [
-            {"url": "https://capeembercoffee.co.za/images/landscape-range-bundle.jpg", "alt": "Cape Ember Landscape Bundle", "is_primary": True, "sort_order": 0}
+            {"url": "/assets/cape-ember/cape-ember-landscape-bundle-banner.jpeg", "alt": "Cape Ember Coffee Co. Landscape Range featuring four South African landscape-inspired coffees", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
             {"id": "landscape-bundle-1kg", "name": "4 x 250g Signature Collection", "sku": "CB-LAND-4X250", "price": 549.00, "grind": GrindType.WHOLE_BEAN, "weight": "4 x 250g", "stock_quantity": 12}

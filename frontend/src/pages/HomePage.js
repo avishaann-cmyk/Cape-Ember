@@ -6,6 +6,7 @@ import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
 import { setPageSEO } from '../lib/seo';
+import { LANDSCAPE_CAROUSEL, ASSETS } from '../lib/capeEmberAssets';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -20,16 +21,16 @@ const HERO_IMAGES = [
     alt: "Silky cappuccino latte art on dark surface"
   },
   {
-    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/3waxg6go_979C6093-B355-4F2D-95D3-FAEC4F8CEB4D.jpeg",
-    alt: "Ember Reserve — ember-lit South African evening"
+    url: ASSETS.emberReserveLifestyle.src,
+    alt: ASSETS.emberReserveLifestyle.alt,
   },
   {
     url: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=2000&q=80",
     alt: "Rich espresso shot pouring into a ceramic cup"
   },
   {
-    url: "https://capeembercoffee.co.za/images/fynbos-roast.jpg",
-    alt: "Fynbos landscape — wild South African mountains"
+    url: ASSETS.fynbosLifestyle.src,
+    alt: ASSETS.fynbosLifestyle.alt,
   },
   {
     url: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=2000&q=80",
@@ -37,29 +38,12 @@ const HERO_IMAGES = [
   },
 ];
 
-// South African Landscape Images for Story Carousel
-const LANDSCAPE_IMAGES = [
-  {
-    url: "https://capeembercoffee.co.za/images/fynbos-roast.jpg",
-    alt: "Fynbos Roast",
-    shopPath: "/products/fynbos-roast"
-  },
-  {
-    url: "https://capeembercoffee.co.za/images/garden-route-blend.jpg",
-    alt: "Garden Route Blend",
-    shopPath: "/products/garden-route-blend"
-  },
-  {
-    url: "https://capeembercoffee.co.za/images/karoo-horizon.jpg",
-    alt: "Karoo Horizon",
-    shopPath: "/products/karoo-horizon"
-  },
-  {
-    url: "https://customer-assets.emergentagent.com/job_axis-creator/artifacts/3waxg6go_979C6093-B355-4F2D-95D3-FAEC4F8CEB4D.jpeg",
-    alt: "Ember Reserve",
-    shopPath: "/products/ember-reserve"
-  }
-];
+// South African Landscape Images for Story Carousel — sourced from central asset config
+const LANDSCAPE_IMAGES = LANDSCAPE_CAROUSEL.map((a) => ({
+  url: a.src,
+  alt: a.alt,
+  shopPath: a.link,
+}));
 
 // Animation variants
 const fadeInUp = {
@@ -86,7 +70,7 @@ const HomePage = () => {
       title: 'Cape Ember Coffee Co. | Premium South African Coffee',
       description: 'Premium coffee inspired by the places we love. Crafted with trusted roasting partners and delivered nationwide in South Africa.',
       canonicalPath: '/',
-      image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
+      image: ASSETS.fynbosLifestyle.src
     });
 
     const preload = document.createElement('link');

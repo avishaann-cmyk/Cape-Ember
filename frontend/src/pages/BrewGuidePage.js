@@ -165,7 +165,7 @@ const BLEND_RECOMMENDATIONS = [
     idealMethods: ['French Press', 'AeroPress', 'Pour Over'],
     grindTip: 'Medium grind works best - adjust finer for espresso, coarser for French Press',
     flavorTip: 'To bring out the nutty sweetness, try brewing at 92°C',
-    image: 'https://capeembercoffee.co.za/images/fynbos-roast.jpg'
+    image: '/assets/cape-ember/cape-ember-fynbos-lifestyle.jpeg'
   },
   {
     id: 'garden-route',
@@ -176,7 +176,7 @@ const BLEND_RECOMMENDATIONS = [
     idealMethods: ['Pour Over', 'Cold Brew', 'AeroPress'],
     grindTip: 'Medium-fine for pour over brings out the cocoa; extra coarse for cold brew highlights sweetness',
     flavorTip: 'This blend makes exceptional cold brew with natural sweetness',
-    image: 'https://capeembercoffee.co.za/images/garden-route-blend.jpg'
+    image: '/assets/cape-ember/cape-ember-garden-route-lifestyle.jpeg'
   },
   {
     id: 'ember-reserve',
@@ -187,7 +187,7 @@ const BLEND_RECOMMENDATIONS = [
     idealMethods: ['Espresso', 'French Press', 'Moka Pot'],
     grindTip: 'Fine for espresso, coarse for French Press - avoid medium grinds which can taste bitter',
     flavorTip: 'Extend French Press time to 4:30 for maximum body and chocolate notes',
-    image: 'https://capeembercoffee.co.za/images/ember-reserve.jpg'
+    image: '/assets/cape-ember/cape-ember-ember-reserve-lifestyle.jpeg'
   },
   {
     id: 'karoo-horizon',
@@ -198,7 +198,7 @@ const BLEND_RECOMMENDATIONS = [
     idealMethods: ['Pour Over', 'AeroPress'],
     grindTip: 'Medium-fine grind, and don\'t over-extract - stop at 3 minutes',
     flavorTip: 'Use 90°C water to preserve the delicate blueberry and floral notes',
-    image: 'https://capeembercoffee.co.za/images/karoo-horizon.jpg'
+    image: '/assets/cape-ember/cape-ember-karoo-horizon-lifestyle.jpeg'
   }
 ];
 
