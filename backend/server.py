@@ -1447,8 +1447,8 @@ PRODUCTS = [
             {"url": "/assets/cape-ember/cape-ember-fynbos-lifestyle.jpeg", "alt": "Cape Ember Fynbos Roast surrounded by indigenous South African fynbos", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
-            {"id": "fynbos-250g-whole", "name": "250g Whole Bean", "sku": "CB-FYNB-250W", "price": 149.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 50},
-            {"id": "fynbos-250g-ground", "name": "250g Ground", "sku": "CB-FYNB-250G", "price": 149.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 30}
+            {"id": "fynbos-250g-whole", "name": "250g Whole Bean", "sku": "CB-FYNB-250W", "price": 139.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 50},
+            {"id": "fynbos-250g-ground", "name": "250g Ground", "sku": "CB-FYNB-250G", "price": 139.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 30}
         ],
         "tags": ["bestseller", "everyday", "brazilian"],
         "is_active": True,
@@ -1480,8 +1480,8 @@ PRODUCTS = [
             {"url": "/assets/cape-ember/cape-ember-garden-route-lifestyle.jpeg", "alt": "Cape Ember Garden Route Blend overlooking a South African coastal landscape", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
-            {"id": "garden-250g-whole", "name": "250g Whole Bean", "sku": "CB-GARD-250W", "price": 149.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 45},
-            {"id": "garden-250g-ground", "name": "250g Ground", "sku": "CB-GARD-250G", "price": 149.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 35}
+            {"id": "garden-250g-whole", "name": "250g Whole Bean", "sku": "CB-GARD-250W", "price": 139.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 45},
+            {"id": "garden-250g-ground", "name": "250g Ground", "sku": "CB-GARD-250G", "price": 139.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 35}
         ],
         "tags": ["house-blend", "everyday", "cold-brew-friendly"],
         "is_active": True,
@@ -1545,8 +1545,8 @@ PRODUCTS = [
             {"url": "/assets/cape-ember/cape-ember-karoo-horizon-lifestyle.jpeg", "alt": "Cape Ember Karoo Horizon coffee inspired by the open Karoo landscape", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
-            {"id": "karoo-250g-whole", "name": "250g Whole Bean", "sku": "CB-KARO-250W", "price": 169.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 25},
-            {"id": "karoo-250g-ground", "name": "250g Ground", "sku": "CB-KARO-250G", "price": 169.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 15}
+            {"id": "karoo-250g-whole", "name": "250g Whole Bean", "sku": "CB-KARO-250W", "price": 159.00, "grind": GrindType.WHOLE_BEAN, "weight": "250g", "stock_quantity": 25},
+            {"id": "karoo-250g-ground", "name": "250g Ground", "sku": "CB-KARO-250G", "price": 159.00, "grind": GrindType.MEDIUM, "weight": "250g", "stock_quantity": 15}
         ],
         "tags": ["limited-edition", "single-origin", "ethiopian", "specialty"],
         "is_active": True,
@@ -1577,7 +1577,7 @@ PRODUCTS = [
             {"url": "/assets/cape-ember/cape-ember-landscape-bundle-banner.jpeg", "alt": "Cape Ember Coffee Co. Landscape Range featuring four South African landscape-inspired coffees", "is_primary": True, "sort_order": 0}
         ],
         "variants": [
-            {"id": "landscape-bundle-1kg", "name": "4 x 250g Signature Collection", "sku": "CB-LAND-4X250", "price": 549.00, "grind": GrindType.WHOLE_BEAN, "weight": "4 x 250g", "stock_quantity": 12}
+            {"id": "landscape-bundle-1kg", "name": "4 x 250g Signature Collection", "sku": "CB-LAND-4X250", "price": 599.00, "grind": GrindType.WHOLE_BEAN, "weight": "4 x 250g", "stock_quantity": 12}
         ],
         "bundle_items": ["fynbos-roast", "garden-route", "ember-reserve", "karoo-horizon"],
         "tags": ["bundle", "gift-set", "featured"],
