@@ -2510,8 +2510,8 @@ async def create_checkout(
         payfast_data = {
             "merchant_id": PAYFAST_MERCHANT_ID,
             "merchant_key": PAYFAST_MERCHANT_KEY,
-            "return_url": f"{FRONTEND_URL}/order/success?order_id={order_id}",
-            "cancel_url": f"{FRONTEND_URL}/order/cancel?order_id={order_id}",
+            "return_url": f"{FRONTEND_URL}/payment/success?order_id={order_id}",
+            "cancel_url": f"{FRONTEND_URL}/payment/cancel?order_id={order_id}",
             "notify_url": f"{BACKEND_URL}/api/webhooks/payfast",
             "m_payment_id": order_id,
             "amount": f"{total:.2f}",
@@ -2539,7 +2539,7 @@ async def create_checkout(
             total,
             order_number,
             checkout.payment_method.value,
-            f"{FRONTEND_URL}/order/success?order_id={order_id}"
+            f"{FRONTEND_URL}/payment/success?order_id={order_id}"
         )
         
         # Store Stitch payment ID
