@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import json
 import logging
 import secrets
 import hmac
@@ -4870,6 +4871,118 @@ async def root():
 @api_router.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+# ============ COFFEE CONCIERGE (AI CHAT) ============
+
+class ConciergeMessageIn(BaseModel):
+    session_id: str
+    message: str
+
+
+CONCIERGE_SYSTEM_PROMPT = """You are the Cape Ember Coffee Concierge — a warm, knowledgeable South African coffee guide for Cape Ember Coffee Co.
+
+Cape Ember Coffee Co. is a premium South African coffee brand that partners with experienced local roasters to create landscape-inspired coffees. We are NOT a roastery ourselves.
+
+Our four signature blends:
+1. Fynbos Roast — Medium roast inspired by the Cape Peninsula fynbos. Smooth, nutty, balanced. Notes of hazelnut, caramel, cocoa. R139 for 250g.
+2. Garden Route Blend — Medium roast tribute to the Garden Route coast. Smooth with cocoa and gentle citrus. Notes of milk chocolate, orange zest, brown sugar. R139 for 250g.
+3. Ember Reserve — Dark roast inspired by the Drakensberg mountains. Bold, rich dark chocolate, molasses, hint of smoke. R139 for 250g.
+4. Karoo Horizon — Inspired by the vast Karoo plains. R139 for 250g.
+
+Also available: Landscape Bundle (all four blends).
+
+Shipping: Complimentary over R399. Sedgefield gets free local delivery. Standard R75. Nationwide via courier, 2-5 business days.
+Subscribe & Save: 15% off with Ember Circle subscription (weekly, fortnightly, or monthly).
+Welcome coupon: WELCOME10 (10% off first order, min R100).
+
+Your job:
+- Help customers pick the right blend based on taste preferences ("I like dark chocolate flavors", "I want something smooth", etc.)
+- Answer brewing method questions (French Press, Pour Over, AeroPress, Espresso, Cold Brew) with our specific ratios/times
+- Explain the South African landscape story behind each blend
+- Answer shipping, subscription, coupon questions
+
+Tone: Warm, elegant, knowledgeable — like a boutique coffee shop host in Cape Town. Never pushy. Prices in ZAR (R). Keep replies concise (2-4 sentences) unless the customer asks for detail. Do not invent facts, roasting history, or claims. If you don't know something, say so and suggest they email hello@capeembercoffee.co.za."""
+
+
+@api_router.post("/concierge/chat")
+async def concierge_chat(payload: ConciergeMessageIn):
+    """Send a user message to the Coffee Concierge and stream the reply back as SSE."""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+    from fastapi.responses import StreamingResponse
+
+    emergent_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not emergent_key:
+        raise HTTPException(status_code=500, detail="Coffee Concierge is not configured")
+
+    user_text = (payload.message or "").strip()
+    if not user_text:
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    if len(user_text) > 1000:
+        raise HTTPException(status_code=400, detail="Message too long (max 1000 chars)")
+
+    # Load existing history for this session
+    session_doc = await db.concierge_sessions.find_one({"_id": payload.session_id})
+    history = session_doc.get("messages", []) if session_doc else []
+
+    # Persist user message immediately
+    now_iso = datetime.now(timezone.utc).isoformat()
+    user_entry = {"role": "user", "content": user_text, "created_at": now_iso}
+    await db.concierge_sessions.update_one(
+        {"_id": payload.session_id},
+        {"$push": {"messages": user_entry}, "$setOnInsert": {"created_at": now_iso}, "$set": {"updated_at": now_iso}},
+        upsert=True,
+    )
+
+    chat = LlmChat(
+        api_key=emergent_key,
+        session_id=payload.session_id,
+        system_message=CONCIERGE_SYSTEM_PROMPT,
+    ).with_model("openai", "gpt-5.4-mini")
+
+    # Replay prior history so the model has context (library maintains history per-instance)
+    for msg in history:
+        if msg.get("role") == "user":
+            try:
+                await chat.send_message(UserMessage(text=msg["content"]))
+            except Exception:
+                # If replay fails, continue with fresh context
+                break
+
+    async def event_generator():
+        assistant_text_parts = []
+        try:
+            async for event in chat.stream_message(UserMessage(text=user_text)):
+                if isinstance(event, TextDelta):
+                    assistant_text_parts.append(event.content)
+                    yield f"data: {json.dumps({'delta': event.content})}\n\n"
+                elif isinstance(event, StreamDone):
+                    break
+            full_reply = "".join(assistant_text_parts).strip()
+            if full_reply:
+                await db.concierge_sessions.update_one(
+                    {"_id": payload.session_id},
+                    {"$push": {"messages": {"role": "assistant", "content": full_reply, "created_at": datetime.now(timezone.utc).isoformat()}},
+                     "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
+                )
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except Exception as e:
+            logger.error(f"Concierge stream error: {e}")
+            yield f"data: {json.dumps({'error': 'The concierge is briefly unavailable. Please try again in a moment.'})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@api_router.get("/concierge/history/{session_id}")
+async def concierge_history(session_id: str):
+    session_doc = await db.concierge_sessions.find_one({"_id": session_id})
+    if not session_doc:
+        return {"session_id": session_id, "messages": []}
+    return {"session_id": session_id, "messages": session_doc.get("messages", [])}
 
 
 # ============ INCLUDE ROUTERS ============

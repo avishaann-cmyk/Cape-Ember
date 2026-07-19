@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import CoffeeConcierge from './components/CoffeeConcierge';
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
 import ProductDetailPage from './pages/ProductDetailPage';
@@ -97,6 +98,7 @@ function App() {
               </Routes>
             </main>
             <Footer />
+            <CoffeeConcierge />
           </div>
         </BrowserRouter>
       </CartProvider>
