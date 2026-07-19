@@ -4873,6 +4873,13 @@ async def health_check():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
+@app.get("/health")
+async def k8s_health_check():
+    """Kubernetes liveness / readiness probe endpoint. Kept at root path (no /api prefix)
+    because k8s probes are configured against GET /health directly."""
+    return {"status": "healthy"}
+
+
 # ============ COFFEE CONCIERGE (AI CHAT) ============
 
 class ConciergeMessageIn(BaseModel):
