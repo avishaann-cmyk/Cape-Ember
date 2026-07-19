@@ -3147,7 +3147,7 @@ async def submit_contact(
     })
 
     background_tasks.add_task(send_contact_emails, payload.name, str(payload.email), payload.subject, payload.message)
-    return {"message": "Message sent successfully"}
+    return {"message": "Thanks — we've received your message and will get back to you shortly."}
 
 
 # ============ SUBSCRIPTION ROUTES ============
