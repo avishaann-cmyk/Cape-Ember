@@ -1123,8 +1123,8 @@ async def send_password_reset(email: str, reset_token: str):
         
         resend.api_key = resend_key
         
-        # Reset link (would be your frontend URL in production)
-        reset_link = f"https://capeembercoffee.co.za/reset-password?token={reset_token}"
+        # Reset link (uses configured frontend URL)
+        reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}"
         
         html_content = f"""
         <!DOCTYPE html>
@@ -1276,7 +1276,7 @@ async def send_welcome_email(email: str, first_name: str):
                                     <p style="margin: 0 0 20px; color: #6B5048; font-size: 16px;">
                                         Ready to explore? Use code <strong style="color: #D05C23;">WELCOME10</strong> for 10% off your first order.
                                     </p>
-                                    <a href="https://capeembercoffee.co.za/shop" style="display: inline-block; background-color: #D05C23; color: #FFFFFF; padding: 15px 40px; text-decoration: none; font-size: 16px; font-weight: 600; letter-spacing: 1px;">
+                                    <a href="{FRONTEND_URL}/shop" style="display: inline-block; background-color: #D05C23; color: #FFFFFF; padding: 15px 40px; text-decoration: none; font-size: 16px; font-weight: 600; letter-spacing: 1px;">
                                         EXPLORE THE COLLECTION
                                     </a>
                                 </td>
@@ -4962,7 +4962,7 @@ async def shutdown_db_client():
 @app.get("/robots.txt", response_class=PlainTextResponse)
 async def robots_txt():
     """Generate robots.txt for SEO"""
-    content = """User-agent: *
+    content = f"""User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /cart
@@ -4971,7 +4971,7 @@ Disallow: /account
 Disallow: /api/
 Disallow: /cdn
 
-Sitemap: https://capeembercoffee.co.za/sitemap.xml
+Sitemap: {FRONTEND_URL}/sitemap.xml
 """
     return content
 
@@ -4979,7 +4979,7 @@ Sitemap: https://capeembercoffee.co.za/sitemap.xml
 @app.get("/sitemap.xml")
 async def sitemap_xml():
     """Generate XML sitemap for SEO"""
-    base_url = "https://capeembercoffee.co.za"
+    base_url = FRONTEND_URL
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
     urls = [
