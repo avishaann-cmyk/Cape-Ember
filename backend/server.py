@@ -28,6 +28,7 @@ import bcrypt
 from enum import Enum
 from decimal import Decimal
 from bson import ObjectId
+import resend_events
 
 ROOT_DIR = Path(__file__).parent
 APP_DIR = ROOT_DIR.parent
@@ -50,12 +51,18 @@ PAYFAST_MERCHANT_ID = os.environ.get('PAYFAST_MERCHANT_ID', '10000100')
 PAYFAST_MERCHANT_KEY = os.environ.get('PAYFAST_MERCHANT_KEY', '46f0cd694581a')
 PAYFAST_PASSPHRASE = os.environ.get('PAYFAST_PASSPHRASE', '')
 PAYFAST_SANDBOX = os.environ.get('PAYFAST_SANDBOX', 'false').lower() == 'true'
+PAYFAST_DEBUG = os.environ.get('PAYFAST_DEBUG', 'false').lower() == 'true'
 
 # Stitch Payments
 STITCH_CLIENT_ID = os.environ.get('STITCH_CLIENT_ID', '')
 STITCH_CLIENT_SECRET = os.environ.get('STITCH_CLIENT_SECRET', '')
 STITCH_WEBHOOK_SECRET = os.environ.get('STITCH_WEBHOOK_SECRET', '')
 STITCH_SANDBOX = os.environ.get('STITCH_SANDBOX', 'true').lower() == 'true'
+STITCH_PRIVATE_KEY = os.environ.get('STITCH_PRIVATE_KEY', '')
+STITCH_PRIVATE_KEY_PATH = os.environ.get('STITCH_PRIVATE_KEY_PATH', '')
+STITCH_OAUTH_URL = os.environ.get('STITCH_OAUTH_URL', 'https://api.stitch.money/oauth/token')
+STITCH_TOKEN_URL = os.environ.get('STITCH_TOKEN_URL', 'https://secure.stitch.money/connect/token')
+STITCH_SCOPE = os.environ.get('STITCH_SCOPE', 'client_paymentrequest')
 
 # Email (placeholder for SendGrid/Resend)
 EMAIL_API_KEY = os.environ.get('EMAIL_API_KEY', '')
@@ -636,8 +643,18 @@ def generate_payfast_signature(data: Dict[str, str]) -> str:
     
     if PAYFAST_PASSPHRASE:
         param_string += f"&passphrase={urllib.parse.quote_plus(PAYFAST_PASSPHRASE)}"
+
+    signature = hashlib.md5(param_string.encode()).hexdigest()
     
-    return hashlib.md5(param_string.encode()).hexdigest()
+    if PAYFAST_DEBUG:
+        logger.info("="*80)
+        logger.info("PayFast Signature Generation Debug:")
+        logger.info(f"Fields (before URL encoding): {dict(sorted_items)}")
+        logger.info(f"Full param string: {param_string}")
+        logger.info(f"Calculated signature: {signature}")
+        logger.info("="*80)
+    
+    return signature
 
 async def verify_payfast_itn(request: Request) -> bool:
     """Verify PayFast ITN request"""
@@ -673,52 +690,121 @@ async def verify_payfast_itn(request: Request) -> bool:
 
 # ============ STITCH PAYMENT FUNCTIONS ============
 
+def get_stitch_private_key() -> Optional[str]:
+    if STITCH_PRIVATE_KEY:
+        return STITCH_PRIVATE_KEY.replace('\\n', '\n')
+    if STITCH_PRIVATE_KEY_PATH:
+        key_path = Path(STITCH_PRIVATE_KEY_PATH)
+        if key_path.exists():
+            return key_path.read_text()
+    return None
+
+
+def build_stitch_client_assertion() -> Optional[str]:
+    private_key = get_stitch_private_key()
+    if not private_key:
+        logger.info("Stitch private key not configured; skipping private_key_jwt flow.")
+        return None
+
+    now = datetime.now(timezone.utc)
+    payload = {
+        "iss": STITCH_CLIENT_ID,
+        "sub": STITCH_CLIENT_ID,
+        "aud": STITCH_TOKEN_URL,
+        "jti": str(uuid.uuid4()),
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(minutes=5)).timestamp()),
+    }
+
+    try:
+        return jwt.encode(payload, private_key, algorithm="RS256")
+    except Exception as e:
+        logger.error(f"Stitch client assertion creation failed: {e}")
+        return None
+
+
 async def get_stitch_access_token() -> str:
     """Get Stitch Express API access token using client credentials"""
     if not STITCH_CLIENT_ID or not STITCH_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Stitch not configured")
-    
-    # Stitch Express uses Basic Auth with client_id:client_secret
+
+    def parse_json(response):
+        try:
+            return response.json()
+        except Exception:
+            return {"error": response.text}
+
     import base64
     credentials = f"{STITCH_CLIENT_ID}:{STITCH_CLIENT_SECRET}"
     encoded_credentials = base64.b64encode(credentials.encode()).decode()
-    
+
     async with httpx.AsyncClient() as client:
-        # Try the Express OAuth endpoint first
+        token_data = {}
+        response = None
+
+        client_assertion = build_stitch_client_assertion()
+        if client_assertion:
+            logger.info("Attempting Stitch client_assertion token exchange using private key.")
+            response = await client.post(
+                STITCH_TOKEN_URL,
+                data={
+                    "grant_type": "client_credentials",
+                    "scope": STITCH_SCOPE,
+                    "client_id": STITCH_CLIENT_ID,
+                    "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+                    "client_assertion": client_assertion,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"}
+            )
+            token_data = parse_json(response)
+            if response.status_code == 200 and token_data.get("access_token"):
+                return token_data["access_token"]
+            logger.warning(f"Stitch private_key_jwt token exchange failed: {response.status_code} {token_data}")
+
+        logger.info("Falling back to Stitch Basic auth token exchange.")
         response = await client.post(
-            "https://api.stitch.money/oauth/token",
+            STITCH_OAUTH_URL,
             data={
                 "grant_type": "client_credentials",
-                "scope": "payments"
+                "scope": STITCH_SCOPE,
             },
             headers={
                 "Authorization": f"Basic {encoded_credentials}",
                 "Content-Type": "application/x-www-form-urlencoded"
             }
         )
-        
-        if response.status_code != 200:
-            # Fallback to standard Stitch endpoint with form data
-            logger.info(f"Trying alternate Stitch token endpoint...")
+        token_data = parse_json(response)
+
+        if response.status_code != 200 or token_data.get("errors"):
+            logger.info("Trying alternate Stitch token endpoint...")
             response = await client.post(
-                "https://secure.stitch.money/connect/token",
+                STITCH_TOKEN_URL,
                 data={
                     "grant_type": "client_credentials",
                     "client_id": STITCH_CLIENT_ID,
                     "client_secret": STITCH_CLIENT_SECRET,
-                    "scope": "client_paymentrequest"
+                    "scope": STITCH_SCOPE,
                 },
-                headers={
-                    "Content-Type": "application/x-www-form-urlencoded"
-                }
+                headers={"Content-Type": "application/x-www-form-urlencoded"}
             )
-        
-        if response.status_code != 200:
-            logger.error(f"Stitch token error: {response.status_code} - {response.text}")
-            raise HTTPException(status_code=500, detail="Payment service unavailable")
-        
-        token_data = response.json()
-        return token_data.get("access_token") or token_data.get("token")
+            token_data = parse_json(response)
+
+        if response.status_code != 200 or token_data.get("errors") or not token_data.get("access_token"):
+            logger.error(f"Stitch token error: {response.status_code} - {token_data}")
+            raise HTTPException(
+                status_code=503,
+                detail="Stitch payment service unavailable. Verify your Stitch credentials and private key configuration."
+            )
+
+        access_token = token_data.get("access_token") or token_data.get("token") or token_data.get("id_token")
+        if not access_token:
+            logger.error(f"Stitch token response missing access token: {token_data}")
+            raise HTTPException(
+                status_code=503,
+                detail="Stitch payment service unavailable. Verify your Stitch credentials and private key configuration."
+            )
+
+        return access_token
 
 async def create_stitch_payment(
     amount: float,
@@ -748,7 +834,10 @@ async def create_stitch_payment(
             },
             "payerReference": reference,
             "beneficiaryReference": f"Cape Ember {reference}",
-            "externalReference": reference
+            "externalReference": reference,
+            "successUrl": redirect_url,
+            "cancelUrl": f"{FRONTEND_URL}/order/cancel?order_id={reference}",
+            "failureUrl": f"{FRONTEND_URL}/order/failure?order_id={reference}"
         }
     }
     
@@ -1641,8 +1730,30 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks):
     # Create empty wishlist
     await db.wishlists.insert_one({"_id": user_id, "items": [], "updated_at": now})
     
-    # Send welcome email
+    # Send welcome email and sync the customer to Resend
     background_tasks.add_task(send_welcome_email, user_data.email.lower(), user_data.first_name)
+    background_tasks.add_task(
+        resend_events.sync_resend_contact,
+        user_data.email.lower(),
+        user_data.first_name,
+        user_data.last_name,
+        {"accepts_marketing": user_data.accepts_marketing},
+        unsubscribed=not user_data.accepts_marketing,
+        segment_ids=[resend_events.SEGMENT_IDS["ember_circle"]] if resend_events.SEGMENT_IDS.get("ember_circle") else None
+    )
+    background_tasks.add_task(
+        resend_events.emit_lifecycle_event,
+        resend_events.EventName.subscriber_confirmed.value,
+        {"email": user_data.email.lower(), "first_name": user_data.first_name},
+        {"accepts_marketing": user_data.accepts_marketing, "created_account": True},
+        None,
+        None,
+        user_id,
+        None,
+        None,
+        "user",
+        user_id
+    )
     
     access_token = create_access_token(user_id, user_data.email, False, None)
     refresh_token = create_refresh_token(user_id)
@@ -2497,6 +2608,41 @@ async def create_checkout(
     }
     
     await db.orders.insert_one(order_doc)
+
+    # Sync checkout contact and emit lifecycle event
+    email = user["email"] if user else checkout.guest_email
+    first_name = checkout.shipping.address.first_name
+    background_tasks.add_task(
+        resend_events.sync_resend_contact,
+        email,
+        first_name,
+        checkout.shipping.address.last_name,
+        {
+            "checkout_id": order_id,
+            "payment_method": checkout.payment_method,
+            "subtotal": totals["subtotal"],
+            "is_subscription": checkout.is_subscription,
+        },
+        unsubscribed=False
+    )
+    background_tasks.add_task(
+        resend_events.emit_lifecycle_event,
+        resend_events.EventName.checkout_started.value,
+        {"email": email, "first_name": first_name},
+        {
+            "order_id": order_id,
+            "payment_method": checkout.payment_method,
+            "subtotal": totals["subtotal"],
+            "is_subscription": checkout.is_subscription,
+        },
+        None,
+        None,
+        user_id,
+        None,
+        None,
+        "order",
+        order_id
+    )
     
     # Generate payment based on method
     payment_data = None
@@ -2504,25 +2650,31 @@ async def create_checkout(
     if checkout.payment_method == PaymentMethod.PAYFAST:
         # PayFast payment
         email = user["email"] if user else checkout.guest_email
-        first_name = checkout.shipping.address.first_name
-        last_name = checkout.shipping.address.last_name
+        first_name = checkout.shipping.address.first_name.strip()
+        last_name = checkout.shipping.address.last_name.strip()
         
+        # Use order_number as m_payment_id (more reliable than ObjectId)
+        # NOTE: merchant_key is a backend secret and should NOT be sent to PayFast
+        # Only include required fields - PayFast is strict about what fields are included in signature
         payfast_data = {
             "merchant_id": PAYFAST_MERCHANT_ID,
-            "merchant_key": PAYFAST_MERCHANT_KEY,
-            "return_url": f"{FRONTEND_URL}/payment/success?order_id={order_id}",
-            "cancel_url": f"{FRONTEND_URL}/payment/cancel?order_id={order_id}",
-            "notify_url": f"{BACKEND_URL}/api/webhooks/payfast",
-            "m_payment_id": order_id,
+            "m_payment_id": order_number,
             "amount": f"{total:.2f}",
             "item_name": f"Cape Ember Order {order_number}",
             "email_address": email,
             "name_first": first_name,
-            "name_last": last_name
+            "name_last": last_name,
+            "return_url": f"{FRONTEND_URL}/payment/success?order_id={order_id}",
+            "cancel_url": f"{FRONTEND_URL}/payment/cancel?order_id={order_id}",
+            "notify_url": f"{BACKEND_URL}/api/webhooks/payfast"
         }
         
         signature = generate_payfast_signature(payfast_data)
         payfast_data["signature"] = signature
+        
+        if PAYFAST_DEBUG:
+            logger.info(f"PayFast checkout for {order_number}: signature={signature}")
+            logger.info(f"PayFast fields: {payfast_data}")
         
         payment_data = {
             "method": "payfast",
@@ -2696,29 +2848,27 @@ async def create_payfast_payment(payment: SimplePaymentCreate, user: dict = Depe
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
+    # Use order_number as m_payment_id (more reliable than ObjectId)
     payfast_data = {
         "merchant_id": PAYFAST_MERCHANT_ID,
         "merchant_key": PAYFAST_MERCHANT_KEY,
         "return_url": f"{FRONTEND_URL}/order/success?order_id={payment.order_id}",
         "cancel_url": f"{FRONTEND_URL}/order/cancel?order_id={payment.order_id}",
         "notify_url": f"{BACKEND_URL}/api/webhooks/payfast",
-        "m_payment_id": payment.order_id,
+        "m_payment_id": order.get("order_number", str(payment.order_id)),
         "amount": f"{order['total']:.2f}",
-        "item_name": f"Cape Ember Order {order['order_number']}",
+        "item_name": f"Cape Ember Order {order.get('order_number', 'N/A')}",
         "email_address": user["email"],
         "name_first": user.get("first_name", "Customer"),
         "name_last": user.get("last_name", "")
     }
-    
-    if PAYFAST_PASSPHRASE:
-        payfast_data["passphrase"] = PAYFAST_PASSPHRASE
-    
+
     signature = generate_payfast_signature(payfast_data)
     payfast_data["signature"] = signature
-    
-    # Remove passphrase from returned data
-    if "passphrase" in payfast_data:
-        del payfast_data["passphrase"]
+
+    if PAYFAST_DEBUG:
+        payload_debug = {k: v for k, v in payfast_data.items() if k != "passphrase"}
+        logger.info("PayFast create-payment debug: %s", payload_debug)
     
     return {
         "payfast_host": get_payfast_host(),
@@ -2914,6 +3064,40 @@ async def payfast_webhook(request: Request, background_tasks: BackgroundTasks):
         
         if email:
             background_tasks.add_task(send_order_confirmation, order, email)
+            background_tasks.add_task(
+                resend_events.emit_lifecycle_event,
+                resend_events.EventName.order_placed.value,
+                {"email": email},
+                {
+                    "order_number": order["order_number"],
+                    "total": order["total"],
+                    "payment_method": order["payment_method"],
+                },
+                None,
+                None,
+                order.get("user_id"),
+                None,
+                None,
+                "order",
+                order_id
+            )
+            background_tasks.add_task(
+                resend_events.emit_lifecycle_event,
+                resend_events.EventName.order_payment_confirmed.value,
+                {"email": email},
+                {
+                    "order_number": order["order_number"],
+                    "total": order["total"],
+                    "payment_method": order["payment_method"],
+                },
+                None,
+                None,
+                order.get("user_id"),
+                None,
+                None,
+                "order",
+                order_id
+            )
         background_tasks.add_task(send_admin_order_notification, order)
     
     elif payment_status == "CANCELLED":
@@ -2985,8 +3169,76 @@ async def stitch_webhook(request: Request, background_tasks: BackgroundTasks):
             user = await db.users.find_one({"_id": order["user_id"]})
             if user:
                 background_tasks.add_task(send_order_confirmation, order, user["email"])
+                background_tasks.add_task(
+                    resend_events.emit_lifecycle_event,
+                    resend_events.EventName.order_placed.value,
+                    {"email": user["email"]},
+                    {
+                        "order_number": order["order_number"],
+                        "total": order["total"],
+                        "payment_method": order["payment_method"],
+                    },
+                    None,
+                    None,
+                    order.get("user_id"),
+                    None,
+                    None,
+                    "order",
+                    order["_id"]
+                )
+                background_tasks.add_task(
+                    resend_events.emit_lifecycle_event,
+                    resend_events.EventName.order_payment_confirmed.value,
+                    {"email": user["email"]},
+                    {
+                        "order_number": order["order_number"],
+                        "total": order["total"],
+                        "payment_method": order["payment_method"],
+                    },
+                    None,
+                    None,
+                    order.get("user_id"),
+                    None,
+                    None,
+                    "order",
+                    order["_id"]
+                )
         elif order.get("guest_email"):
             background_tasks.add_task(send_order_confirmation, order, order["guest_email"])
+            background_tasks.add_task(
+                resend_events.emit_lifecycle_event,
+                resend_events.EventName.order_placed.value,
+                {"email": order["guest_email"]},
+                {
+                    "order_number": order["order_number"],
+                    "total": order["total"],
+                    "payment_method": order["payment_method"],
+                },
+                None,
+                None,
+                None,
+                None,
+                None,
+                "order",
+                order["_id"]
+            )
+            background_tasks.add_task(
+                resend_events.emit_lifecycle_event,
+                resend_events.EventName.order_payment_confirmed.value,
+                {"email": order["guest_email"]},
+                {
+                    "order_number": order["order_number"],
+                    "total": order["total"],
+                    "payment_method": order["payment_method"],
+                },
+                None,
+                None,
+                None,
+                None,
+                None,
+                "order",
+                order["_id"]
+            )
         background_tasks.add_task(send_admin_order_notification, order)
     
     elif status in ["PaymentCancelled", "PaymentFailed"]:
@@ -3003,6 +3255,26 @@ async def stitch_webhook(request: Request, background_tasks: BackgroundTasks):
         "received_at": now
     })
     
+    return Response(content="OK", status_code=200)
+
+
+@api_router.post("/webhooks/resend")
+async def resend_webhook(request: Request, background_tasks: BackgroundTasks):
+    """Resend webhook handler for event verification and logging"""
+    body = await request.body()
+    try:
+        verified_payload = await resend_events.verify_resend_webhook(request, body)
+    except Exception:
+        logger.warning("Resend webhook verification failed")
+        return Response(content="Invalid webhook", status_code=400)
+
+    await db.resend_webhook_events.insert_one({
+        "id": verified_payload.get("id"),
+        "event": verified_payload.get("event"),
+        "payload": verified_payload,
+        "received_at": datetime.now(timezone.utc).isoformat()
+    })
+
     return Response(content="OK", status_code=200)
 
 
@@ -3193,6 +3465,38 @@ async def create_subscription_request(
     }
     await db.subscriptions.insert_one(doc)
     background_tasks.add_task(send_subscription_request_emails, doc)
+    background_tasks.add_task(
+        resend_events.sync_resend_contact,
+        customer_email,
+        None,
+        None,
+        {
+            "subscription_request": True,
+            "plan_name": request_data.plan_name,
+            "blend": request_data.blend,
+            "frequency": request_data.frequency,
+        },
+        unsubscribed=False,
+        segment_ids=[resend_events.SEGMENT_IDS["ember_circle"]] if resend_events.SEGMENT_IDS.get("ember_circle") else None
+    )
+    background_tasks.add_task(
+        resend_events.emit_lifecycle_event,
+        resend_events.EventName.subscriber_form_submitted.value,
+        {"email": customer_email, "first_name": user.get("first_name") if user else None},
+        {
+            "plan_name": request_data.plan_name,
+            "blend": request_data.blend,
+            "frequency": request_data.frequency,
+            "delivery_notes": request_data.delivery_notes,
+        },
+        None,
+        None,
+        user.get("_id") if user else None,
+        None,
+        None,
+        "subscription_request",
+        subscription_id
+    )
 
     return {"message": "Subscription request submitted", "id": subscription_id}
 
@@ -3563,6 +3867,22 @@ async def update_order_status(
                 email = user.get("email", "")
         if email:
             background_tasks.add_task(send_shipping_notification, order, update.tracking_number)
+            background_tasks.add_task(
+                resend_events.emit_lifecycle_event,
+                resend_events.EventName.order_shipped.value,
+                {"email": email},
+                {
+                    "order_number": order["order_number"],
+                    "tracking_number": update.tracking_number,
+                },
+                None,
+                None,
+                order.get("user_id"),
+                None,
+                None,
+                "order",
+                order_id
+            )
     
     return {"message": "Order status updated", "status": update.status}
 
@@ -5076,6 +5396,7 @@ async def startup_event():
     await db.analytics_events.create_index([("created_at", -1)])
     await db.analytics_events.create_index([("event_name", 1), ("created_at", -1)])
     await db.analytics_events.create_index([("anonymous_id", 1), ("created_at", -1)])
+    await resend_events.ensure_event_indexes()
 
 
 @app.on_event("shutdown")
