@@ -37,6 +37,7 @@ const DEFAULT_CART_RULES = {
 
 const CartPage = () => {
   const { cart, updateQuantity, removeFromCart, loading, refreshCart, applyCoupon, removeCoupon } = useCart();
+  const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [upsellProducts, setUpsellProducts] = useState([]);
