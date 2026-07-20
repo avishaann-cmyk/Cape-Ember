@@ -144,7 +144,7 @@ const PrivacyPage = () => {
               For privacy-related questions or to exercise your rights, contact our Information Officer:<br />
               Email: hello@capeembercoffee.co.za<br />
               WhatsApp: +27 81 026 1618<br />
-              Location: Cape Town, South Africa
+              Location: Garden Route, South Africa
             </p>
           </section>
         </div>

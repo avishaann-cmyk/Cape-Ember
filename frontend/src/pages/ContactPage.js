@@ -106,7 +106,7 @@ const ContactPage = () => {
     {
       icon: MapPin,
       label: 'Location',
-      value: 'Cape Town, South Africa',
+      value: 'Garden Route, South Africa',
       href: null
     }
   ];

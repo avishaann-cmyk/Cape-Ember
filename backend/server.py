@@ -54,6 +54,7 @@ PAYFAST_SANDBOX = os.environ.get('PAYFAST_SANDBOX', 'false').lower() == 'true'
 PAYFAST_DEBUG = os.environ.get('PAYFAST_DEBUG', 'false').lower() == 'true'
 
 # Stitch Payments
+STITCH_ENABLED = os.environ.get('STITCH_ENABLED', 'false').lower() == 'true'
 STITCH_CLIENT_ID = os.environ.get('STITCH_CLIENT_ID', '')
 STITCH_CLIENT_SECRET = os.environ.get('STITCH_CLIENT_SECRET', '')
 STITCH_WEBHOOK_SECRET = os.environ.get('STITCH_WEBHOOK_SECRET', '')
@@ -2653,28 +2654,28 @@ async def create_checkout(
         first_name = checkout.shipping.address.first_name.strip()
         last_name = checkout.shipping.address.last_name.strip()
         
-        # Use order_number as m_payment_id (more reliable than ObjectId)
-        # NOTE: merchant_key is a backend secret and should NOT be sent to PayFast
-        # Only include required fields - PayFast is strict about what fields are included in signature
+        # PayFast requires merchant_id AND merchant_key in the form AND in the signature.
+        # m_payment_id must be the order UUID so the ITN webhook can look it up directly.
         payfast_data = {
             "merchant_id": PAYFAST_MERCHANT_ID,
-            "m_payment_id": order_number,
+            "merchant_key": PAYFAST_MERCHANT_KEY,
+            "return_url": f"{FRONTEND_URL}/payment/success?order_id={order_id}",
+            "cancel_url": f"{FRONTEND_URL}/payment/cancel?order_id={order_id}",
+            "notify_url": f"{BACKEND_URL}/api/webhooks/payfast",
+            "m_payment_id": order_id,
             "amount": f"{total:.2f}",
             "item_name": f"Cape Ember Order {order_number}",
             "email_address": email,
             "name_first": first_name,
             "name_last": last_name,
-            "return_url": f"{FRONTEND_URL}/payment/success?order_id={order_id}",
-            "cancel_url": f"{FRONTEND_URL}/payment/cancel?order_id={order_id}",
-            "notify_url": f"{BACKEND_URL}/api/webhooks/payfast"
         }
         
         signature = generate_payfast_signature(payfast_data)
         payfast_data["signature"] = signature
         
         if PAYFAST_DEBUG:
-            logger.info(f"PayFast checkout for {order_number}: signature={signature}")
-            logger.info(f"PayFast fields: {payfast_data}")
+            safe = {k: v for k, v in payfast_data.items() if k not in ("merchant_key", "passphrase")}
+            logger.info(f"PayFast checkout for {order_number}: signature={signature} fields={safe}")
         
         payment_data = {
             "method": "payfast",
@@ -2683,9 +2684,9 @@ async def create_checkout(
         }
     
     elif checkout.payment_method in [PaymentMethod.STITCH_CARD, PaymentMethod.STITCH_EFT]:
-        # Stitch payment
-        if not STITCH_CLIENT_ID:
-            raise HTTPException(status_code=500, detail="Stitch payments not configured")
+        # Stitch payment — only available when STITCH_ENABLED=true
+        if not STITCH_ENABLED or not STITCH_CLIENT_ID:
+            raise HTTPException(status_code=400, detail="Stitch payments are not currently available. Please use PayFast.")
         
         stitch_result = await create_stitch_payment(
             total,
@@ -2848,14 +2849,14 @@ async def create_payfast_payment(payment: SimplePaymentCreate, user: dict = Depe
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Use order_number as m_payment_id (more reliable than ObjectId)
+    # m_payment_id must be the order UUID so the ITN webhook can look it up directly
     payfast_data = {
         "merchant_id": PAYFAST_MERCHANT_ID,
         "merchant_key": PAYFAST_MERCHANT_KEY,
         "return_url": f"{FRONTEND_URL}/order/success?order_id={payment.order_id}",
         "cancel_url": f"{FRONTEND_URL}/order/cancel?order_id={payment.order_id}",
         "notify_url": f"{BACKEND_URL}/api/webhooks/payfast",
-        "m_payment_id": order.get("order_number", str(payment.order_id)),
+        "m_payment_id": payment.order_id,
         "amount": f"{order['total']:.2f}",
         "item_name": f"Cape Ember Order {order.get('order_number', 'N/A')}",
         "email_address": user["email"],
@@ -2945,6 +2946,21 @@ async def get_orders(user: dict = Depends(get_current_user), page: int = 1, limi
     }
 
 
+@api_router.get("/orders/{order_id}/status")
+async def get_order_status(order_id: str):
+    """Public lightweight status endpoint for payment return page polling.
+    Returns only non-sensitive status fields so guests can poll post-payment."""
+    order = await db.orders.find_one({"_id": order_id}, {"status": 1, "payment_status": 1, "order_number": 1})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return {
+        "order_id": order_id,
+        "order_number": order.get("order_number"),
+        "status": order.get("status"),
+        "payment_status": order.get("payment_status"),
+    }
+
+
 @api_router.get("/orders/{order_id}")
 async def get_order(order_id: str, user: Optional[dict] = Depends(get_current_user_optional)):
     query = {"_id": order_id}
@@ -3009,31 +3025,53 @@ async def reorder(order_id: str, user: dict = Depends(get_current_user)):
 
 @api_router.post("/webhooks/payfast")
 async def payfast_webhook(request: Request, background_tasks: BackgroundTasks):
-    """PayFast ITN webhook handler"""
+    """PayFast ITN webhook handler — authoritative payment signal."""
+    # Starlette caches form data after first read; verify_payfast_itn reads it first.
     if not await verify_payfast_itn(request):
+        logger.warning("PayFast ITN: verification failed — ignoring")
         return Response(content="OK", status_code=200)
     
+    # Safe to re-read; Starlette returns cached ImmutableMultiDict
     form_data = await request.form()
     data = dict(form_data)
-    
-    logger.info(f"PayFast ITN received: {data}")
     
     order_id = data.get("m_payment_id")
     payment_status = data.get("payment_status")
     pf_payment_id = data.get("pf_payment_id")
+    amount_gross = data.get("amount_gross", "0")
+    
+    logger.info(f"PayFast ITN: order_id={order_id} status={payment_status} pf_id={pf_payment_id}")
     
     if not order_id:
         return Response(content="OK", status_code=200)
     
     order = await db.orders.find_one({"_id": order_id})
     if not order:
-        logger.warning(f"Order not found: {order_id}")
+        logger.warning(f"PayFast ITN: order not found for m_payment_id={order_id}")
         return Response(content="OK", status_code=200)
     
     now = datetime.now(timezone.utc).isoformat()
     
     if payment_status == "COMPLETE":
-        # Update order status
+        # Idempotency: skip if already paid
+        if order.get("payment_status") == PaymentStatus.COMPLETE:
+            logger.info(f"PayFast ITN: order {order_id} already paid — ignoring duplicate")
+            return Response(content="OK", status_code=200)
+        
+        # Amount validation: compare reported amount to frozen order total
+        try:
+            reported_amount = round(float(amount_gross), 2)
+            expected_amount = round(float(order["total"]), 2)
+            if abs(reported_amount - expected_amount) > 0.05:
+                logger.error(f"PayFast ITN: amount mismatch order={order_id} expected={expected_amount} got={reported_amount}")
+                await db.orders.update_one(
+                    {"_id": order_id},
+                    {"$set": {"payment_status": "amount_mismatch", "updated_at": now}}
+                )
+                return Response(content="OK", status_code=200)
+        except (TypeError, ValueError):
+            logger.warning(f"PayFast ITN: could not parse amount_gross={amount_gross}")
+        
         await db.orders.update_one(
             {"_id": order_id},
             {
@@ -3046,11 +3084,6 @@ async def payfast_webhook(request: Request, background_tasks: BackgroundTasks):
                 }
             }
         )
-        
-        # Reduce inventory
-        for item in order["items"]:
-            # In production, update actual inventory
-            pass
         
         # Clear cart
         if order.get("user_id"):

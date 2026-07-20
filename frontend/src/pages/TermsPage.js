@@ -120,7 +120,7 @@ const TermsPage = () => {
               For any questions about these Terms & Conditions, please contact us:<br />
               Email: hello@capeembercoffee.co.za<br />
               WhatsApp: +27 81 026 1618<br />
-              Location: Cape Town, South Africa
+              Location: Garden Route, South Africa
             </p>
           </section>
         </div>
