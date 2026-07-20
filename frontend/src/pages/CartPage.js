@@ -1,17 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash, ShoppingBag, ArrowRight, Tag, Truck, Gift, X } from '@phosphor-icons/react';
+import { Minus, Plus, Trash, ShoppingBag, ArrowRight, Tag, Truck, Gift, X, Lock, ArrowCounterClockwise } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
 import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
-import { computeCartTotals } from '../lib/cartTotals';
+import { computeCartTotals, isSedgefieldLocation } from '../lib/cartTotals';
 import { setPageSEO } from '../lib/seo';
 import { trackEvent } from '../lib/analytics';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const BRAND_LOGO = '/Logo.jpeg';
+
+// Authoritative product-ID → image mapping sourced from the same paths
+// used in server.py PRODUCTS_MAP. Falls back gracefully.
+const PRODUCT_IMAGES = {
+  'fynbos-roast':      '/assets/cape-ember/cape-ember-fynbos-lifestyle.jpeg',
+  'garden-route':      '/assets/cape-ember/cape-ember-garden-route-lifestyle.jpeg',
+  'garden-route-blend':'/assets/cape-ember/cape-ember-garden-route-lifestyle.jpeg',
+  'ember-reserve':     '/assets/cape-ember/cape-ember-ember-reserve-lifestyle.jpeg',
+  'karoo-horizon':     '/assets/cape-ember/cape-ember-karoo-horizon-lifestyle.jpeg',
+  'landscape-bundle':  '/assets/cape-ember/cape-ember-landscape-bundle-banner.jpeg',
+};
+
+const getItemImage = (item) => {
+  if (item.image_url && !item.image_url.includes('placeholder')) return item.image_url;
+  return PRODUCT_IMAGES[item.product_id] || '/assets/cape-ember/cape-ember-fynbos-lifestyle.jpeg';
+};
 
 const DEFAULT_CART_RULES = {
   freeShippingThreshold: 399,
@@ -21,7 +37,6 @@ const DEFAULT_CART_RULES = {
 
 const CartPage = () => {
   const { cart, updateQuantity, removeFromCart, loading, refreshCart, applyCoupon, removeCoupon } = useCart();
-  const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [upsellProducts, setUpsellProducts] = useState([]);
@@ -99,11 +114,6 @@ const CartPage = () => {
     } catch (error) {
       console.error('Failed to remove coupon:', error);
     }
-  };
-
-  const getImageUrl = (item) => {
-    if (item.image_url) return item.image_url;
-    return '/placeholder-coffee.jpg';
   };
 
   // Use centralized totals computation so cart + checkout cannot diverge
@@ -209,12 +219,13 @@ const CartPage = () => {
                   {/* Image */}
                   <Link 
                     to={`/products/${item.product_id}`}
-                    className="w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0 bg-[#F4EFE6] overflow-hidden"
+                    className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-[#F4EFE6] border border-[#E6DCD1] overflow-hidden"
                   >
                     <img
-                      src={getImageUrl(item)}
+                      src={getItemImage(item)}
                       alt={item.product_name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform"
+                      className="w-full h-full object-contain hover:scale-105 transition-transform"
+                      loading="lazy"
                     />
                   </Link>
                   
@@ -381,11 +392,11 @@ const CartPage = () => {
               {/* Trust Badges */}
               <div className="mt-6 pt-6 border-t border-[#E6DCD1] grid grid-cols-2 gap-4 text-center">
                 <div>
-                  <span className="text-lg block mb-1">🔒</span>
+                  <Lock size={20} className="text-[#D05C23] mx-auto mb-1" />
                   <span className="text-xs text-[#6B5048]">Secure Checkout</span>
                 </div>
                 <div>
-                  <span className="text-lg block mb-1">↩️</span>
+                  <ArrowCounterClockwise size={20} className="text-[#D05C23] mx-auto mb-1" />
                   <span className="text-xs text-[#6B5048]">30-Day Returns</span>
                 </div>
               </div>
@@ -393,15 +404,15 @@ const CartPage = () => {
           </div>
         </div>
 
-        {/* Upsell Section */}
-        {upsellProducts.length > 0 && (
+        {/* Upsell — one restrained suggestion, hidden when bundle already in cart */}
+        {upsellProducts.length > 0 && !cart.items?.some(i => i.product_id === 'landscape-bundle') && (
           <div className="mt-16 pt-16 border-t border-[#E6DCD1]">
             <div className="flex items-center gap-3 mb-8">
-              <Gift size={24} className="text-[#D05C23]" />
-              <h2 className="font-heading text-2xl text-[#2C1A12]">You Might Also Like</h2>
+              <Gift size={22} className="text-[#D05C23]" />
+              <h2 className="font-heading text-xl text-[#2C1A12]">Complete the Journey</h2>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {upsellProducts.map(product => (
+            <div className="grid sm:grid-cols-2 gap-6 max-w-2xl">
+              {upsellProducts.slice(0, 2).map(product => (
                 <ProductCard 
                   key={product.id} 
                   product={product} 
