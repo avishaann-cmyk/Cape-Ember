@@ -33,7 +33,7 @@ const TermsPage = () => {
           <section>
             <h2 className="font-heading text-2xl text-[#2D2622] mb-4">1. Company Information</h2>
             <p>
-              Cape Ember Coffee Co. is a South African registered business operating from Cape Town, 
+              Cape Ember Coffee Co. is a South African registered business operating from the Garden Route, 
               Western Cape. For any queries, please contact us at hello@capeembercoffee.co.za or 
               via WhatsApp at +27 81 026 1618.
             </p>

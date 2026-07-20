@@ -301,7 +301,7 @@ const ProductDetailPage = () => {
 
   // Mock reviews (in production, fetch from API)
   const reviews = [
-    { id: 1, author: 'Sarah M.', location: 'Cape Town', rating: 5, date: '2 weeks ago', text: 'Absolutely love this coffee! The flavor notes are spot on and it makes the perfect morning cup.' },
+    { id: 1, author: 'Sarah M.', location: 'Garden Route', rating: 5, date: '2 weeks ago', text: 'Absolutely love this coffee! The flavor notes are spot on and it makes the perfect morning cup.' },
     { id: 2, author: 'David K.', location: 'Johannesburg', rating: 5, date: '1 month ago', text: 'Best coffee I\'ve had in years. Will definitely be ordering again.' },
     { id: 3, author: 'Lisa P.', location: 'Durban', rating: 4, date: '1 month ago', text: 'Great quality and fast delivery. The tasting notes are accurate.' },
   ];
@@ -848,7 +848,7 @@ const ProductDetailPage = () => {
             <ul className="space-y-2 text-[#6B5048]">
               <li>Orders above R399 qualify for complimentary delivery.</li>
               <li>Standard delivery is typically 3-5 business days nationwide.</li>
-              <li>Freshly packed and dispatched quickly from Cape Town.</li>
+              <li>Freshly packed and dispatched from the Garden Route.</li>
               <li>Tracking details are shared once your order is on the way.</li>
             </ul>
           </div>

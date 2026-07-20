@@ -437,7 +437,7 @@ const CheckoutPage = () => {
                         value={address.city}
                         onChange={handleAddressChange}
                         className="w-full px-4 py-3 border border-[#E6DCD1] focus:border-[#D05C23] focus:outline-none"
-                        placeholder="Sedgefield, George, Cape Town..."
+                        placeholder="e.g. Sedgefield, George, Knysna…"
                         data-testid="address-city"
                       />
                     </div>
