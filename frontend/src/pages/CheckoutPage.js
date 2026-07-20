@@ -6,7 +6,7 @@ import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from '../components/AuthModal';
-import { DEFAULT_CART_RULES, computeCartTotals } from '../lib/cartTotals';
+import { DEFAULT_CART_RULES, computeCartTotals, isSedgefieldLocation } from '../lib/cartTotals';
 import { setPageSEO } from '../lib/seo';
 import { trackEvent } from '../lib/analytics';
 
@@ -437,7 +437,7 @@ const CheckoutPage = () => {
                         value={address.city}
                         onChange={handleAddressChange}
                         className="w-full px-4 py-3 border border-[#E6DCD1] focus:border-[#D05C23] focus:outline-none"
-                        placeholder="Cape Town"
+                        placeholder="Sedgefield, George, Cape Town..."
                         data-testid="address-city"
                       />
                     </div>
@@ -688,7 +688,7 @@ const CheckoutPage = () => {
               {/* Totals */}
               <div className="space-y-3 py-4 border-t border-[#E6DCD1]">
                 <div className="flex justify-between text-sm text-[#6B5048]">
-                  <span>Subtotal (VAT Included)</span>
+                  <span>Products</span>
                   <span>R {subtotal.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
@@ -698,21 +698,23 @@ const CheckoutPage = () => {
                   </div>
                 )}
                 <div className="flex justify-between text-sm text-[#6B5048]">
-                  <span>Shipping</span>
+                  <span>Delivery</span>
                   <span className={shippingCost === 0 ? 'text-[#2F855A]' : ''}>
                     {shippingCost === 0 ? 'Free' : `R ${shippingCost.toFixed(2)}`}
                   </span>
                 </div>
-                <div className="flex justify-between text-xs text-[#6B5048]">
-                  <span>VAT Included in Total</span>
-                  <span>R {vatAmount.toFixed(2)}</span>
-                </div>
+                {isSedgefieldLocation(`${address.city} ${address.province}`) && (
+                  <div className="text-xs text-[#2F855A] bg-[#2F855A]/10 px-3 py-2 rounded">
+                    Free local delivery — Sedgefield
+                  </div>
+                )}
               </div>
               
               <div className="flex justify-between py-4 border-t border-[#E6DCD1]">
-                <span className="font-heading text-xl text-[#2C1A12]">Final Total</span>
+                <span className="font-heading text-xl text-[#2C1A12]">Total</span>
                 <span className="font-heading text-xl text-[#2C1A12]">R {total.toFixed(2)}</span>
               </div>
+              <p className="text-xs text-[#6B5048] text-right -mt-2">VAT included in displayed prices</p>
 
               {/* Trust Badges */}
               <div className="pt-4 border-t border-[#E6DCD1] space-y-3">
