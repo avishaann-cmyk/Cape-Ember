@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - staging
+      - cape-ember-payments-checkout-audit
   pull_request:
     branches:
       - main
       - staging
+      - cape-ember-payments-checkout-audit
 
 env:
   REGISTRY: ghcr.io
@@ -190,7 +192,7 @@ jobs:
   deploy-production:
     needs: build-images
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/cape-ember-payments-checkout-audit'
     environment: production
 
     steps:

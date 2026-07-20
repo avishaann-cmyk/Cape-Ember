@@ -72,7 +72,7 @@ const CartPage = () => {
         subtotal: cart.subtotal || 0,
       });
     }
-  }, [cart.items]);
+  }, [cart.items, cart.subtotal]);
 
   useEffect(() => {
     const fetchPublicSettings = async () => {
