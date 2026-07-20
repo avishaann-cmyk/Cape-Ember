@@ -8,6 +8,7 @@ import ProductCard from '../components/ProductCard';
 import AuthModal from '../components/AuthModal';
 import { computeCartTotals } from '../lib/cartTotals';
 import { setPageSEO } from '../lib/seo';
+import { trackEvent } from '../lib/analytics';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const BRAND_LOGO = '/Logo.jpeg';
@@ -50,6 +51,10 @@ const CartPage = () => {
     };
     if (cart.items?.length > 0) {
       fetchUpsells();
+      trackEvent('view_cart', {
+        items_count: cart.items.length,
+        subtotal: cart.subtotal || 0,
+      });
     }
   }, [cart.items]);
 

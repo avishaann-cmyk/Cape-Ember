@@ -133,6 +133,15 @@ const CheckoutPage = () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
     } else if (step === 2 && validateStep2()) {
+      // Track shipping info when address is confirmed
+      trackEvent('add_shipping_info', {
+        city: address.city,
+        province: address.province,
+        is_sedgefield: isSedgefieldLocation(`${address.city} ${address.province}`),
+      });
+      if (isSedgefieldLocation(`${address.city} ${address.province}`)) {
+        trackEvent('sedgefield_free_delivery_applied', { city: address.city });
+      }
       setStep(3);
     }
   };
@@ -156,6 +165,13 @@ const CheckoutPage = () => {
       const headers = token
         ? { Authorization: `Bearer ${token}` }
         : { 'X-Session-ID': getSessionId() };
+
+      // Track payment method selection
+      trackEvent('add_payment_info', {
+        payment_type: 'payfast',
+        items_count: cart.items?.length || 0,
+        total,
+      });
 
       const checkoutPayload = {
         shipping: {
@@ -208,7 +224,13 @@ const CheckoutPage = () => {
 
     } catch (err) {
       console.error('Checkout error:', err);
-      setError(err.response?.data?.detail || 'Checkout failed. Please try again.');
+      const errMsg = err.response?.data?.detail || err.message || 'Checkout failed. Please try again.';
+      setError(errMsg);
+      trackEvent('payment_error', {
+        error: errMsg,
+        payment_type: 'payfast',
+        total,
+      });
       setLoading(false);
     }
   };
